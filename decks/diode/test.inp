@@ -1,0 +1,6 @@
+IMPORT SupremFile=my_diode.str
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=30
+SOLVE Type=EQUILIBRIUM
+EXPORT VTKFile=pnjunction2.vtu
+END
+

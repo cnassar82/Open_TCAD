@@ -1,0 +1,107 @@
+# ================================================================
+# Genius Device Simulation: pn Diode I-V Curves
+# Geometry matches my_diode.in (3 um x 5 um Si, n+ implant at x=1-2 um)
+# Doping profiles approximate the Medici process simulation result.
+#
+# Electrodes:
+#   Cathode (n+): top surface, x = 1 to 2 um  (held at 0 V)
+#   Anode   (p):  bottom surface, y = 5 um     (voltage swept)
+#
+# Outputs:
+#   forward_iv.*         - forward bias I-V  (0 to +1.2 V, 50 mV steps)
+#   reverse_iv.*         - reverse bias I-V  (0 to -50 V,  -1 V steps)
+#   diode_forward.vtu    - VTK field plot at end of forward sweep
+#   diode_reverse.vtu    - VTK field plot at end of reverse sweep
+# ================================================================
+
+GLOBAL  TExternal=300  DopingScale=1e18  Z.Width=1.0
+
+# ----------------------------------------------------------------
+# Mesh: triangular, finer in implant window and near surface
+# ----------------------------------------------------------------
+MESH  Type=S_Tri3
+
+X.MESH  WIDTH=1.0  N.SPACES=10    # x: 0-1 um  (outside implant window)
+X.MESH  WIDTH=1.0  N.SPACES=20    # x: 1-2 um  (implant window, finer)
+X.MESH  WIDTH=1.0  N.SPACES=10    # x: 2-3 um  (outside implant window)
+
+Y.MESH  DEPTH=0.5  N.SPACES=25    # y: 0-0.5 um  (surface / junction region)
+Y.MESH  DEPTH=4.5  N.SPACES=20    # y: 0.5-5 um  (bulk substrate)
+
+# ----------------------------------------------------------------
+# Single silicon region
+# ----------------------------------------------------------------
+REGION  Label=Silicon  Material=Si
+
+# ----------------------------------------------------------------
+# Electrode face labels
+# ----------------------------------------------------------------
+FACE  Label=Cathode  Location=TOP  X.Min=1.0  X.Max=2.0
+FACE  Label=Anode    Location=BOT
+
+# ----------------------------------------------------------------
+# Doping (analytic approximation of Medici process result)
+#
+# Boron substrate: 1e15 cm-3 uniform
+# Phosphorus implant: 100 keV, dose=1e15 cm-2, masked to x=1-2 um
+#   N.Peak=5e19 cm-3 at surface, Y.Junction=0.5 um sets Gaussian
+#   characteristic depth (~0.15 um), X.Char=0.1 um lateral falloff
+# ----------------------------------------------------------------
+DOPING  Type=Analytic
+
+PROFILE  Type=Uniform   Ion=Acceptor  N.Peak=1e15
+
+PROFILE  Type=Analytic  Ion=Donor     N.Peak=5e19  \
+         X.Min=1.0  X.Max=2.0  X.Char=0.1          \
+         Y.Min=0.0  Y.Max=0.0  Y.Junction=0.5
+
+# ----------------------------------------------------------------
+# Boundary conditions
+# ----------------------------------------------------------------
+BOUNDARY  ID=Cathode  Type=OhmicContact
+BOUNDARY  ID=Anode    Type=OhmicContact
+
+# ----------------------------------------------------------------
+# Mesh refinement by doping gradient, then by potential
+# ----------------------------------------------------------------
+REFINE.C  Variable=Doping  error.fraction=0.7  Measure=signedlog
+
+METHOD    Type=Poisson  NS=Basic
+SOLVE
+
+REFINE.C  Variable=Potential  error.fraction=0.7
+
+# ----------------------------------------------------------------
+# Physical model and numerical solver
+# ----------------------------------------------------------------
+MODEL   Region=Silicon  H.Mob=true  Mob.Force=ESimple
+
+METHOD  Type=DDML1  NS=Basic  LS=MUMPS  MaxIt=30
+
+# ================================================================
+# Step 1: Equilibrium
+# ================================================================
+SOLVE  Type=Equilibrium
+
+# ================================================================
+# Step 2: Forward bias I-V  (0 V to +1.2 V, 50 mV steps)
+# ================================================================
+SOLVE  Type=DCSWEEP  Vscan=Anode  Vstart=0.0  Vstep=0.05  Vstop=1.2  \
+       out.prefix=forward_iv
+
+EXPORT  VTKFile=diode_forward.vtu
+
+# ================================================================
+# Step 3: Return to equilibrium
+# ================================================================
+SOLVE  Type=Equilibrium
+
+# ================================================================
+# Step 4: Reverse bias I-V  (0 V to -50 V, -1 V steps)
+# ================================================================
+SOLVE  Type=DCSWEEP  Vscan=Anode  Vstart=0.0  Vstep=-1.0  Vstop=-50.0  \
+       out.prefix=reverse_iv
+
+EXPORT  VTKFile=diode_reverse.vtu
+
+END

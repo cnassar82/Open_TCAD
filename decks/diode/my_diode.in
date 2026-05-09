@@ -1,0 +1,29 @@
+echo 2D P-N junction with masked phosphorus implant
+
+line x loc=0.0  spac=0.1 tag=left
+line x loc=1.0  spac=0.05
+line x loc=2.0  spac=0.05
+line x loc=3.0  spac=0.1 tag=right
+line y loc=0.0  spac=0.02 tag=surf
+line y loc=10.0  spac=0.5  tag=back
+
+region silicon xlo=left xhi=right ylo=surf yhi=back
+boundary exposed  xlo=left xhi=right ylo=surf yhi=surf
+boundary backsid xlo=left xhi=right ylo=back  yhi=back
+
+initialize boron conc=1e15
+diffuse time=10 temp=900 dryo2
+deposit photores thick=2.0 divisions=5
+
+etch photores start   x=1.0 y=-3.0
+etch continue         x=2.0 y=-3.0
+etch continue         x=2.0 y=0.5
+etch done             x=1.0 y=0.5
+
+
+implant phosphorus dose=1e15 energy=50 pearson
+implant phosphorus dose=1e15 energy=100 pearson
+implant phosphorus dose=1e15 energy=150 pearson
+etch photores all
+diffuse time=60 temp=1000
+structure outfile=my_diode.str

@@ -1,0 +1,584 @@
+# the material property and database mapping
+# each material has a form as
+#  material_name
+#  {
+#     # should be unique
+#     id       = int_number
+#     #RGBA, each take 8bit
+#     color    = 0xHHHHHHHH
+#     property = PROPERTY
+#     alias    = alias1
+#     ...
+#  }
+# ID should be unique
+# Genius will map any alias to material_name
+# and try to open the material library libmaterial_name.so.
+# The material PROPERTY will be used to determine various information
+# contained in libmaterial_name.so.
+#
+# The comment should begin with '#' ane takes the whole line
+
+
+#-----------------------------------------------------
+# Semiconductor
+#-----------------------------------------------------
+Si
+{
+        property = Semiconductor
+        alias    = Silicon
+        color    = 0xffb6c1ff
+}
+
+PolySi
+{
+        property = Semiconductor
+        alias    = Poly
+        alias    = PolySilicon
+        alias    = GatePolySilicon
+        color    = 0xc71585ff
+}
+
+GaAs
+{
+        property = Semiconductor
+        color    = 0xeaeaeaff
+}
+
+GaAsSb
+{
+# mole dependence: GaAs(1-x)Sbx
+        property = SingleCompoundSemiconductor
+        color    = 0xf0a6a6ff
+}
+
+
+AlGaAs
+{
+# mole dependence: Ga(1-x)Al(x)As
+        property = SingleCompoundSemiconductor
+        color    = 0xa6d6d6ff
+}
+
+AlAs
+{
+        property = Semiconductor
+        color    = 0x0f5ea8ff
+}
+
+
+CIGS
+{
+# mole dependence: CuIn(1-x)GaxSe2
+        property = SingleCompoundSemiconductor
+        color    = 0xffff99ff
+}
+
+
+CdS
+{
+        property = Semiconductor
+        color    = 0xb95600ff
+}
+
+
+InGaAs
+{
+# mole dependence: In(1-x)Ga(x)As
+        property = SingleCompoundSemiconductor
+        color    = 0xd6a6d6ff
+}
+
+InGaAsP {
+# mole dependence: In(1-x)Ga(x)As(y)P(1-y)
+        property = ComplexCompoundSemiconductor
+        color    = 0xd6a666ff
+}
+
+SiGe
+{
+# mole dependence: Ge(x)Si(1-x)
+        property = SingleCompoundSemiconductor
+        alias    = SiliconGermanium
+        color    = 0xeec28fff
+}
+
+SiC3C
+{
+        property = Semiconductor
+        alias    = 3C-SiC
+        color    = 0xffa580ff
+}
+
+SiC4H
+{
+        property = Semiconductor
+        alias    = 4H-SiC
+        color    = 0xffa580ff
+}
+
+SiC6H
+{
+        property = Semiconductor
+        alias    = 6H-SiC
+        color    = 0xffa580ff
+}
+
+Diamond
+{
+        property = Semiconductor
+        alias    = C
+        color    = 0xcdc0c1ff
+}
+
+Ge
+{
+        property = Semiconductor
+        alias    = Germanium
+        color    = 0xdecf5eff
+}
+
+InAs
+{
+        property = Semiconductor
+        color    = 0xa6d6a6ff
+}
+
+InP
+{
+        property = Semiconductor
+        color    = 0xd6a6a6ff
+}
+
+GaP
+{
+        property = Semiconductor
+        color    = 0xa290c0ff
+}
+
+InAlAs
+{
+# mole dependence: In(1-x)Al(x)As
+        property = SingleCompoundSemiconductor
+        color    = 0x717699ff
+}
+
+GaInP
+{
+# mole dependence: Ga(x)In(1-x)P
+        property = SingleCompoundSemiconductor
+        color   = 0x59b877ff
+}
+
+InAsP
+{
+# mole dependence: InAs(x)P(1-x)
+        property = SingleCompoundSemiconductor
+        color    = 0xc9b8a7ff
+}
+
+GaAsP
+{
+# mole dependence: GaAs(x)P(1-x)
+        property = SingleCompoundSemiconductor
+        color    = 0xa7b8c9ff
+}
+
+HgCdTe
+{
+# mole dependence: HgCd(x)Te(1-x)
+        property = SingleCompoundSemiconductor
+        color    = 0xd08060ff
+}
+
+HgTe
+{
+        property = Semiconductor
+        color    = 0xdd9970ff
+}
+
+CdTe
+{
+        property = Semiconductor
+        color    = 0xdf6940ff
+}
+
+SiO2S
+{
+        property = Semiconductor
+        alias    = OxideAsSemiconductor
+        color    = 0x9d1515ff
+}
+
+SSi
+{
+        property = Semiconductor
+        alias    = StrainedSilicon
+        color    = 0xefb6d1ff
+}
+
+GaN
+{
+        property = Semiconductor
+        color    = 0x8b8878ff
+}
+
+AlN
+{
+        property = Semiconductor
+        color    = 0xa03a3aff
+}
+
+InN
+{
+        property = Semiconductor
+        color    = 0x20b2aaff
+}
+
+AlGaN
+{
+# mole dependence: Al(x)Ga(1-x)N
+        property = SingleCompoundSemiconductor
+        color    = 0x717699ff
+}
+
+InGaN
+{
+# mole dependence: In(x)Ga(1-x)N
+        property = SingleCompoundSemiconductor
+        color    = 0xa6d6a6ff
+}
+
+AlInN
+{
+# mole dependence: Al(1-x)In(x)N
+        property = SingleCompoundSemiconductor
+        color    = 0xbbbb00ff
+}
+
+
+AlInGaN
+{
+# mole dependence: Al(x)In(y)Ga(1-x-y)N
+        property = ComplexCompoundSemiconductor
+        color    = 0xd6a666ff
+}
+
+
+ZnO
+{
+        property = Semiconductor
+        color    = 0xdededeff
+}
+
+GenericSemiconductor
+{
+        property = Semiconductor
+        color    = 0xae20deff
+}
+
+#-----------------------------------------------------
+# Conductor
+#-----------------------------------------------------
+Elec
+{
+        property = Conductor
+        alias    = Metal
+        alias    = IdeaMetal
+        alias    = PerfectMetal
+        alias    = Conductor
+        color    = 0xcdba96ff
+}
+
+
+
+
+#-----------------------------------------------------
+# Resistance
+#-----------------------------------------------------
+Al
+{
+        property = Resistance
+        alias    = Aluminum
+        alias    = G4_Al
+        color    = 0x4d7f94ff
+}
+
+Au
+{
+        property = Resistance
+        alias    = Gold
+        alias    = G4_Au
+        color    = 0xffd700ff
+}
+
+Ag
+{
+        property = Resistance
+        alias    = Silver
+        alias    = G4_Ag
+        color    = 0x008b00ff
+}
+
+Cu
+{
+        property = Resistance
+        alias    = Copper
+        alias    = G4_Cu
+        color    = 0xff7f50ff
+}
+
+NPolySi
+{
+        property = Resistance
+        alias    = NPoly
+        alias    = NPolySilicon
+        alias    = GateNPolySilicon
+        color    = 0xc71585ff
+}
+
+
+PPolySi
+{
+        property = Resistance
+        alias    = PPoly
+        alias    = PPolySilicon
+        alias    = GatePPolySilicon
+        color    = 0xc71585ff
+}
+
+
+ORPS
+{
+        property = Resistance
+        color    = 0xc71585ff
+}
+
+
+Ti
+{
+        property = Resistance
+        alias    = Titanium
+        alias    = G4_Ti
+        color    = 0xe0eeeeff
+}
+
+Co
+{
+        property = Resistance
+        alias    = Cobalt
+        alias    = G4_Co
+        color    = 0xcdc9c9ff
+}
+
+
+Ni
+{
+        property = Resistance
+        alias    = Nickel
+        alias    = G4_Ni
+        color    = 0xeeeed0ff
+}
+
+
+W
+{
+        property = Resistance
+        alias    = Tungsten
+        alias    = Wolfram
+        alias    = G4_W
+        color    = 0xd0d0f0ff
+}
+
+Ta
+{
+        property = Resistance
+        alias    = Tantalum
+        alias    = G4_Ta
+        color    = 0xeee9e9ff
+}
+
+Pt
+{
+        property = Resistance
+        alias    = Platinum
+        alias    = G4_Pt
+        color    = 0xadc9a9ff
+}
+
+Mo
+{
+        property = Resistance
+        alias    = Molybdenum
+        color    = 0x8b8878ff
+}
+
+TiSi2
+{
+        property = Resistance
+        alias    = Silicide
+        color    = 0xcdc8b1ff
+}
+
+SRO
+{
+        property = Resistance
+        alias    = SrRuO3
+        color    = 0xcb5610ff
+}
+
+GenericMetal
+{
+        property = Resistance
+        color    = 0x4d7f94ff
+}
+
+
+
+#-----------------------------------------------------
+# Insulator
+#-----------------------------------------------------
+ETFE
+{
+        property = Insulator
+        color    = 0xe0e2e5ff
+}
+
+
+SiO2
+{
+        property = Insulator
+        alias    = Ox
+        alias    = Oxide
+# map these trivial names to SiO2
+        alias    = Insulator1
+        alias    = Insulator2
+        alias    = Insulator3
+        alias    = InsulatorX
+        color    = 0x7d0505ff
+}
+
+Nitride
+{
+        property = Insulator
+        alias    = Si3N4
+        alias    = Nit
+        color    = 0xd0a005ff
+}
+
+HfO2
+{
+        property = Insulator
+        color    = 0xd0a0a5ff
+}
+
+B4C
+{
+        property = Insulator
+        alias    = BoronCarbide
+        color    = 0x101050ff
+}
+
+LiF
+{
+        property = Insulator
+        color    = 0xf0f0f0ff
+}
+
+
+Ceramic
+{
+        property = Insulator
+        color    = 0x20b2aaff
+}
+
+Oxynitride
+{
+        property = Insulator
+        alias    = OxyNit
+        color    = 0xa03a3aff
+}
+
+
+PZT
+{
+# mole dependence: PbZr(x)Ti(1-x)O3
+        property = Insulator
+        alias    = PbZrTiO3
+        color    = 0x057d05ff
+}
+
+
+Kapton
+{
+        property = Insulator
+        alias    = G4_KAPTON
+        alias    = Polyimide
+        color    = 0xc07235ff
+}
+
+
+Epoxy
+{
+        property = Insulator
+        color    = 0xf0ffabff
+}
+
+Mylar
+{
+        property = Insulator
+        color    = 0xf0f0f0ff
+}
+
+
+Teflon
+{
+        property = Insulator
+        alias    = G4_TEFLON
+        color    = 0xe0e275ff
+}
+
+
+
+Air
+{
+        property = Insulator
+        alias    = Gas
+        alias    = Ambient
+        color    = 0xb0e2ffff
+}
+
+
+GenericInsulator
+{
+        property = Insulator
+        alias    = GenericInsulator0
+        alias    = GenericInsulator1
+        alias    = GenericInsulator2
+        alias    = GenericInsulator3
+        alias    = GenericInsulator4
+        alias    = GenericInsulator5
+        alias    = GenericInsulator6
+        alias    = GenericInsulator7
+        alias    = GenericInsulator8
+        alias    = GenericInsulator9
+        color    = 0x202030ff
+}
+
+#-----------------------------------------------------
+# Vacuum
+#-----------------------------------------------------
+Vacuum
+{
+        property = Vacuum
+        color    = 0xb0e2ffff
+}
+
+
+#-----------------------------------------------------
+# PML
+#-----------------------------------------------------
+PML
+{
+        property = PML
+        color    = 0x111111ff
+}

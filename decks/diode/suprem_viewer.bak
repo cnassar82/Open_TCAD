@@ -1,0 +1,612 @@
+#!/usr/bin/env python3
+"""
+View SUPREM-IV.GS structure files directly.
+
+The parser handles the Stanford/SUPREM convention where c/t/r records are
+one-based, while n solution records are zero-based.
+"""
+
+from __future__ import annotations
+
+import argparse
+import math
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+
+
+MATERIALS = {
+    0: "Vacuum",
+    1: "SiO2",
+    2: "Si3N4",
+    3: "Si",
+    4: "Poly",
+    5: "OxNi",
+    6: "Al",
+    7: "Photoresist",
+    8: "GaAs",
+    9: "SiC6H",
+    10: "SiC4H",
+    11: "SiC3C",
+}
+
+DOPANTS = {
+    0: "Vacancy",
+    1: "Interstitial",
+    2: "Arsenic",
+    3: "Phosphorus",
+    4: "Antimony",
+    5: "Boron",
+    6: "BF2",
+    7: "Aluminum",
+    8: "Nitrogen",
+    10: "O2",
+    11: "H2O",
+    12: "Trap",
+    13: "Gold",
+    14: "Potential",
+    15: "Sxx",
+    16: "Syy",
+    17: "Sxy",
+    18: "Cs",
+    19: "DELA",
+    20: "ArsenicActive",
+    21: "PhosphorusActive",
+    22: "AntimonyActive",
+    23: "BoronActive",
+    24: "AluminumActive",
+    25: "NitrogenActive",
+    31: "Beryllium",
+    32: "BerylliumActive",
+    33: "Magnesium",
+    34: "MagnesiumActive",
+    35: "Selenium",
+    36: "SeleniumActive",
+    37: "Silicon",
+    38: "SiliconActive",
+    39: "Tin",
+    40: "TinActive",
+    41: "Germanium",
+    42: "GermaniumActive",
+    43: "Zinc",
+    44: "ZincActive",
+    45: "Carbon",
+    46: "CarbonActive",
+    47: "Generic",
+    48: "GenericActive",
+    50: "GRN",
+    51: "Ga",
+    60: "Psi",
+    61: "Electron",
+    62: "Hole",
+    70: "XVEL",
+    71: "YVEL",
+}
+
+
+@dataclass
+class Region:
+    index: int
+    material_id: int
+    material: str
+
+
+@dataclass
+class SupremStructure:
+    path: Path
+    points: np.ndarray
+    triangles: np.ndarray
+    triangle_regions: np.ndarray
+    regions: dict[int, Region]
+    solution_ids: list[int]
+    solution_names: list[str]
+    solutions: dict[tuple[int, int], np.ndarray]
+
+    @property
+    def fields(self) -> list[str]:
+        names = ["Material"]
+        names.extend(self.solution_names)
+        derived = ["Donor", "Acceptor", "NetDoping"]
+        for name in derived:
+            if name not in names:
+                names.append(name)
+        return names
+
+
+def read_suprem(path: str | Path) -> SupremStructure:
+    path = Path(path)
+    points: dict[int, tuple[float, float]] = {}
+    triangles: list[tuple[int, int, int]] = []
+    triangle_regions: list[int] = []
+    regions: dict[int, Region] = {}
+    solution_ids: list[int] = []
+    solution_names: list[str] = []
+    solutions: dict[tuple[int, int], np.ndarray] = {}
+
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            if not raw.strip():
+                continue
+            parts = raw.split()
+            tag = parts[0]
+            if tag == "c":
+                idx = int(parts[1]) - 1
+                points[idx] = (float(parts[2]), float(parts[3]))
+            elif tag == "t":
+                region = int(parts[2]) - 1
+                c1 = int(parts[3]) - 1
+                c2 = int(parts[4]) - 1
+                c3 = int(parts[5]) - 1
+                triangles.append((c1, c2, c3))
+                triangle_regions.append(region)
+            elif tag == "r":
+                idx = int(parts[1]) - 1
+                material_id = int(parts[2])
+                material = MATERIALS.get(material_id, f"material_{material_id}")
+                regions[idx] = Region(idx, material_id, material)
+            elif tag == "s":
+                count = int(parts[1])
+                solution_ids = [int(value) for value in parts[2 : 2 + count]]
+                solution_names = [
+                    DOPANTS.get(value, f"species_{value}") for value in solution_ids
+                ]
+            elif tag == "n":
+                if not solution_ids:
+                    continue
+                node = int(parts[1])
+                material_id = int(parts[2])
+                values = np.array(
+                    [float(value) for value in parts[3 : 3 + len(solution_ids)]],
+                    dtype=float,
+                )
+                solutions[(node, material_id)] = values
+
+    if not points:
+        raise ValueError(f"{path} has no SUPREM coordinate records")
+    if not triangles:
+        raise ValueError(f"{path} has no SUPREM triangle records")
+
+    point_array = np.full((max(points) + 1, 2), np.nan, dtype=float)
+    for idx, point in points.items():
+        point_array[idx] = point
+
+    return SupremStructure(
+        path=path,
+        points=point_array,
+        triangles=np.array(triangles, dtype=int),
+        triangle_regions=np.array(triangle_regions, dtype=int),
+        regions=regions,
+        solution_ids=solution_ids,
+        solution_names=solution_names,
+        solutions=solutions,
+    )
+
+
+def _solution_index(structure: SupremStructure, names: list[str]) -> int | None:
+    for name in names:
+        if name in structure.solution_names:
+            return structure.solution_names.index(name)
+    return None
+
+
+def material_entries(structure: SupremStructure) -> list[tuple[int, str]]:
+    entries = {}
+    for region in structure.regions.values():
+        entries[region.material_id] = region.material
+    return sorted(entries.items())
+
+
+def material_values(structure: SupremStructure) -> np.ndarray:
+    values = np.full(len(structure.triangles), np.nan, dtype=float)
+    material_to_value = {
+        material_id: i for i, (material_id, _) in enumerate(material_entries(structure))
+    }
+    for i, region_id in enumerate(structure.triangle_regions):
+        region = structure.regions.get(int(region_id))
+        if region is not None:
+            values[i] = material_to_value[region.material_id]
+    return values
+
+
+def add_material_legend(ax, structure: SupremStructure, cmap) -> None:
+    from matplotlib.patches import Patch
+
+    handles = []
+    for i, (material_id, material) in enumerate(material_entries(structure)):
+        handles.append(
+            Patch(
+                facecolor=cmap(i),
+                edgecolor="black",
+                linewidth=0.5,
+                label=f"{material}  id {material_id}",
+            )
+        )
+    ax.legend(
+        handles=handles,
+        title="Materials",
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        borderaxespad=0.0,
+        frameon=True,
+    )
+
+
+def scalar_values(structure: SupremStructure, field: str) -> np.ndarray:
+    if field == "Material":
+        return material_values(structure)
+
+    if field == "Donor":
+        indices = [
+            _solution_index(structure, ["ArsenicActive", "Arsenic"]),
+            _solution_index(structure, ["PhosphorusActive", "Phosphorus"]),
+            _solution_index(structure, ["AntimonyActive", "Antimony"]),
+        ]
+    elif field == "Acceptor":
+        indices = [
+            _solution_index(structure, ["BoronActive", "Boron"]),
+            _solution_index(structure, ["AluminumActive", "Aluminum"]),
+        ]
+    elif field == "NetDoping":
+        donor = scalar_values(structure, "Donor")
+        acceptor = scalar_values(structure, "Acceptor")
+        return donor - acceptor
+    else:
+        if field not in structure.solution_names:
+            raise ValueError(f"unknown field {field!r}")
+        indices = [structure.solution_names.index(field)]
+
+    values = np.full(len(structure.triangles), np.nan, dtype=float)
+    for tri_i, region_id in enumerate(structure.triangle_regions):
+        region = structure.regions.get(int(region_id))
+        if region is None:
+            continue
+        material_id = region.material_id
+        tri = structure.triangles[tri_i]
+        samples = []
+        for node in tri:
+            data = structure.solutions.get((int(node), material_id))
+            if data is None:
+                continue
+            total = 0.0
+            for idx in indices:
+                if idx is not None:
+                    total += data[idx]
+            samples.append(total)
+        if samples:
+            values[tri_i] = float(np.mean(samples))
+    return values
+
+
+def plot_structure(
+    structure: SupremStructure,
+    field: str = "Material",
+    log10: bool = False,
+    mesh: bool = False,
+    contours: int = 0,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    output: str | None = None,
+    show: bool = True,
+):
+    import matplotlib.pyplot as plt
+    import matplotlib.tri as mtri
+
+    triangulation = mtri.Triangulation(
+        structure.points[:, 0], structure.points[:, 1], structure.triangles
+    )
+    values = scalar_values(structure, field)
+    title_field = field
+
+    if field != "Material" and log10:
+        signed = field == "NetDoping"
+        if signed:
+            values = np.sign(values) * np.log10(np.maximum(np.abs(values), 1.0))
+            title_field = f"sign*log10(abs({field}))"
+        else:
+            values = np.log10(np.maximum(values, 1.0))
+            title_field = f"log10({field})"
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.set_title(f"{structure.path.name}: {title_field}")
+    ax.set_xlabel("x [um]")
+    ax.set_ylabel("y [um]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.invert_yaxis()
+
+    if field == "Material":
+        cmap = plt.get_cmap("tab20", max(len(material_entries(structure)), 1))
+        artist = ax.tripcolor(
+            triangulation,
+            facecolors=values,
+            shading="flat",
+            edgecolors="k" if mesh else "none",
+            linewidth=0.15,
+            cmap=cmap,
+            vmin=-0.5,
+            vmax=max(len(material_entries(structure)) - 0.5, 0.5),
+        )
+        add_material_legend(ax, structure, cmap)
+    else:
+        finite = np.isfinite(values)
+        if not np.any(finite):
+            raise ValueError(f"field {field!r} has no plottable values")
+        artist = ax.tripcolor(
+            triangulation,
+            facecolors=values,
+            shading="flat",
+            edgecolors="k" if mesh else "none",
+            linewidth=0.12,
+            cmap="viridis",
+            vmin=vmin,
+            vmax=vmax,
+        )
+        fig.colorbar(artist, ax=ax, label=title_field)
+        if contours > 0:
+            point_values = face_to_point_values(structure, values)
+            finite_points = np.isfinite(point_values)
+            if np.count_nonzero(finite_points) >= 3:
+                ax.tricontour(
+                    triangulation,
+                    point_values,
+                    levels=contours,
+                    colors="white",
+                    linewidths=0.7,
+                )
+
+    if mesh and field != "Material":
+        ax.triplot(triangulation, color="black", linewidth=0.1, alpha=0.4)
+
+    fig.tight_layout()
+    if output:
+        fig.savefig(output, dpi=180)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def face_to_point_values(structure: SupremStructure, face_values: np.ndarray) -> np.ndarray:
+    sums = np.zeros(len(structure.points), dtype=float)
+    counts = np.zeros(len(structure.points), dtype=float)
+    for tri, value in zip(structure.triangles, face_values):
+        if not np.isfinite(value):
+            continue
+        for node in tri:
+            sums[node] += value
+            counts[node] += 1.0
+    point_values = np.full(len(structure.points), np.nan, dtype=float)
+    valid = counts > 0
+    point_values[valid] = sums[valid] / counts[valid]
+    return point_values
+
+
+def launch_gui(
+    path: str | Path,
+    initial_vmin: float | None = None,
+    initial_vmax: float | None = None,
+):
+    import tkinter as tk
+    from tkinter import filedialog, ttk
+
+    import matplotlib
+
+    matplotlib.use("TkAgg")
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    from matplotlib.figure import Figure
+    import matplotlib.tri as mtri
+
+    structure = read_suprem(path)
+
+    root = tk.Tk()
+    root.title(f"SUPREM Structure Viewer - {structure.path.name}")
+
+    controls = ttk.Frame(root, padding=6)
+    controls.pack(side=tk.TOP, fill=tk.X)
+
+    field_var = tk.StringVar(value="Material")
+    log_var = tk.BooleanVar(value=False)
+    mesh_var = tk.BooleanVar(value=False)
+    auto_scale_var = tk.BooleanVar(
+        value=initial_vmin is None and initial_vmax is None
+    )
+    min_var = tk.StringVar(
+        value="" if initial_vmin is None else f"{initial_vmin:.6g}"
+    )
+    max_var = tk.StringVar(
+        value="" if initial_vmax is None else f"{initial_vmax:.6g}"
+    )
+
+    ttk.Label(controls, text="Field").pack(side=tk.LEFT)
+    field_box = ttk.Combobox(
+        controls,
+        textvariable=field_var,
+        values=structure.fields,
+        state="readonly",
+        width=24,
+    )
+    field_box.pack(side=tk.LEFT, padx=(4, 10))
+    ttk.Checkbutton(controls, text="log10", variable=log_var).pack(side=tk.LEFT)
+    ttk.Checkbutton(controls, text="mesh", variable=mesh_var).pack(side=tk.LEFT)
+    ttk.Checkbutton(controls, text="auto scale", variable=auto_scale_var).pack(
+        side=tk.LEFT, padx=(10, 4)
+    )
+    ttk.Label(controls, text="min").pack(side=tk.LEFT)
+    min_entry = ttk.Entry(controls, textvariable=min_var, width=10)
+    min_entry.pack(side=tk.LEFT, padx=(4, 8))
+    ttk.Label(controls, text="max").pack(side=tk.LEFT)
+    max_entry = ttk.Entry(controls, textvariable=max_var, width=10)
+    max_entry.pack(side=tk.LEFT, padx=(4, 8))
+
+    fig = Figure(figsize=(10, 6), dpi=100)
+    ax = fig.add_subplot(111)
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    toolbar = NavigationToolbar2Tk(canvas, root)
+    toolbar.update()
+
+    status = tk.StringVar(value="")
+    ttk.Label(root, textvariable=status, anchor="w").pack(side=tk.BOTTOM, fill=tk.X)
+
+    triangulation = mtri.Triangulation(
+        structure.points[:, 0], structure.points[:, 1], structure.triangles
+    )
+
+    def redraw(*_):
+        nonlocal ax
+        fig.clear()
+        ax = fig.add_subplot(111)
+        field = field_var.get()
+        values = scalar_values(structure, field)
+        title_field = field
+        if field != "Material" and log_var.get():
+            if field == "NetDoping":
+                values = np.sign(values) * np.log10(np.maximum(np.abs(values), 1.0))
+                title_field = f"sign*log10(abs({field}))"
+            else:
+                values = np.log10(np.maximum(values, 1.0))
+                title_field = f"log10({field})"
+
+        vmin = None
+        vmax = None
+        if field != "Material" and not auto_scale_var.get():
+            try:
+                vmin = float(min_var.get()) if min_var.get().strip() else None
+                vmax = float(max_var.get()) if max_var.get().strip() else None
+            except ValueError:
+                status.set("Scale min/max must be numbers, or enable auto scale.")
+                canvas.draw_idle()
+                return
+            if vmin is not None and vmax is not None and vmin >= vmax:
+                status.set("Scale min must be less than scale max.")
+                canvas.draw_idle()
+                return
+
+        ax.set_title(f"{structure.path.name}: {title_field}")
+        ax.set_xlabel("x [um]")
+        ax.set_ylabel("y [um]")
+        ax.set_aspect("equal", adjustable="box")
+        ax.invert_yaxis()
+
+        if field == "Material":
+            cmap = matplotlib.colormaps["tab20"].resampled(
+                max(len(material_entries(structure)), 1)
+            )
+            artist = ax.tripcolor(
+                triangulation,
+                facecolors=values,
+                shading="flat",
+                edgecolors="k" if mesh_var.get() else "none",
+                linewidth=0.15,
+                cmap=cmap,
+                vmin=-0.5,
+                vmax=max(len(material_entries(structure)) - 0.5, 0.5),
+            )
+            add_material_legend(ax, structure, cmap)
+        else:
+            artist = ax.tripcolor(
+                triangulation,
+                facecolors=values,
+                shading="flat",
+                edgecolors="k" if mesh_var.get() else "none",
+                linewidth=0.12,
+                cmap="viridis",
+                vmin=vmin,
+                vmax=vmax,
+            )
+        if mesh_var.get() and field != "Material":
+            ax.triplot(triangulation, color="black", linewidth=0.1, alpha=0.4)
+        if field != "Material":
+            cbar = fig.colorbar(artist, ax=ax)
+            cbar.set_label(title_field)
+        fig.tight_layout()
+        finite = values[np.isfinite(values)]
+        if finite.size:
+            if field != "Material" and auto_scale_var.get():
+                min_var.set(f"{finite.min():.6g}")
+                max_var.set(f"{finite.max():.6g}")
+            status.set(
+                f"{field}: min={finite.min():.6g}, max={finite.max():.6g}, "
+                f"triangles={len(structure.triangles)}, points={len(structure.points)}"
+            )
+        canvas.draw_idle()
+
+    def save_png():
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".png",
+            filetypes=[("PNG image", "*.png"), ("All files", "*.*")],
+        )
+        if filename:
+            fig.savefig(filename, dpi=180)
+
+    ttk.Button(controls, text="Redraw", command=redraw).pack(side=tk.LEFT, padx=8)
+    ttk.Button(controls, text="Apply Scale", command=redraw).pack(side=tk.LEFT)
+    ttk.Button(controls, text="Save PNG", command=save_png).pack(side=tk.LEFT)
+
+    field_box.bind("<<ComboboxSelected>>", redraw)
+    log_var.trace_add("write", redraw)
+    mesh_var.trace_add("write", redraw)
+    auto_scale_var.trace_add("write", redraw)
+    redraw()
+    root.mainloop()
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("structure", help="SUPREM .str structure file")
+    parser.add_argument("--field", default="Material", help="field to plot")
+    parser.add_argument("--log10", action="store_true", help="plot log10(field)")
+    parser.add_argument("--mesh", action="store_true", help="overlay mesh edges")
+    parser.add_argument("--contours", type=int, default=0, help="number of contour levels")
+    parser.add_argument("--vmin", type=float, help="minimum scalar color scale value")
+    parser.add_argument("--vmax", type=float, help="maximum scalar color scale value")
+    parser.add_argument("--save", help="save PNG instead of opening a window")
+    parser.add_argument("--list", action="store_true", help="list available fields and exit")
+    parser.add_argument("--gui", action="store_true", help="open the Tk viewer (default)")
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="open a one-shot matplotlib plot instead of the Tk viewer",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    if args.vmin is not None and args.vmax is not None and args.vmin >= args.vmax:
+        raise ValueError("--vmin must be less than --vmax")
+
+    if not args.save and not args.list and not args.plot:
+        launch_gui(args.structure, initial_vmin=args.vmin, initial_vmax=args.vmax)
+        return 0
+
+    structure = read_suprem(args.structure)
+    if args.list:
+        print("Fields:")
+        for field in structure.fields:
+            print(f"  {field}")
+        print("\nRegions:")
+        for region in sorted(structure.regions.values(), key=lambda item: item.index):
+            print(f"  {region.index}: {region.material} (material id {region.material_id})")
+        print(f"\nPoints: {len(structure.points)}")
+        print(f"Triangles: {len(structure.triangles)}")
+        print(f"Solution records: {len(structure.solutions)}")
+        return 0
+
+    plot_structure(
+        structure,
+        field=args.field,
+        log10=args.log10,
+        mesh=args.mesh,
+        contours=args.contours,
+        vmin=args.vmin,
+        vmax=args.vmax,
+        output=args.save,
+        show=args.save is None,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

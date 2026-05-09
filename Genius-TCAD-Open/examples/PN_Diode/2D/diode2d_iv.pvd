@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<VTKFile type="Collection" version="0.1" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+<Collection>
+  <DataSet timestep="0" group="" part="0" file="diode2d_iv1.vtu"/>
+  <DataSet timestep="0.1" group="" part="0" file="diode2d_iv2.vtu"/>
+  <DataSet timestep="0.2" group="" part="0" file="diode2d_iv3.vtu"/>
+  <DataSet timestep="0.3" group="" part="0" file="diode2d_iv4.vtu"/>
+  <DataSet timestep="0.4" group="" part="0" file="diode2d_iv5.vtu"/>
+  <DataSet timestep="0.5" group="" part="0" file="diode2d_iv6.vtu"/>
+  <DataSet timestep="0.6" group="" part="0" file="diode2d_iv7.vtu"/>
+  <DataSet timestep="0.7" group="" part="0" file="diode2d_iv8.vtu"/>
+  <DataSet timestep="0.8" group="" part="0" file="diode2d_iv9.vtu"/>
+  <DataSet timestep="0.9" group="" part="0" file="diode2d_iv10.vtu"/>
+  <DataSet timestep="1" group="" part="0" file="diode2d_iv11.vtu"/>
+  </Collection>
+</VTKFile>

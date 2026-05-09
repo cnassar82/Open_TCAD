@@ -1,0 +1,24 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.out
+*.exe
+*.dll
+
+# Make outputs
+build/
+bin/
+obj/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile.in
+
+# Other
+*.log
+*.tmp
+*.tar.gz
+ParaView-6.1.0-MPI-Linux-Python3.12-x86_64/

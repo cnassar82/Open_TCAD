@@ -1,0 +1,362 @@
+diff --git a/build/myflex.py b/build/myflex.py
+index 994e84b..517f9ab 100644
+--- a/build/myflex.py
++++ b/build/myflex.py
+@@ -19,8 +19,8 @@ class flex(Task.Task):
+   def run(self):
+     src = self.inputs[0].abspath()
+     tgt = self.outputs[0].abspath()
+-    cmd = [self.env.FLEX, '-o%s' % tgt]
+-    cmd.extend(self.flexflags)
++    cmd = list(self.env.FLEX) + ['-o%s' % tgt]
++    cmd.extend(self.flexflags or [])
+     cmd.append(src)
+ 
+     return self.exec_command(cmd)
+diff --git a/include/base/genius_petsc.h b/include/base/genius_petsc.h
+index 7f7c5d9..d3f46eb 100644
+--- a/include/base/genius_petsc.h
++++ b/include/base/genius_petsc.h
+@@ -42,6 +42,20 @@
+   #undef HAVE_MPI
+ #endif
+ 
++// PETSc 3.7+ added PetscOptions as a new first parameter to the options API.
++// Provide backward-compatible C++ overloads so existing call sites work unchanged.
++#if PETSC_VERSION_GE(3,7,0)
++#include <cstdlib>
++static inline PetscErrorCode PetscOptionsHasName(const char pre[], const char name[], PetscBool *set)
++{ return PetscOptionsHasName(NULL, pre, name, set); }
++static inline PetscErrorCode PetscOptionsSetValue(const char name[], const char value[])
++{ return PetscOptionsSetValue(NULL, name, value); }
++static inline PetscErrorCode PetscOptionsClearValue(const char name[])
++{ return PetscOptionsClearValue(NULL, name); }
++static inline PetscErrorCode PetscOptionsGetString(const char pre[], const char name[], char str[], size_t size, PetscBool *set)
++{ return PetscOptionsGetString(NULL, pre, name, str, size, set); }
++#endif
++
+ #ifdef WINDOWS
+   #define MUMPS_ICNTL_14 "50"
+   #define MUMPS_ICNTL_23 "0"
+diff --git a/src/solution/cgns_io.cc b/src/solution/cgns_io.cc
+index 02f4e1f..20abab5 100644
+--- a/src/solution/cgns_io.cc
++++ b/src/solution/cgns_io.cc
+@@ -66,7 +66,7 @@ void CGNSIO::read (const std::string& filename)
+   if( Genius::processor_id() == 0)
+   {
+     // open CGNS file for read
+-    genius_assert(!cg_open(filename.c_str(), MODE_READ, &fn));
++    genius_assert(!cg_open(filename.c_str(), CG_MODE_READ, &fn));
+ 
+     // get the base number
+     genius_assert(!cg_nbases(fn, &B));
+@@ -118,7 +118,7 @@ void CGNSIO::read (const std::string& filename)
+     for(int z_id=1; z_id<=Z; z_id++)
+     {
+       // temporary variable
+-      int            isize[3];
++      cgsize_t       isize[3];
+ 
+       // assert the zone type is Unstructured
+       {
+@@ -156,7 +156,7 @@ void CGNSIO::read (const std::string& filename)
+ 
+       //read the coordinate
+       {
+-        int  range_min = 1;
++        cgsize_t  range_min = 1;
+         genius_assert(!cg_coord_read(fn, B, z_id, "CoordinateX", RealDouble, &range_min, &isize[0], &x[0]));
+         genius_assert(!cg_coord_read(fn, B, z_id, "CoordinateY", RealDouble, &range_min, &isize[0], &y[0]));
+         genius_assert(!cg_coord_read(fn, B, z_id, "CoordinateZ", RealDouble, &range_min, &isize[0], &z[0]));
+@@ -201,7 +201,7 @@ void CGNSIO::read (const std::string& filename)
+       {
+         char           sectionname[33];
+         ElementType_t  elemtype;
+-        int            range_min = 1;
++        cgsize_t       range_min = 1;
+         int            nbndry;
+         int            iparent_flag;
+         genius_assert(!cg_section_read(fn, B, z_id, S, sectionname, &elemtype, &range_min, &isize[1], &nbndry, &iparent_flag));
+@@ -211,12 +211,12 @@ void CGNSIO::read (const std::string& filename)
+       //read elements
+       std::vector<Elem *>  elem_list;
+       {
+-        int ElementDataSize;
++        cgsize_t ElementDataSize;
+         genius_assert(!cg_ElementDataSize(fn, B, z_id, S, &ElementDataSize));
+-        std::vector<int> elem(ElementDataSize);
++        std::vector<cgsize_t> elem(ElementDataSize);
++        std::vector<cgsize_t> elem_offsets(isize[1]+1);
+ 
+-        int  iparentdata;
+-        genius_assert(!cg_elements_read(fn, B, z_id, S, &elem[0], &iparentdata));
++        genius_assert(!cg_poly_elements_read(fn, B, z_id, S, &elem[0], &elem_offsets[0], NULL));
+ #ifdef ENABLE_AMR
+         // read the element id and attribute
+         std::vector<int> elem_id;
+@@ -253,7 +253,7 @@ void CGNSIO::read (const std::string& filename)
+           }
+         }
+ #endif
+-        std::vector<int>::const_iterator it = elem.begin();
++        std::vector<cgsize_t>::const_iterator it = elem.begin();
+         for(; it != elem.end(); )
+           switch(*it++)
+           {
+@@ -546,7 +546,7 @@ void CGNSIO::read (const std::string& filename)
+         genius_assert(!cg_sol_info(fn,B,z_id,sol_id,solutionname, &locationtype));
+         for(int f_id=1; f_id<=F; f_id++)
+         {
+-          int        imin=1;
++          cgsize_t   imin=1;
+           DataType_t datatype;
+           char       fieldname[33];
+           cg_field_info(fn, B, z_id, sol_id, f_id, &datatype, fieldname);
+@@ -1084,7 +1084,7 @@ void CGNSIO::write (const std::string& filename)
+   if( Genius::processor_id() == 0)
+   {
+     // open CGNS file for write
+-    genius_assert(!cg_open(filename.c_str(), MODE_WRITE, &fn));
++    genius_assert(!cg_open(filename.c_str(), CG_MODE_WRITE, &fn));
+ 
+     // create base of three dimensional mesh, here mesh takes its magic number as postfix
+     std::stringstream   ss;
+@@ -1104,7 +1104,7 @@ void CGNSIO::write (const std::string& filename)
+   {
+     const SimulationRegion * region = system.region(r);
+ 
+-    int size[3];
++    cgsize_t size[3];
+     // region node number
+     size[0] = region_node_array[r].size();
+ 
+@@ -1183,10 +1183,13 @@ void CGNSIO::write (const std::string& filename)
+     {
+       const std::vector<const Elem *> & region_elem = region_elem_array[r];
+ 
+-      std::vector<int> elem_package;           // for element connectivity
++      std::vector<cgsize_t> elem_package;      // for element connectivity
++      std::vector<cgsize_t> elem_offsets;      // connectivity offsets for cg_poly_section_write
+       std::vector<int> elem_attribute;         // for element attribute
+       std::vector<unsigned int> elem_id;
+       elem_package.reserve(10*region_elem.size());// a bit overkill
++      elem_offsets.reserve(region_elem.size()+1);
++      elem_offsets.push_back(0);
+       elem_attribute.reserve(6*region_elem.size());
+       elem_id.reserve(region_elem.size());
+ 
+@@ -1266,13 +1269,14 @@ void CGNSIO::write (const std::string& filename)
+         for(unsigned int n=0; n<elem->n_nodes(); ++n)
+           elem_package.push_back( node_id_to_region_node_id[elem->get_node(n)->id()] );
+ 
++        elem_offsets.push_back( static_cast<cgsize_t>(elem_package.size()) );
+       }
+ 
+ 
+       for(unsigned int n=0; n<elem_id.size(); n++)
+         elem_id_to_region_cell_index[elem_id[n]] = n+1;
+ 
+-      genius_assert(!cg_section_write(fn, B ,Z, "GridElements", MIXED, 1, elem_id.size(), 0, &elem_package[0], &S));
++      genius_assert(!cg_poly_section_write(fn, B ,Z, "GridElements", MIXED, 1, elem_id.size(), 0, &elem_package[0], &elem_offsets[0], &S));
+ #ifdef ENABLE_AMR
+       // write element amr attribute
+       int  elem_id_size = static_cast<int>(elem_id.size());
+@@ -1320,7 +1324,7 @@ void CGNSIO::write (const std::string& filename)
+         const BoundaryCondition * bc = bcs->get_bc_by_bd_id(bd_id);
+ 
+         // collect boundary nodes
+-        std::vector<int> bd_point;
++        std::vector<cgsize_t> bd_point;
+         {
+           const std::set<const Node *> & bd_nodes = boundary_side_nodes_id_map.find(bd_id)->second;
+           for(std::set<const Node *>::const_iterator it=bd_nodes.begin(); it!=bd_nodes.end(); ++it)
+diff --git a/waf b/waf
+index 9e26cb2..03def04 100755
+Binary files a/waf and b/waf differ
+diff --git a/wscript b/wscript
+index 1c04716..da00e12 100644
+--- a/wscript
++++ b/wscript
+@@ -8,10 +8,25 @@ import os
+ import re
+ 
+ import waflib.Configure
++import waflib.Context
+ from waflib.Task import Task
+ from waflib import Utils
+ import tempfile, string
+ 
++# Utils.str_to_dict was removed in waf 2.x; provide a compatible implementation
++if not hasattr(Utils, 'str_to_dict'):
++    def _str_to_dict(s):
++        d = {}
++        for line in s.splitlines():
++            line = line.strip()
++            if not line or line.startswith('#'):
++                continue
++            if '=' in line:
++                k, _, v = line.partition('=')
++                d[k.strip()] = v.strip()
++        return d
++    Utils.str_to_dict = _str_to_dict
++
+ 
+ waflib.Configure.autoconfig = True
+ 
+@@ -65,9 +80,14 @@ def configure(conf):
+     conf.env['MSVC_TARGETS']  = [target]
+ 
+   if not platform=='Windows':
+-    conf.options.check_c_compiler = 'icc ' + conf.options.check_c_compiler
+-    conf.options.check_cxx_compiler = 'icpc ' + conf.options.check_cxx_compiler
+-    conf.options.check_fc = 'ifort ' + conf.options.check_fc
++    # Prepend Intel compilers if available; handle waf 2.x None defaults and renamed fc option
++    c_list = conf.options.check_c_compiler or 'gcc clang'
++    conf.options.check_c_compiler = 'icc ' + c_list
++    cxx_list = conf.options.check_cxx_compiler or 'g++ clang++'
++    conf.options.check_cxx_compiler = 'icpc ' + cxx_list
++    fc_attr = 'check_fortran_compiler' if hasattr(conf.options, 'check_fortran_compiler') else 'check_fc'
++    fc_list = getattr(conf.options, fc_attr) or 'gfortran'
++    setattr(conf.options, fc_attr, 'ifort ' + fc_list)
+ 
+   conf.load('compiler_c compiler_cxx compiler_fc')
+ 
+@@ -91,7 +111,7 @@ def configure(conf):
+       try:
+         out = conf.cmd_and_log([conf.env.GIT, 'rev-parse', '--short', 'HEAD'],
+                                output=waflib.Context.STDOUT)
+-        version_str = 'git-%s' % string.strip(out)
++        version_str = 'git-%s' % out.strip()
+       except: pass
+   if version_str==None:
+     import datetime
+@@ -107,7 +127,7 @@ def configure(conf):
+   if platform=='Linux':
+     if conf.env['COMPILER_CC'] in ['gcc', 'icc']:
+       ccflags_common.extend(['-fPIC'])
+-      cxxflags_common.extend(['-fPIC'])
++      cxxflags_common.extend(['-fPIC', '-std=c++14'])
+       fcflags_common.extend(['-fPIC'])
+       ccflags_common.extend(['-pipe'])
+       cxxflags_common.extend(['-pipe'])
+@@ -198,7 +218,7 @@ def configure(conf):
+         m = re.search('unrecognized command line option', err)
+         return m==None
+       return True
+-    except Exception, e:
++    except Exception as e:
+       return False
+   # }}}
+ 
+@@ -347,7 +367,7 @@ END PROGRAM  TEST
+         continue
+ 
+       cmd = os.path.basename(cmd[0])
+-      if not string.lower(cmd) in ['ld', 'link', 'xlink', 'collect2']:
++      if not cmd.lower() in ['ld', 'link', 'xlink', 'collect2']:
+         continue
+ 
+       # link line
+@@ -599,12 +619,24 @@ stringstream message; message << "Hello"; return 0;
+       if m: petsc_release = (m.group(1) == 1)
+     except:
+       conf.fatal('Could not find petscversion.h, or it can not be parsed.')
+-    print 'Using Petsc version %s' % version
+-
+-    petsc_vars=Utils.str_to_dict(Utils.readf(os.path.join(arch_dir, 'conf/petscvariables')))
++    print('Using Petsc version %s' % version)
++
++    # Support both old-style $PETSC_DIR/$PETSC_ARCH/conf/ and new debian layout lib/petsc/conf/
++    petscvars_paths = [
++      os.path.join(arch_dir, 'conf/petscvariables'),
++      os.path.join(arch_dir, 'lib/petsc/conf/petscvariables'),
++    ]
++    petscvars_file = None
++    for p in petscvars_paths:
++      if os.path.isfile(p):
++        petscvars_file = p
++        break
++    if petscvars_file is None:
++      conf.fatal('Could not find petscvariables file. Searched: %s' % ', '.join(petscvars_paths))
++    petsc_vars=Utils.str_to_dict(Utils.readf(petscvars_file))
+ 
+     for v in ['PACKAGES_INCLUDES', 'PETSC_CC_INCLUDES']:
+-      if not petsc_vars.has_key(v): continue
++      if v not in petsc_vars: continue
+       inc_dirs = parse_inc_str(petsc_vars[v])
+     inc_dirs.append(os.path.join(base_dir, 'include'))
+     inc_dirs.append(os.path.join(arch_dir, 'include'))
+@@ -617,14 +649,18 @@ stringstream message; message << "Hello"; return 0;
+ 
+     linkflags = []
+     for v in ['PETSC_WITH_EXTERNAL_LIB', 'PETSC_LIB_BASIC', 'PACKAGES_LIBS']:
+-      if not petsc_vars.has_key(v): continue
++      if v not in petsc_vars: continue
+       linkflags.extend( parse_lib_str(petsc_vars[v]) )
+ 
+     petsc_defines=Utils.readf(os.path.join(arch_dir, 'include/petscconf.h'))
+     petsc_with_float128 = re.search('#define\s+PETSC_USE_REAL___FLOAT128\s+(\d+)', petsc_defines)
+-    if petsc_with_float128:  print 'PETSC USE REAL __float128'; conf.define('WITH_PETSCSCALAR_FLOAT128', 1);
++    if petsc_with_float128:
++      print('PETSC USE REAL __float128')
++      conf.define('WITH_PETSCSCALAR_FLOAT128', 1)
+     petsc_with_double = re.search('#define\s+PETSC_USE_REAL_DOUBLE\s+(\d+)', petsc_defines)
+-    if petsc_with_double:  print 'PETSC USE REAL double'; conf.define('WITH_PETSCSCALAR_DOUBLE', 1);
++    if petsc_with_double:
++      print('PETSC USE REAL double')
++      conf.define('WITH_PETSCSCALAR_DOUBLE', 1)
+ 
+     # MPI
+     conf.start_msg('Checking for MPI')
+@@ -636,13 +672,13 @@ stringstream message; message << "Hello"; return 0;
+         conf.define('HAVE_MPI', 1)
+ 
+         if platform=='Linux':
+-          # MPI libraries
++          # MPI libraries and includes — omit -cc= so OpenMPI 4.x includes -I flags
+           conf.start_msg('Checking MPI library')
+-          cmd = [petsc_vars['PCC'],
+-                 '-cc=%s'%conf.env['COMPILER_CC'],
+-                 '-show',
+-                ]
++          cmd = [petsc_vars['PCC'], '-show']
+           out, err = conf.cmd_and_log(cmd, output=waflib.Context.BOTH)
++          mpi_inc_dirs = parse_inc_str(out)
++          inc_dirs.extend(mpi_inc_dirs)
++          conf.env.append_value('CXXFLAGS_PETSC', [conf.env.CPPPATH_ST % d for d in mpi_inc_dirs])
+           linkflags.extend( parse_lib_str(out) )
+           conf.end_msg('ok')
+ 
+@@ -676,6 +712,10 @@ stringstream message; message << "Hello"; return 0;
+       flags = parse_lib_str(petsc_vars['PCC_LINKER_LIBS'])
+       linkflags.extend(flags)
+ 
++    # Ubuntu GCC passes --as-needed by default; since waf places LINKFLAGS before
++    # object files, libraries would be dropped before references are seen.
++    if platform == 'Linux':
++      linkflags = ['-Wl,--no-as-needed'] + linkflags + ['-Wl,--as-needed']
+     conf.check_cxx(linkflags=linkflags,
+                    uselib_store='PETSC', msg='Checking for library Petsc')
+     conf.env.append_value('LINKFLAGS_PETSC', linkflags)
+@@ -697,7 +737,7 @@ stringstream message; message << "Hello"; return 0;
+       version = '.'.join(vers)
+     except:
+       conf.fatal('Could not find petscversion.h, or it can not be parsed.')
+-    print 'Using Slepc version %s' % version
++    print('Using Slepc version %s' % version)
+ 
+     inc_dirs = [os.path.join(base_dir, 'include')]
+     inc_dirs.append(os.path.join(arch_dir, 'include'))
+@@ -803,9 +843,9 @@ stringstream message; message << "Hello"; return 0;
+ 
+   # {{{ VTK
+   def config_vtk():
+-    libs = '''vtkRendering vtkGraphics vtkImaging vtkIO vtkFiltering
++    libs = '''vtkGraphics vtkImaging vtkIO vtkFiltering
+               vtkCommon vtksys vtkDICOMParser vtkpng vtktiff vtkzlib
+-              vtkjpeg vtkexpat vtkftgl vtkfreetype'''.split()
++              vtkjpeg vtkexpat vtkfreetype'''.split()
+ 
+     if platform=='Linux':
+       libs.append('pthread')
