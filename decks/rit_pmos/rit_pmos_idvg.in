@@ -1,0 +1,23 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+
+vsource Type=VDC ID=VDRAIN Tdelay=0 Vconst=-0.1
+
+IMPORT TIFFile="pmos_contacts.tif"
+
+CONTACT  Type=OhmicContact ID=Source Res=0 Cap=0 Ind=0
+CONTACT  Type=GateContact  ID=Gate   WorkFunction=5.25 Res=0 Cap=0 Ind=0
+CONTACT  Type=OhmicContact ID=Drain  Res=0 Cap=0 Ind=0
+BOUNDARY Type=OhmicContact ID=Body   Res=0 Cap=0 Ind=0
+
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=30
+
+# Ramp the drain to -0.1 V, then hold it there for the transfer sweep.
+SOLVE  Type=DCSWEEP VScan=Drain VStart=0.0 VStep=-0.02 VStop=-0.1 out.prefix=idvd_prebias
+ATTACH Electrode=Drain VApp=VDRAIN
+
+# PMOS transfer curve at Vd=-0.1 V.
+SOLVE Type=DCSWEEP VScan=Gate VStart=0.0 VStep=-0.1 VStop=-10.0 out.prefix=idvg_vd_m0p1
+
+EXPORT VTKFile=pmos_idvg_vd_m0p1.vtu
+
+END

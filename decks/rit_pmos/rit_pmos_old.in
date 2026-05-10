@@ -1,0 +1,129 @@
+#RIT METAL GATE PMOS PROCESS
+
+line x loc=0.0  spac=2 tag=left
+line x loc=140.0  spac=2 tag=right
+line y loc=0.0  spac=0.0005 tag=surf
+line y loc=2  spac=0.2
+line y loc=10  spac=2.5  tag=back
+
+region silicon xlo=left xhi=right ylo=surf yhi=back
+boundary exposed  xlo=left xhi=right ylo=surf yhi=surf
+boundary backsid xlo=left xhi=right ylo=back  yhi=back
+
+initialize phosphorus conc=9.15e15
+
+#------------------------------------------------
+#6500A Oxide Growth
+
+
+diffuse time=5 temp=1100 dryo2 
+diffuse time=57 temp=1100 weto2 continue
+diffuse time=5 temp=1100 nitrogen continue
+structure outfile=inital_ox.str
+#------------------------------------------------
+#Pattern Level #1 Diffusion
+deposit photores thick=1.0 divisions=5
+
+etch photores start   x=10.0 y=-5.0
+etch continue         x=10.0 y=5.0
+etch continue         x=60.0 y=5
+etch done             x=60.0 y=-5
+
+etch photores start   x=80.0 y=-5.0
+etch continue         x=80.0 y=5.0
+etch continue         x=130.0 y=5
+etch done             x=130.0 y=-5
+
+etch oxide dry thick=1
+
+structure outfile=diffusion_photo_etch.str
+
+etch photores all
+#------------------------------------------------
+#Implant Boron
+implant boron dose=2e15 energy=75 pearson
+structure outfile=diffusion_implant.str
+#------------------------------------------------
+#4000A Oxide Growth
+
+diffuse time=5 temp=1100 dryo2 
+diffuse time=20 temp=1100 weto2 continue
+diffuse time=5 temp=1100 nitrogen continue
+structure outfile=4000_ox.str
+#------------------------------------------------
+#Pattern Gate Oxide Region
+deposit photores thick=1.0 divisions=5
+
+etch photores start   x=50.0 y=-5.0
+etch continue         x=50.0 y=5.0
+etch continue         x=90.0 y=5
+etch done             x=90.0 y=-5
+
+etch oxide dry thick=1
+etch photores all
+#700A Oxide Growth
+
+diffuse time=95 temp=1000 dryo2 
+
+structure outfile=700_ox.str
+
+#------------------------------------------------
+#Contact Etch
+
+deposit photores thick=1.8
+
+etch photores start   x=20.0 y=-5.0
+etch continue         x=20.0 y=5.0
+etch continue         x=30.0 y=5
+etch done             x=30.0 y=-5
+
+etch photores start   x=110 y=-5.0
+etch continue         x=110 y=5.0
+etch continue         x=120 y=5
+etch done             x=120 y=-5
+
+etch oxide dry thick=1
+
+etch photores all
+
+structure outfile=cont_etch.str
+
+#------------------------------------------------
+#Deposit Metal
+
+deposit alumin thick=1 divisions=50
+
+structure outfile=dep_alumin.str
+
+#------------------------------------------------
+#Etch Metal
+
+etch alumin start   x=50.0 y=-5.0
+etch continue         x=50.0 y=5.0
+etch continue         x=60.0 y=5
+etch done             x=60.0 y=-5
+
+etch alumin start   x=80 y=-5.0
+etch continue         x=80 y=5.0
+etch continue         x=90 y=5
+etch done             x=90 y=-5
+
+#structure outfile=pr_etch_alumin.str
+
+#etch alumin dry thick=1.2
+
+structure outfile=etch_alumin.str
+
+#etch photores all
+
+structure outfile=pmos.str
+
+
+
+
+
+
+
+
+
+

@@ -21,4 +21,9 @@ Makefile.in
 *.log
 *.tmp
 *.tar.gz
+*.str
+*.vtu
+*.dat
+*.csv
+
 ParaView-6.1.0-MPI-Linux-Python3.12-x86_64/

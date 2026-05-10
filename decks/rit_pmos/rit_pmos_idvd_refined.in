@@ -1,0 +1,65 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+
+IMPORT TIFFile="pmos_contacts.tif"
+
+CONTACT  Type=OhmicContact ID=Source Res=0 Cap=0 Ind=0
+CONTACT  Type=GateContact  ID=Gate   WorkFunction=5.25 Res=0 Cap=0 Ind=0
+CONTACT  Type=OhmicContact ID=Drain  Res=0 Cap=0 Ind=0
+BOUNDARY Type=OhmicContact ID=Body   Res=0 Cap=0 Ind=0
+
+# Refine the silicon mesh where the signed-log doping gradient is largest.
+# This keeps the original contact-bearing TIF untouched; Genius interpolates
+# imported Na/Nd onto the refined mesh.
+REFINE.C Variable=Doping Region=region_0 Measure=signedlog error.fraction=0.15
+
+# Get a robust electrostatic initial condition on the refined mesh first.
+METHOD Type=Poisson NS=Basic LS=MUMPS MaxIt=50
+SOLVE
+
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=60
+
+# Output curves: Id versus Vds for fixed Vg values from -1 V to -10 V.
+# For each curve, drain is swept from 0 V to -10 V.  Between curves, drain is
+# returned to 0 V before stepping the gate to the next bias.
+SOLVE Type=DCSWEEP VScan=Gate  VStart=0.0  VStep=-0.1 VStop=-1.0  out.prefix=idvd_gate_ramp_m1
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m1_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m1
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-1.0 VStep=-0.1 VStop=-2.0  out.prefix=idvd_gate_ramp_m2
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m2_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m2
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-2.0 VStep=-0.1 VStop=-3.0  out.prefix=idvd_gate_ramp_m3
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m3_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m3
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-3.0 VStep=-0.1 VStop=-4.0  out.prefix=idvd_gate_ramp_m4
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m4_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m4
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-4.0 VStep=-0.1 VStop=-5.0  out.prefix=idvd_gate_ramp_m5
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m5_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m5
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-5.0 VStep=-0.1 VStop=-6.0  out.prefix=idvd_gate_ramp_m6
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m6_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m6
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-6.0 VStep=-0.1 VStop=-7.0  out.prefix=idvd_gate_ramp_m7
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m7_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m7
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-7.0 VStep=-0.1 VStop=-8.0  out.prefix=idvd_gate_ramp_m8
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m8_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m8
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-8.0 VStep=-0.1 VStop=-9.0  out.prefix=idvd_gate_ramp_m9
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m9_refined
+SOLVE Type=DCSWEEP VScan=Drain VStart=-10.0 VStep=1.0  VStop=0.0   out.prefix=idvd_drain_return_m9
+
+SOLVE Type=DCSWEEP VScan=Gate  VStart=-9.0 VStep=-0.1 VStop=-10.0 out.prefix=idvd_gate_ramp_m10
+SOLVE Type=DCSWEEP VScan=Drain VStart=0.0  VStep=-0.1 VStop=-10.0 out.prefix=idvd_vg_m10_refined
+
+EXPORT VTKFile=pmos_idvd_refined.vtu CGNSFile=pmos_idvd_refined.cgns
+
+END

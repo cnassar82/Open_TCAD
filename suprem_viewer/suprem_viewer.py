@@ -679,6 +679,99 @@ def save_line_profile_csv(
             writer.writerow([distance, x, y, value])
 
 
+def _merged_intervals(
+    intervals: list[tuple[float, float]], tolerance: float = 1e-9
+) -> list[tuple[float, float]]:
+    if not intervals:
+        return []
+    ordered = sorted((min(a, b), max(a, b)) for a, b in intervals)
+    merged = [ordered[0]]
+    for start, end in ordered[1:]:
+        last_start, last_end = merged[-1]
+        if start <= last_end + tolerance:
+            merged[-1] = (last_start, max(last_end, end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def material_thickness_rows(
+    structure: SupremStructure, x_values: np.ndarray
+) -> list[dict[str, float | int | str]]:
+    rows: list[dict[str, float | int | str]] = []
+    triangle_points = structure.points[structure.triangles]
+
+    for x in x_values:
+        intervals_by_region: dict[int, list[tuple[float, float]]] = {}
+        for tri_i, coords in enumerate(triangle_points):
+            if not np.isfinite(coords).all():
+                continue
+            if x < float(np.min(coords[:, 0])) - 1e-12:
+                continue
+            if x > float(np.max(coords[:, 0])) + 1e-12:
+                continue
+
+            y_hits: list[float] = []
+            for edge_i in range(3):
+                p0 = coords[edge_i]
+                p1 = coords[(edge_i + 1) % 3]
+                x0, y0 = float(p0[0]), float(p0[1])
+                x1, y1 = float(p1[0]), float(p1[1])
+                if abs(x1 - x0) <= 1e-15:
+                    if abs(x - x0) <= 1e-12:
+                        y_hits.extend([y0, y1])
+                    continue
+                t = (x - x0) / (x1 - x0)
+                if -1e-12 <= t <= 1.0 + 1e-12:
+                    y_hits.append(y0 + t * (y1 - y0))
+
+            if len(y_hits) < 2:
+                continue
+            y_hits = sorted(y_hits)
+            low = y_hits[0]
+            high = y_hits[-1]
+            if high - low <= 1e-12:
+                continue
+            region_id = int(structure.triangle_regions[tri_i])
+            intervals_by_region.setdefault(region_id, []).append((low, high))
+
+        for region_id, intervals in sorted(intervals_by_region.items()):
+            region = structure.regions.get(region_id)
+            if region is None:
+                continue
+            for top, bottom in _merged_intervals(intervals):
+                rows.append(
+                    {
+                        "x_um": float(x),
+                        "region": region.index,
+                        "material_id": region.material_id,
+                        "material": region.material,
+                        "top_y_um": top,
+                        "bottom_y_um": bottom,
+                        "thickness_um": bottom - top,
+                    }
+                )
+    return rows
+
+
+def save_material_thickness_csv(
+    path: str | Path, rows: list[dict[str, float | int | str]]
+) -> None:
+    columns = [
+        "x_um",
+        "region",
+        "material_id",
+        "material",
+        "top_y_um",
+        "bottom_y_um",
+        "thickness_um",
+    ]
+    with Path(path).open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def plot_structure(
     structure: SupremStructure,
     field: str = "Material",
@@ -687,6 +780,7 @@ def plot_structure(
     contours: int = 0,
     vmin: float | None = None,
     vmax: float | None = None,
+    y_stretch: float = 1.0,
     output: str | None = None,
     show: bool = True,
 ):
@@ -703,7 +797,7 @@ def plot_structure(
     ax.set_title(f"{structure.path.name}: {title_field}")
     ax.set_xlabel("x [um]")
     ax.set_ylabel("y [um]")
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_aspect(y_stretch, adjustable="box")
     ax.invert_yaxis()
 
     if field == "Material":
@@ -777,9 +871,10 @@ def launch_gui(
     path: str | Path,
     initial_vmin: float | None = None,
     initial_vmax: float | None = None,
+    initial_y_stretch: float = 1.0,
 ):
     import tkinter as tk
-    from tkinter import filedialog, ttk
+    from tkinter import filedialog, messagebox, ttk
 
     import matplotlib
 
@@ -797,6 +892,8 @@ def launch_gui(
     controls.pack(side=tk.TOP, fill=tk.X)
     line_controls = ttk.Frame(root, padding=(6, 0, 6, 6))
     line_controls.pack(side=tk.TOP, fill=tk.X)
+    thickness_controls = ttk.Frame(root, padding=(6, 0, 6, 6))
+    thickness_controls.pack(side=tk.TOP, fill=tk.X)
 
     field_var = tk.StringVar(value="Material")
     log_var = tk.BooleanVar(value=False)
@@ -810,6 +907,7 @@ def launch_gui(
     max_var = tk.StringVar(
         value="" if initial_vmax is None else f"{initial_vmax:.6g}"
     )
+    y_stretch_var = tk.StringVar(value=f"{initial_y_stretch:.6g}")
     xmin = float(np.nanmin(structure.points[:, 0]))
     xmax = float(np.nanmax(structure.points[:, 0]))
     ymin = float(np.nanmin(structure.points[:, 1]))
@@ -820,6 +918,9 @@ def launch_gui(
     line_x1_var = tk.StringVar(value=f"{xmid:.6g}")
     line_y1_var = tk.StringVar(value=f"{ymax:.6g}")
     line_samples_var = tk.StringVar(value="200")
+    thickness_x0_var = tk.StringVar(value=f"{xmin:.6g}")
+    thickness_x1_var = tk.StringVar(value=f"{xmax:.6g}")
+    thickness_samples_var = tk.StringVar(value="1")
 
     ttk.Label(controls, text="Field").pack(side=tk.LEFT)
     field_box = ttk.Combobox(
@@ -841,6 +942,10 @@ def launch_gui(
     ttk.Label(controls, text="max").pack(side=tk.LEFT)
     max_entry = ttk.Entry(controls, textvariable=max_var, width=10)
     max_entry.pack(side=tk.LEFT, padx=(4, 8))
+    ttk.Label(controls, text="Y stretch").pack(side=tk.LEFT)
+    ttk.Entry(controls, textvariable=y_stretch_var, width=7).pack(
+        side=tk.LEFT, padx=(4, 8)
+    )
 
     ttk.Label(line_controls, text="Line x0").pack(side=tk.LEFT)
     ttk.Entry(line_controls, textvariable=line_x0_var, width=9).pack(
@@ -860,6 +965,19 @@ def launch_gui(
     )
     ttk.Label(line_controls, text="samples").pack(side=tk.LEFT)
     ttk.Entry(line_controls, textvariable=line_samples_var, width=7).pack(
+        side=tk.LEFT, padx=(4, 8)
+    )
+
+    ttk.Label(thickness_controls, text="Thickness x0").pack(side=tk.LEFT)
+    ttk.Entry(thickness_controls, textvariable=thickness_x0_var, width=9).pack(
+        side=tk.LEFT, padx=(4, 8)
+    )
+    ttk.Label(thickness_controls, text="x1").pack(side=tk.LEFT)
+    ttk.Entry(thickness_controls, textvariable=thickness_x1_var, width=9).pack(
+        side=tk.LEFT, padx=(4, 8)
+    )
+    ttk.Label(thickness_controls, text="samples").pack(side=tk.LEFT)
+    ttk.Entry(thickness_controls, textvariable=thickness_samples_var, width=7).pack(
         side=tk.LEFT, padx=(4, 8)
     )
 
@@ -910,7 +1028,15 @@ def launch_gui(
         ax.set_title(f"{structure.path.name}: {title_field}")
         ax.set_xlabel("x [um]")
         ax.set_ylabel("y [um]")
-        ax.set_aspect("equal", adjustable="datalim", anchor="C")
+        try:
+            y_stretch = float(y_stretch_var.get())
+            if y_stretch <= 0.0:
+                raise ValueError
+        except ValueError:
+            status.set("Y stretch must be a positive number.")
+            canvas.draw_idle()
+            return
+        ax.set_aspect(y_stretch, adjustable="datalim", anchor="C")
         ax.invert_yaxis()
 
         if field == "Material":
@@ -944,6 +1070,12 @@ def launch_gui(
         try:
             x0, y0, x1, y1, _ = read_line_inputs()
             ax.plot([x0, x1], [y0, y1], color="red", linewidth=1.4, linestyle="--")
+        except ValueError:
+            pass
+        try:
+            thickness_x_values = read_thickness_inputs()
+            for x in thickness_x_values:
+                ax.axvline(x, color="black", linewidth=0.6, alpha=0.35, linestyle=":")
         except ValueError:
             pass
         if field != "Material":
@@ -980,6 +1112,16 @@ def launch_gui(
         if x0 == x1 and y0 == y1:
             raise ValueError("line endpoints must be different")
         return x0, y0, x1, y1, samples
+
+    def read_thickness_inputs() -> np.ndarray:
+        x0 = float(thickness_x0_var.get())
+        x1 = float(thickness_x1_var.get())
+        samples = int(thickness_samples_var.get())
+        if samples < 1:
+            raise ValueError("thickness samples must be at least 1")
+        if samples == 1:
+            return np.array([0.5 * (x0 + x1)], dtype=float)
+        return np.linspace(x0, x1, samples)
 
     def open_line_profile():
         field = field_var.get()
@@ -1046,12 +1188,115 @@ def launch_gui(
         )
         profile_canvas.draw_idle()
 
+    def open_material_thicknesses():
+        try:
+            x_values = read_thickness_inputs()
+        except ValueError as exc:
+            status.set(str(exc))
+            return
+        rows = material_thickness_rows(structure, x_values)
+        if not rows:
+            status.set("No material thicknesses found for the selected x range.")
+            return
+
+        thickness = tk.Toplevel(root)
+        thickness.title("Material Thicknesses")
+        thickness_controls_inner = ttk.Frame(thickness, padding=6)
+        thickness_controls_inner.pack(side=tk.TOP, fill=tk.X)
+        table_frame = ttk.Frame(thickness, padding=(6, 0, 6, 6))
+        table_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        columns = (
+            "x_um",
+            "region",
+            "material_id",
+            "material",
+            "top_y_um",
+            "bottom_y_um",
+            "thickness_um",
+        )
+        tree = ttk.Treeview(
+            table_frame, columns=columns, show="headings", height=18
+        )
+        yscroll = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+        xscroll = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=tree.xview)
+        tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+        tree.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+
+        headings = {
+            "x_um": "x [um]",
+            "region": "region",
+            "material_id": "mat id",
+            "material": "material",
+            "top_y_um": "top y [um]",
+            "bottom_y_um": "bottom y [um]",
+            "thickness_um": "thickness [um]",
+        }
+        widths = {
+            "x_um": 95,
+            "region": 70,
+            "material_id": 70,
+            "material": 120,
+            "top_y_um": 95,
+            "bottom_y_um": 105,
+            "thickness_um": 115,
+        }
+        for column in columns:
+            tree.heading(column, text=headings[column])
+            tree.column(column, width=widths[column], anchor=tk.E)
+        tree.column("material", anchor=tk.W)
+
+        for row in rows:
+            tree.insert(
+                "",
+                tk.END,
+                values=(
+                    f"{row['x_um']:.6g}",
+                    row["region"],
+                    row["material_id"],
+                    row["material"],
+                    f"{row['top_y_um']:.6g}",
+                    f"{row['bottom_y_um']:.6g}",
+                    f"{row['thickness_um']:.6g}",
+                ),
+            )
+
+        def save_thickness_csv():
+            filename = filedialog.asksaveasfilename(
+                parent=thickness,
+                defaultextension=".csv",
+                filetypes=[("CSV file", "*.csv"), ("All files", "*.*")],
+            )
+            if filename:
+                save_material_thickness_csv(filename, rows)
+                messagebox.showinfo(
+                    "Material Thicknesses",
+                    f"Saved {len(rows)} thickness rows.",
+                    parent=thickness,
+                )
+
+        ttk.Button(
+            thickness_controls_inner, text="Save CSV", command=save_thickness_csv
+        ).pack(side=tk.LEFT)
+        status.set(
+            f"Material thicknesses: {len(rows)} segments across {len(x_values)} x sample(s)."
+        )
+
     ttk.Button(controls, text="Redraw", command=redraw).pack(side=tk.LEFT, padx=8)
     ttk.Button(controls, text="Apply Scale", command=redraw).pack(side=tk.LEFT)
     ttk.Button(controls, text="Save PNG", command=save_png).pack(side=tk.LEFT)
     ttk.Button(line_controls, text="Plot Line", command=open_line_profile).pack(
         side=tk.LEFT, padx=(8, 0)
     )
+    ttk.Button(
+        thickness_controls,
+        text="Extract Thicknesses",
+        command=open_material_thicknesses,
+    ).pack(side=tk.LEFT, padx=(8, 0))
 
     field_box.bind("<<ComboboxSelected>>", redraw)
     log_var.trace_add("write", redraw)
@@ -1070,6 +1315,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--contours", type=int, default=0, help="number of contour levels")
     parser.add_argument("--vmin", type=float, help="minimum scalar color scale value")
     parser.add_argument("--vmax", type=float, help="maximum scalar color scale value")
+    parser.add_argument(
+        "--y-stretch",
+        type=float,
+        default=1.0,
+        help="display-only vertical stretch factor for structure plots",
+    )
     parser.add_argument("--save", help="save PNG instead of opening a window")
     parser.add_argument(
         "--line",
@@ -1100,6 +1351,8 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     if args.vmin is not None and args.vmax is not None and args.vmin >= args.vmax:
         raise ValueError("--vmin must be less than --vmax")
+    if args.y_stretch <= 0.0:
+        raise ValueError("--y-stretch must be positive")
 
     if (
         not args.save
@@ -1109,7 +1362,12 @@ def main(argv: list[str]) -> int:
         and not args.line_save
         and not args.line_csv
     ):
-        launch_gui(args.structure, initial_vmin=args.vmin, initial_vmax=args.vmax)
+        launch_gui(
+            args.structure,
+            initial_vmin=args.vmin,
+            initial_vmax=args.vmax,
+            initial_y_stretch=args.y_stretch,
+        )
         return 0
 
     structure = read_structure(args.structure)
@@ -1164,6 +1422,7 @@ def main(argv: list[str]) -> int:
         contours=args.contours,
         vmin=args.vmin,
         vmax=args.vmax,
+        y_stretch=args.y_stretch,
         output=args.save,
         show=args.save is None,
     )
