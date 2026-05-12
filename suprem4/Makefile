@@ -26,10 +26,11 @@ SYS     = SYSV
 #.. have permission to write into the appropriate directories.
 
 #.. Where are we?
+SUPREM4_HOME ?= $(CURDIR)
 HERE	= $(SUPREM4_HOME)
 
 #.. What are we going to call it and where does all this go?
-SUPREM	= suprem
+SUPREM	= suprem4
 #BINDIR	= /usr/local/bin
 BINDIR	= $(HERE)/bin
 
@@ -48,7 +49,7 @@ CC	= gcc -m32
 FC	= gfortran -m32
 
 #.. What optimization level for the compilers?
-COPT	= -O1
+COPT	= -O1 -fcommon
 FOPT	= -O1
 #COPT	= -g
 #FOPT	= -g
@@ -124,7 +125,14 @@ nogo:
 	@echo
 
 depend:
-	cp src/Makefile.proto src/Makefile;  cd src;	$(MAKE) depend
+	cp src/Makefile.proto src/Makefile;  cd src;	$(MAKE) \
+		'SYS=$(SYS)' 'SUPREM=$(SUPREM)' 'BINDIR=$(BINDIR)' \
+		'HELPDIR=$(HELPDIR)' 'DATADIR=$(DATADIR)' \
+		'CC=$(CC)' 'FC=$(FC)' 'COPT=$(COPT)' 'FOPT=$(FOPT)' \
+		'GRARC=$(GRARC)' 'GRINC=$(GRINC)' \
+		'GRSRCS=$(GRSRCS)' 'GROBJS=$(GROBJS)' \
+		'LIBS=$(LIBS)' 'LOCDEFS=$(LOCDEFS)' 'RANLIB=$(RANLIB)' \
+		depend
 
 install:
 	cd src; $(MAKE) 'SYS=$(SYS)' 'SUPREM=$(SUPREM)' \
@@ -137,4 +145,4 @@ install:
 		install
 
 clean:
-	cd src; make clean
+	cd src; $(MAKE) 'SUPREM=$(SUPREM)' clean

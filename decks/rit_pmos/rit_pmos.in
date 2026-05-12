@@ -2,7 +2,7 @@
 
 line x loc=0.0  spac=1 tag=left
 line x loc=150.0  spac=1 tag=right
-line y loc=0.0  spac=0.0006 tag=surf
+line y loc=0.0  spac=0.0005 tag=surf
 line y loc=2  spac=0.2
 line y loc=10  spac=2.5  tag=back
 
