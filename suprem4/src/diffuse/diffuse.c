@@ -29,6 +29,7 @@
 #include "impurity.h"
 #include "material.h"
 #include "expr.h"
+#include "material_domain.h"
 
 
 /************************************************************************
@@ -39,7 +40,7 @@
  *  Original:	MEL	1/85						*
  *									*
  ************************************************************************/
-int diffuse( char *par, int param )
+int diffuse( char *par, struct par_str *param )
 {
     float time, temp, cs;
     struct tms before, after;
@@ -49,6 +50,7 @@ int diffuse( char *par, int param )
     char *movie;
 
     if( InvalidMeshCheck()) return( -1);
+    material_domain_normalize();
 
     /*change the solution flags from the default configuration*/
     CLEAR_FLAGS(Psi, ALL_FLAGS);
@@ -96,6 +98,7 @@ int diffuse( char *par, int param )
 
 	    /* Add a thin oxide layer to any exposed silicon surfaces */
 	    NativeOxide(tinit);
+            material_domain_normalize();
 	    geom("after native oxide deposit");
 	}
     }
@@ -128,9 +131,6 @@ int diffuse( char *par, int param )
 	/*initialize defects to equilibrium values as a function of temp*/
 	init_pseudo( temp );
     }
-    else {
-	methdata.init_time = 0.0;
-    }
 
     /*initialize temperature dependent material stuff*/
     comp_mat( temp );
@@ -152,7 +152,9 @@ int diffuse( char *par, int param )
     }
 
     times(&before);
-    solve_time( time, temp, methdata.init_time, methdata.timemeth,
+    /* Continuation reuses the adaptive step for this call only. Do not
+     * erase the configured initial step for later independent anneals. */
+    solve_time( time, temp, cont ? 0.0 : methdata.init_time, methdata.timemeth,
 		dump, movie, cont);
     times(&after);
     print_time("total diffusion time", &before, &after);

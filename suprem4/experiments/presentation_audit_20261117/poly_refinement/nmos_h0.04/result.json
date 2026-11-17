@@ -1,0 +1,10 @@
+{
+  "device": "nmos",
+  "spacing_um": 0.04,
+  "returncode": 0,
+  "deck_sha256": "51e0bd9a8ba61b48d37deb0ce3d8a613ae785aed60a872b97eb4843aa0ee92c0",
+  "center_poly_P_sheet_cm2": 1327393982074493.5,
+  "center_poly_peak_P_cm3": 9.916853518157293e+19,
+  "vertices": 7618,
+  "triangles": 14697
+}

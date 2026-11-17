@@ -1,0 +1,5 @@
+option quiet
+structure infile=/home/chris/Open_TCAD/decks/subcmos2014/results/directional_shielding_fresh_20261117/nmos/threshold.str
+etch oxide dry thick=0.1
+structure outfile=after.str
+quit

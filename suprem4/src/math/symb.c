@@ -54,7 +54,7 @@
  ************************************************************************/
 method( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     char *s;
     float tmpf;
@@ -410,15 +410,16 @@ scramble( reorder)
 
 get_connect(ind, taken, num)
 int ind;	/*the node index*/
-short *taken;	/*the result matrix*/
+int *taken;	/*the result matrix: mesh node IDs can exceed 32767*/
 int *num;	/*the number of neighbors found: initially max.*/
 {
     int i;
 
-    *num = 0;
+    int available = *num;
 
     /*there is always coupling between the different solutions at a node*/
     *num = num_neigh_nd(ind);
+    if (*num > available) return(-1);
     for(i = 0; i < *num; i++) taken[i] = neigh_nd(ind, i);
 
     return(0);
@@ -432,12 +433,13 @@ int *num;	/*the number of neighbors found: initially max.*/
  ************************************************************************/
 
 clean_list(taken, num)
-    short *taken;
+    int *taken;
     int *num;
 {
     int i, j, swap, ndup;
 
     ndup = *num;
+    if (ndup <= 1) return(0);
 
     /*sort the neighbor list (bubble sort since lists are short)*/
     for(i = 0; i < ndup; i++) {

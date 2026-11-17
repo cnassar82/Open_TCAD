@@ -1,0 +1,23 @@
+[
+  {
+    "divisions": 10,
+    "returncode": 0,
+    "P_sheet_cm2": 1.9961478345829108e+16,
+    "peak_P_cm3": 2.607317191571437e+21,
+    "peak_depth_um": 0.04999998054699972
+  },
+  {
+    "divisions": 50,
+    "returncode": 0,
+    "P_sheet_cm2": 1.998862466864221e+16,
+    "peak_P_cm3": 2.82368283396371e+21,
+    "peak_depth_um": 0.05999998393235728
+  },
+  {
+    "divisions": 250,
+    "returncode": 0,
+    "P_sheet_cm2": 1.9999567889158576e+16,
+    "peak_P_cm3": 2.824853590506022e+21,
+    "peak_depth_um": 0.06199999916134402
+  }
+]

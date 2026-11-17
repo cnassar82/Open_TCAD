@@ -1,0 +1,7 @@
+option quiet
+option quiet
+method fermi vertical grid.oxide=0.04
+structure infile=input.str
+diffuse time=0.001 temp=825 dryo2
+structure outfile=after.str
+quit

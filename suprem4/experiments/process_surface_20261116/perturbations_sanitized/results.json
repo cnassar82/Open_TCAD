@@ -1,0 +1,126 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_7wv6yrg7/src/suprem4",
+  "binary_sha256": "a16e133e30eee8c9a260ea8cfcbe5baa39ceb30e68744a3c883ab1ed8bcd46e0",
+  "runtime_options": {
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1"
+  },
+  "cases": [
+    {
+      "case": "nmos_construction_spacer",
+      "interior_shift_amplitude_um": -0.002,
+      "fixture_sha256": "5f98fbc9c5f33fa82ab193d0b42c0dd5f7fc25cc432ce23e3ecb4490886a206f",
+      "errors": [],
+      "input_partition": {
+        "triangle_pairs_checked": 7005,
+        "boundary_pairs_checked": 406,
+        "triangles": 8432,
+        "boundary_edges": 406
+      },
+      "returncode": 0,
+      "mesh": {
+        "triangles": 17016,
+        "area_by_region_um2": {
+          "1": 78.22098912519165,
+          "2": 0.00021020465747965142,
+          "3": 5.398541016851175e-05,
+          "4": 0.5000915091981483,
+          "5": 0.0014366132286991995,
+          "6": 0.046929812829236375,
+          "7": 0.09144384945842479,
+          "8": 1.1010610599286523e-05,
+          "9": 0.044956771227227334,
+          "10": 0.0014531992791696853,
+          "11": 0.00022449057504232313,
+          "12": 0.1963344663711738,
+          "13": 0.19633313569936123,
+          "14": 0.7185160065911967,
+          "15": 0.0019314659242026366,
+          "16": 1.2207806591308101,
+          "17": 0.07767254695548947,
+          "18": 0.001328746216035041
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 51865,
+        "boundary_pairs_checked": 1740,
+        "triangles": 17016,
+        "boundary_edges": 1740
+      },
+      "passed": true
+    },
+    {
+      "case": "nmos_construction_spacer",
+      "interior_shift_amplitude_um": 0.002,
+      "fixture_sha256": "5f98fbc9c5f33fa82ab193d0b42c0dd5f7fc25cc432ce23e3ecb4490886a206f",
+      "errors": [
+        "simulator error"
+      ],
+      "input_partition": {
+        "triangle_pairs_checked": 7005,
+        "boundary_pairs_checked": 406,
+        "triangles": 8432,
+        "boundary_edges": 406
+      },
+      "returncode": -6,
+      "passed": false
+    },
+    {
+      "case": "pmos_native_seed",
+      "interior_shift_amplitude_um": -0.002,
+      "fixture_sha256": "54cf4926a1cd681918e0ac118a89a8f6b103e57c3e9a4d283d6aea4c563f0b8c",
+      "errors": [],
+      "input_partition": {
+        "triangle_pairs_checked": 3408,
+        "boundary_pairs_checked": 332,
+        "triangles": 6816,
+        "boundary_edges": 332
+      },
+      "returncode": 0,
+      "mesh": {
+        "triangles": 7100,
+        "area_by_region_um2": {
+          "1": 78.24940528693244,
+          "2": 0.010001168013605804
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 3691,
+        "boundary_pairs_checked": 334,
+        "triangles": 7100,
+        "boundary_edges": 334
+      },
+      "passed": true
+    },
+    {
+      "case": "pmos_native_seed",
+      "interior_shift_amplitude_um": 0.002,
+      "fixture_sha256": "54cf4926a1cd681918e0ac118a89a8f6b103e57c3e9a4d283d6aea4c563f0b8c",
+      "errors": [],
+      "input_partition": {
+        "triangle_pairs_checked": 3408,
+        "boundary_pairs_checked": 332,
+        "triangles": 6816,
+        "boundary_edges": 332
+      },
+      "returncode": 0,
+      "mesh": {
+        "triangles": 7100,
+        "area_by_region_um2": {
+          "1": 78.24940528597003,
+          "2": 0.01000116801360579
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 3691,
+        "boundary_pairs_checked": 334,
+        "triangles": 7100,
+        "boundary_edges": 334
+      },
+      "passed": true
+    }
+  ],
+  "passed": false
+}

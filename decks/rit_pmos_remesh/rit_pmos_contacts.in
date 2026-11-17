@@ -1,0 +1,15 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+
+IMPORT TIFFile="pmos_contacts.tif"
+
+CONTACT  Type=OhmicContact ID=Source Res=0 Cap=0 Ind=0
+CONTACT  Type=GateContact  ID=Gate   WorkFunction=5.25 Res=0 Cap=0 Ind=0
+CONTACT  Type=OhmicContact ID=Drain  Res=0 Cap=0 Ind=0
+BOUNDARY Type=OhmicContact ID=Body   Res=0 Cap=0 Ind=0
+
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=30
+SOLVE Type=EQUILIBRIUM
+
+EXPORT VTKFile=pmos_contacts_equilibrium.vtu
+
+END

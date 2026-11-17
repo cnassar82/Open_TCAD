@@ -83,7 +83,7 @@ FEsilbc()
 FEbc( temp, par, param)
     float temp;
     char *par;
-    int param;
+    struct par_str *param;
 {
     clear_bc();
     FEdirichlet( par, param);
@@ -153,7 +153,7 @@ refl_disp()
  *----------------------------------------------------------------------*/
 FEdirichlet( par, param)
     char *par;
-    int param;
+    struct par_str *param;
 {
     int ie, j, i, k, v, c;
     FEelt_typ *ae; FEnd_typ *an;

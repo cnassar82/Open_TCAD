@@ -1,0 +1,32 @@
+# STI geometry exercise: 0.6 um wide, 0.35 um deep trench.
+# Etchback is a geometric planar cut, not a calibrated CMP model.
+option quiet
+line x loc=-1 spac=0.15 tag=left
+line x loc=-0.3 spac=0.025
+line x loc=0 spac=0.04
+line x loc=0.3 spac=0.025
+line x loc=1 spac=0.15 tag=right
+line y loc=0 spac=0.02 tag=top
+line y loc=0.35 spac=0.025
+line y loc=1 spac=0.15 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize orient=100 boron conc=1e15
+structure outfile=initial.str
+etch silicon start x=-0.3 y=-0.2
+etch continue x=-0.3 y=0.35
+etch continue x=0.3 y=0.35
+etch done x=0.3 y=-0.2
+structure outfile=trench.str
+method viscous oxide.rel=1e-2 grid.oxide=0.02
+diffuse time=10 temp=1000 dryo2
+structure outfile=liner.str
+deposit oxide thick=0.4 divisions=12 space=0.025
+structure outfile=filled.str
+etch oxide start x=-1.1 y=-1
+etch continue x=-1.1 y=0
+etch continue x=1.1 y=0
+etch done x=1.1 y=-1
+structure outfile=sti.str
+quit

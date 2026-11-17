@@ -1,0 +1,8 @@
+{
+  "sha256": "5f98fbc9c5f33fa82ab193d0b42c0dd5f7fc25cc432ce23e3ecb4490886a206f",
+  "source": "decks/subcmos2014/results/astra_surface_construction_cmos/nmos/ldd.str",
+  "settings": [],
+  "command": "deposit oxide thick=0.5 divisions=10 space=0.04\netch oxide dry thick=0.5",
+  "scope": "Construction-precision dry-etch vertices become exact adjacent duplicates after projection into binary32 mesh coordinates",
+  "known_failure": "Zero-length cutter edge causes malformed boundary before Boolean subtraction"
+}

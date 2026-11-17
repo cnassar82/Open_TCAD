@@ -128,13 +128,13 @@ DBASESRCS = dbase/alloc.c dbase/check.c dbase/clktri.c dbase/couple.c \
 	dbase/dimen.c dbase/dispose.c dbase/edge.c dbase/element.c \
 	dbase/flip.c dbase/geom.c dbase/geometry.c dbase/grid_loop.c \
 	dbase/grid_upd.c dbase/kill_node.c dbase/list.c dbase/locate.c \
-	dbase/make_db.c dbase/neigh.c dbase/new_layer.c dbase/node.c \
+	dbase/make_db.c dbase/material_domain.c dbase/material_domain_db.c dbase/mesh_patch.c dbase/mesh_patch_remove.c dbase/mesh_trial.c dbase/vertical_constraints.c dbase/neigh.c dbase/new_layer.c dbase/node.c \
 	dbase/point.c dbase/region.c dbase/remove.c
 DBASEOBJS = dbase/alloc.o dbase/check.o dbase/clktri.o dbase/couple.o \
 	dbase/dimen.o dbase/dispose.o dbase/edge.o dbase/element.o \
 	dbase/flip.o dbase/geom.o dbase/geometry.o dbase/grid_loop.o \
 	dbase/grid_upd.o dbase/kill_node.o dbase/list.o dbase/locate.o \
-	dbase/make_db.o dbase/neigh.o dbase/new_layer.o dbase/node.o \
+	dbase/make_db.o dbase/material_domain.o dbase/material_domain_db.o dbase/mesh_patch.o dbase/mesh_patch_remove.o dbase/mesh_trial.o dbase/vertical_constraints.o dbase/neigh.o dbase/new_layer.o dbase/node.o \
 	dbase/point.o dbase/region.o dbase/remove.o
 
 DEVICESRCS = device/Electron.c device/Hole.c device/Psi.c \
@@ -232,13 +232,13 @@ PLOTOBJS = plot/contour.o plot/do_1d.o plot/intersect.o plot/label.o \
 
 REFINESRCS = refine/bfill.c refine/dbase.c refine/deloop.c \
 	refine/deposit.c refine/etch.c refine/grid.c refine/hinit.c \
-	refine/interp.c refine/offset.c refine/rate.c refine/rect_tri.c \
+	refine/interp.c refine/process_surface.c refine/offset.c refine/rate.c refine/rect_tri.c \
 	refine/skel.c refine/sp_edge.c refine/string_etch.c \
 	refine/string_off.c refine/surface.c refine/triang.c \
 	refine/tridata.c refine/triheur.c
 REFINEOBJS = refine/bfill.o refine/dbase.o refine/deloop.o \
 	refine/deposit.o refine/etch.o refine/grid.o refine/hinit.o \
-	refine/interp.o refine/offset.o refine/rate.o refine/rect_tri.o \
+	refine/interp.o refine/process_surface.o refine/offset.o refine/rate.o refine/rect_tri.o \
 	refine/skel.o refine/sp_edge.o refine/string_etch.o \
 	refine/string_off.o refine/surface.o refine/triang.o \
 	refine/tridata.o refine/triheur.o
@@ -622,3 +622,13 @@ shell/proc.o: shell/proc.c /usr/include/stdc-predef.h /usr/include/stdio.h /usr/
 shell/set.o: shell/set.c /usr/include/stdc-predef.h /usr/include/stdio.h /usr/include/bits/libc-header-start.h /usr/include/features.h /usr/include/features-time64.h /usr/include/bits/wordsize.h /usr/include/bits/timesize.h /usr/include/sys/cdefs.h /usr/include/bits/long-double.h /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h /usr/include/bits/types.h /usr/include/bits/typesizes.h /usr/include/bits/time64.h /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__mbstate_t.h /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h /usr/include/bits/types/cookie_io_functions_t.h /usr/include/bits/stdio_lim.h /usr/include/bits/floatn.h /usr/include/bits/floatn-common.h /usr/include/bits/stdio2-decl.h /usr/include/bits/stdio.h /usr/include/bits/stdio2.h /usr/include/stdlib.h /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h /usr/include/sys/types.h /usr/include/bits/types/clock_t.h /usr/include/bits/types/clockid_t.h /usr/include/bits/types/time_t.h /usr/include/bits/types/timer_t.h /usr/include/bits/stdint-intn.h /usr/include/endian.h /usr/include/bits/endian.h /usr/include/bits/endianness.h /usr/include/bits/byteswap.h /usr/include/bits/uintn-identity.h /usr/include/sys/select.h /usr/include/bits/select.h /usr/include/bits/types/sigset_t.h /usr/include/bits/types/__sigset_t.h /usr/include/bits/types/struct_timeval.h /usr/include/bits/types/struct_timespec.h /usr/include/bits/select2.h /usr/include/bits/select-decl.h /usr/include/bits/pthreadtypes.h /usr/include/bits/thread-shared-types.h /usr/include/bits/pthreadtypes-arch.h /usr/include/bits/atomic_wide_counter.h /usr/include/bits/struct_mutex.h /usr/include/bits/struct_rwlock.h /usr/include/alloca.h /usr/include/bits/stdlib-bsearch.h /usr/include/bits/stdlib-float.h /usr/include/bits/stdlib.h /usr/include/string.h /usr/include/bits/types/locale_t.h /usr/include/bits/types/__locale_t.h /usr/include/strings.h /usr/include/bits/strings_fortified.h /usr/include/bits/string_fortified.h /usr/include/ctype.h include/global.h include/shell.h
 shell/smisc.o: shell/smisc.c /usr/include/stdc-predef.h /usr/include/stdio.h /usr/include/bits/libc-header-start.h /usr/include/features.h /usr/include/features-time64.h /usr/include/bits/wordsize.h /usr/include/bits/timesize.h /usr/include/sys/cdefs.h /usr/include/bits/long-double.h /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h /usr/include/bits/types.h /usr/include/bits/typesizes.h /usr/include/bits/time64.h /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__mbstate_t.h /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h /usr/include/bits/types/cookie_io_functions_t.h /usr/include/bits/stdio_lim.h /usr/include/bits/floatn.h /usr/include/bits/floatn-common.h /usr/include/bits/stdio2-decl.h /usr/include/bits/stdio.h /usr/include/bits/stdio2.h /usr/include/stdlib.h /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h /usr/include/sys/types.h /usr/include/bits/types/clock_t.h /usr/include/bits/types/clockid_t.h /usr/include/bits/types/time_t.h /usr/include/bits/types/timer_t.h /usr/include/bits/stdint-intn.h /usr/include/endian.h /usr/include/bits/endian.h /usr/include/bits/endianness.h /usr/include/bits/byteswap.h /usr/include/bits/uintn-identity.h /usr/include/sys/select.h /usr/include/bits/select.h /usr/include/bits/types/sigset_t.h /usr/include/bits/types/__sigset_t.h /usr/include/bits/types/struct_timeval.h /usr/include/bits/types/struct_timespec.h /usr/include/bits/select2.h /usr/include/bits/select-decl.h /usr/include/bits/pthreadtypes.h /usr/include/bits/thread-shared-types.h /usr/include/bits/pthreadtypes-arch.h /usr/include/bits/atomic_wide_counter.h /usr/include/bits/struct_mutex.h /usr/include/bits/struct_rwlock.h /usr/include/alloca.h /usr/include/bits/stdlib-bsearch.h /usr/include/bits/stdlib-float.h /usr/include/bits/stdlib.h /usr/include/string.h /usr/include/bits/types/locale_t.h /usr/include/bits/types/__locale_t.h /usr/include/strings.h /usr/include/bits/strings_fortified.h /usr/include/bits/string_fortified.h include/global.h include/expr.h include/shell.h
 gpsup/gpfake.o: gpsup/gpfake.c /usr/include/stdc-predef.h /usr/include/stdio.h /usr/include/bits/libc-header-start.h /usr/include/features.h /usr/include/features-time64.h /usr/include/bits/wordsize.h /usr/include/bits/timesize.h /usr/include/sys/cdefs.h /usr/include/bits/long-double.h /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h /usr/include/bits/types.h /usr/include/bits/typesizes.h /usr/include/bits/time64.h /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__mbstate_t.h /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h /usr/include/bits/types/cookie_io_functions_t.h /usr/include/bits/stdio_lim.h /usr/include/bits/floatn.h /usr/include/bits/floatn-common.h /usr/include/bits/stdio2-decl.h /usr/include/bits/stdio.h /usr/include/bits/stdio2.h /usr/include/math.h /usr/include/bits/math-vector.h /usr/include/bits/libm-simd-decl-stubs.h /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-helper-functions.h /usr/include/bits/mathcalls.h
+
+# Moving-mesh trial checkpoint interface.
+dbase/mesh_trial.o diffuse/time.o: include/mesh_trial.h
+
+# Shared allocation widths and sparse callback interfaces.
+$(OBJS): include/alloc_size.h include/sparse.h
+
+dbase/mesh_patch.o dbase/mesh_patch_remove.o dbase/remove.o: include/mesh_patch.h
+
+dbase/material_domain.o dbase/material_domain_db.o diffuse/diffuse.o: include/material_domain.h

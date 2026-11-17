@@ -18,8 +18,9 @@
 #define EXTERN extern
 #endif
 
-/*typedef a pointer to a function, (it works, trust me)*/
-typedef int (* PTR_FUNC)();
+/* Command handlers receive the parser object, never an integer cookie. */
+struct par_str;
+typedef int (* PTR_FUNC)(char *, struct par_str *);
 
 EXTERN char *prompt;
 

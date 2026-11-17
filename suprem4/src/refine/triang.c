@@ -21,6 +21,81 @@
 #include "global.h"
 #include "constant.h"
 #include "dbaccess.h"
+#include "refine.h"
+
+static int mesh_diag_enabled()
+{
+    char *v = (char *)getenv("SUPREM4_MESH_DIAG");
+    return(v && *v && *v != '0');
+}
+
+static void mesh_diag_boundary(ir, reason)
+int ir;
+char *reason;
+{
+    int first = 1, i = 0, node, point;
+    struct LLedge *bp, *start;
+
+    if (!mesh_diag_enabled()) return;
+    start = sreg[ir]->bnd;
+    fprintf(stderr, "[meshdiag] %s sreg=%d len=%d\n",
+            reason, ir, sreg[ir]->len);
+    for (bp = start; first || bp != start; bp = bp->next, first = 0) {
+        node = nB(bp);
+        point = pt_nd(node);
+        fprintf(stderr, "[meshdiag] boundary[%d] edge=%d node=%d point=%d x=%.17g y=%.17g\n",
+                i++, bp->edge, node, point, (double)XC(point), (double)YC(point));
+        if (i > sreg[ir]->len) {
+            fprintf(stderr, "[meshdiag] boundary length mismatch\n");
+            break;
+        }
+    }
+}
+
+static double mesh_diag_min_skel_edge(ir)
+int ir;
+{
+    int f;
+    double len, minlen = MAXFLOAT;
+    struct LLedge *bp;
+
+    for(f=1, bp=sreg[ir]->bnd; (bp != sreg[ir]->bnd)||f; f=0, bp=bp->next) {
+	len = l_edge(bp->edge);
+	if (len < minlen) minlen = len;
+    }
+    if (minlen == MAXFLOAT) minlen = 0.0;
+    return(minlen);
+}
+
+/* Diagnostic only: locate the first operation producing a reversing chain. */
+static void mesh_diag_embedding(int ir, char *operation)
+{
+    struct LLedge *p, *q;
+    int a,b,c,d,s1,s2,s3,s4;
+    if (!mesh_diag_enabled()) return;
+    p=sreg[ir]->bnd;
+    do {
+        a=pt_nd(nB(p)); b=pt_nd(nF(p));
+        q=p->next;
+        do {
+            c=pt_nd(nB(q)); d=pt_nd(nF(q));
+            s1=orient2d_float_sign(cord_arr(a),cord_arr(b),cord_arr(c));
+            s2=orient2d_float_sign(cord_arr(a),cord_arr(b),cord_arr(d));
+            s3=orient2d_float_sign(cord_arr(c),cord_arr(d),cord_arr(a));
+            s4=orient2d_float_sign(cord_arr(c),cord_arr(d),cord_arr(b));
+            if ((s1*s2<0 && s3*s4<0) ||
+                (q==p->next && !s2 &&
+                 ((double)XC(b)-XC(a))*((double)XC(d)-XC(b))+
+                 ((double)YC(b)-YC(a))*((double)YC(d)-YC(b))<0)) {
+                mesh_diag_boundary(ir,operation);
+                fprintf(stderr,"[meshdiag] invalid embedding edges %d %d\n",p->edge,q->edge);
+                panic("diagnostic: first invalid skeleton embedding");
+            }
+            q=q->next;
+        } while(q!=p);
+        p=p->next;
+    } while(p!=sreg[ir]->bnd);
+}
 
 double dmin(X,Y) double X,Y; {return(X<=Y? X : Y);}
 double dmax(X,Y) double X,Y; {return(X>=Y? X : Y);}
@@ -44,6 +119,10 @@ int spflag;
     debug1 = FALSE;
     debug2 = FALSE;
     ck_clock(ir, TRUE);
+    mesh_diag_embedding(ir,"triang input");
+    if (mesh_diag_enabled())
+	fprintf(stderr, "[meshdiag] triang start sreg=%d region=%d len=%d min_edge=%e bflag=%d spflag=%d\n",
+		ir, rbn, sreg[ir]->len, mesh_diag_min_skel_edge(ir), bflag, spflag);
 
   /*
    * Save values of nreg Storage beyond original
@@ -79,6 +158,7 @@ int spflag;
     while (nsreg > save_nreg) {
 
 	nr = nsreg - 1;
+        mesh_diag_embedding(nr,"triang iteration");
 	if (debug2) reg_pl(nr);
 
       /*
@@ -86,6 +166,9 @@ int spflag;
        * The triangle gets region number ir.
        */
 	if (sreg[nr]->len == 3) {
+	    if (mesh_diag_enabled())
+		fprintf(stderr, "[meshdiag] triang emit region=%d sreg=%d min_edge=%e\n",
+			rbn, nr, mesh_diag_min_skel_edge(nr));
 	    (void)cr_tri(rbn, nr);
 
 	    free_skel( nr );
@@ -95,8 +178,10 @@ int spflag;
       /*...Special-case quadrilaterals */
 	else if (sreg[nr]->len == 4) {
 	    bp = quadsplit(sreg[nr]);
-	    if (!bp)
+	    if (!bp) {
+		mesh_diag_boundary(nr,"no interior quad diagonal");
 		panic("Error in quadsplit");
+	    }
 	    ie = sp_reg (bp->prev, bp->next, NULL);
 	    split = TRUE;
 	}
@@ -207,7 +292,10 @@ int fl;
 
 
     /* Hopeless if zero. */
-    else if (dabs(tang) < EPS) panic("Region crosses itself.");
+    else if (dabs(tang) < EPS) {
+        mesh_diag_boundary(ir, "region crosses itself");
+        panic("Region crosses itself.");
+    }
 
     /* Fix if -2*PI */
     else if (dabs(tang+2*PI) < EPS) {
@@ -221,7 +309,10 @@ int fl;
 	}
 
     /* Huh? */
-    else panic("Region has malformed boundary");
+    else {
+        mesh_diag_boundary(ir, "region has malformed boundary");
+        panic("Region has malformed boundary");
+    }
 
     /* C. Sort angles by size. */
     ptrs = salloc( struct LLedge *, ned );

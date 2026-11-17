@@ -38,7 +38,7 @@
 image_write( filename, par, param )
 char *filename;
 char *par;
-int param;
+struct par_str *param;
 {
 
 

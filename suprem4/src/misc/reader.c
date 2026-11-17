@@ -40,9 +40,10 @@ static level = 0;
  *									*
  ************************************************************************/
 
-read_list(par, fd)
+read_list(par, fd, last)
 struct par_str **par;
 FILE *fd;
+int last;
 {
     static int temp;
     int eof;
@@ -59,29 +60,32 @@ FILE *fd;
 
 	if ( temp == level ) {
 	    /*we are at the same level*/
-	    par++;
+	    if (++last >= NUMPAR - 1)
+		return(-1); /* leave a NULL terminator for list consumers */
 	    /*allocate space for par*/
-	    par[0] = (struct par_str *)calloc(1, sizeof(struct par_str));
-	    if ( (eof = read_param( par[0], fd )) != 1)
+	    par[last] = (struct par_str *)calloc(1, sizeof(struct par_str));
+	    if ( (eof = read_param( par[last], fd )) != 1)
 		return( eof );
 	}
 	else {
 	    /*we are going somewhere, either up or down*/
 	    if ( temp < level )
 		return(1);
+	    if (last < 0 || temp != level + 1)
+		return(-1); /* a child must have an existing parent */
 
 	    /*set it up for a depth move*/
 	    level++;
-	    par[0]->param = (struct par_str **)calloc(NUMPAR+1, sizeof(int *));
+	    par[last]->param = (struct par_str **)calloc(NUMPAR+1, sizeof(struct par_str *));
 	    /*allocate space for the first one*/
-	    par[0]->param[0]=(struct par_str *)calloc(1,sizeof(struct par_str));
+	    par[last]->param[0]=(struct par_str *)calloc(1,sizeof(struct par_str));
 
 	    /*read the rest of that one of the current record*/
-	    if (( eof = read_param( par[0]->param[0], fd )) != 1)
+	    if (( eof = read_param( par[last]->param[0], fd )) != 1)
 		return( eof );
 
 	    /*read all the sub little parameters*/
-	    if (( eof = read_list( &(par[0]->param[0]), fd)) != 1)
+	    if (( eof = read_list(par[last]->param, fd, 0)) != 1)
 		return( eof );
 	    level--;
 
@@ -90,10 +94,11 @@ FILE *fd;
 		return(1);
 
 	    /*upon return, we ahve read level of the higher one, finish it*/
-	    par++;
+	    if (++last >= NUMPAR - 1)
+		return(-1);
 	    /*allocate space for par*/
-	    par[0] = (struct par_str *)calloc(1, sizeof(struct par_str));
-	    if ( (eof = read_param( par[0], fd )) != 1)
+	    par[last] = (struct par_str *)calloc(1, sizeof(struct par_str));
+	    if ( (eof = read_param( par[last], fd )) != 1)
 		return(eof);
 	}
     }

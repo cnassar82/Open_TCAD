@@ -1,0 +1,7 @@
+{
+  "sha256": "b7ebe69f7ffc350a69b8200834ba73ff5b1d1ca9eb43f775ec273e98ed10e422",
+  "command": "etch oxide dry thick=0.05",
+  "source": "decks/subcmos2014/results/nmos_locos_strip_failure/input.str",
+  "failing_binary": "native64_mad7zzna",
+  "reason": "False finite intersection after double cancellation near origin"
+}

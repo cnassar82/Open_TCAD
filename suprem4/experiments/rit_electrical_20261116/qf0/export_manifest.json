@@ -1,0 +1,138 @@
+{
+  "nmos": {
+    "input_structure": "/home/chris/Open_TCAD/decks/subcmos2014/results/astra_surface_overlap_fresh/nmos/metal1.str",
+    "input_sha256": "512a45255d23994880511d39bc3a6165a761672d8bad04f7d712b6f3e5a46fc0",
+    "tif_sha256": "32212103a5e13c659319de4b6047527d9658adae88a3d2839c3ef6c50ada9251",
+    "counts": {
+      "nodes": 22342,
+      "triangles": 43835,
+      "edges": 2203,
+      "body_edges": 0
+    },
+    "contacts": {
+      "Body": {
+        "region": 14,
+        "original_region": 15,
+        "bounds_um": [
+          0.4999999873689376,
+          1.9999999494757503,
+          -1.2500002048909664,
+          0.19630935639725067
+        ]
+      },
+      "Source": {
+        "region": 15,
+        "original_region": 16,
+        "bounds_um": [
+          3.3999999868683517,
+          5.0000002374872565,
+          -1.2500002048909664,
+          0.1147295279224636
+        ]
+      },
+      "Gate": {
+        "region": 16,
+        "original_region": 17,
+        "bounds_um": [
+          5.2499998128041625,
+          6.750000175088644,
+          -1.2500002048909664,
+          -0.4266197356628254
+        ]
+      },
+      "Drain": {
+        "region": 17,
+        "original_region": 18,
+        "bounds_um": [
+          6.99999975040555,
+          8.800000068731606,
+          -1.2500002048909664,
+          0.11227552931813989
+        ]
+      }
+    },
+    "merged_poly_region": 2,
+    "poly_metal_shared_edges": 7,
+    "gate_work_function_eV": 4.17,
+    "width_um": 1.0,
+    "temperature_K": 300.0,
+    "fixed_interface_charge_cm2": 0.0,
+    "drain_bias_V": 0.05,
+    "active_dopants": true,
+    "assumptions": [
+      "Ideal n+ gate; 4.17 eV consistent with installed Si affinity model",
+      "Active B/P profiles; fully ionized fixed dopants",
+      "Lucent mobility; Fermi statistics",
+      "No fitted interface charge or interface traps",
+      "One micron device width for current normalization"
+    ]
+  },
+  "pmos": {
+    "input_structure": "/home/chris/Open_TCAD/decks/subcmos2014/results/astra_surface_overlap_fresh/pmos/metal1.str",
+    "input_sha256": "150ec5dcba59e377499cff5b779abbe27a14a872329b1fe80f19850773c53aa6",
+    "tif_sha256": "58a81d7edef44a097115718b743ef45b6e3fc3b1c365e09b2882ca826d2e9e5e",
+    "counts": {
+      "nodes": 23839,
+      "triangles": 46506,
+      "edges": 2656,
+      "body_edges": 0
+    },
+    "contacts": {
+      "Body": {
+        "region": 14,
+        "original_region": 15,
+        "bounds_um": [
+          0.4999999873689376,
+          1.9999999494757503,
+          -1.2500002048909664,
+          0.3516661308822222
+        ]
+      },
+      "Source": {
+        "region": 15,
+        "original_region": 16,
+        "bounds_um": [
+          3.3999999868683517,
+          5.0000002374872565,
+          -1.2500002048909664,
+          0.2574172685854137
+        ]
+      },
+      "Gate": {
+        "region": 16,
+        "original_region": 17,
+        "bounds_um": [
+          5.2499998128041625,
+          6.750000175088644,
+          -1.2500002048909664,
+          -0.27032237994717434
+        ]
+      },
+      "Drain": {
+        "region": 17,
+        "original_region": 18,
+        "bounds_um": [
+          6.99999975040555,
+          8.800000068731606,
+          -1.2500002048909664,
+          0.2635237979120575
+        ]
+      }
+    },
+    "merged_poly_region": 2,
+    "poly_metal_shared_edges": 11,
+    "gate_work_function_eV": 4.17,
+    "width_um": 1.0,
+    "temperature_K": 300.0,
+    "fixed_interface_charge_cm2": 0.0,
+    "drain_bias_V": -0.05,
+    "active_dopants": true,
+    "assumptions": [
+      "Ideal n+ gate; 4.17 eV consistent with installed Si affinity model",
+      "Active B/P profiles; fully ionized fixed dopants",
+      "Lucent mobility; Fermi statistics",
+      "No fitted interface charge or interface traps",
+      "One micron device width for current normalization"
+    ]
+  }
+}

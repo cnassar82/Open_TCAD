@@ -1,0 +1,7 @@
+option quiet
+
+structure infile=input.str
+deposit oxide thick=0.5 divisions=10 space=0.04
+etch oxide dry thick=0.5
+structure outfile=after.str
+quit

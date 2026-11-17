@@ -1,0 +1,10 @@
+option quiet
+line x loc=0 spac=0.1 tag=left
+line x loc=1 spac=0.1 tag=right
+line y loc=0 spac=0.1 tag=top
+line y loc=1 spac=0.1 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+initialize boron conc=1e15 orient=100
+structure outfile=initial.str
+quit

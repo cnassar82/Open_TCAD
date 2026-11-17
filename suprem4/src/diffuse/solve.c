@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 10:50:15 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <sys/times.h>
 #include <sys/param.h>
@@ -49,6 +50,23 @@
 #define NEWT 1.0
 
 extern do_setup();
+
+/* Backward Euler for generic conservative chemical time terms and
+ * algebraic pseudo species. Unsupported custom transient terms are refused
+ * by the controller before any trial mutation. */
+int soldif_be(double dt, float temp, double **before, double **after,
+              double **before_active, double **after_active,
+              double *before_area, double *after_area)
+{
+    bval_compute(temp,after,dt);
+    cs.old_del=0; cs.new_del=dt; cs.temp=temp;
+    cs.old=before; cs.new=after;
+    cs.olda=before_active; cs.newa=after_active;
+    cs.oco=before_area; cs.nco=after_area; cs.type=BE;
+    cs.sol=tm_sol; cs.nsol=tm_nsol; cs.elim=tm_elim;
+    cs.il=tm_il; cs.l=tm_l; cs.loff=tm_loff;
+    return soldif(TRUE,"BE",do_setup);
+}
 
 
 /************************************************************************
@@ -285,6 +303,15 @@ PTR_FNC do_setup;
     do_setup( rhsnm );
     for(rhs2=0.0, i = 0; i < cs.nsol; i++) rhs2 += rhsnm[cs.sol[i]];
     rhs2 = sqrt( rhs2 );
+    if (!isfinite(rhs2) && getenv("SUPREM4_SOLVE_DIAG")) {
+        static int reports=0;
+        for(i=0;i<cs.nsol;i++)for(j=0;j<nn;j++) {
+            si=cs.sol[i];
+            if(!isfinite(rhs[si][j]) && reports++<24)
+                fprintf(stderr,"[solve-diag] initial stage=%s imp=%d node=%d mat=%d rhs=%.17g value=%.17g area=%.17g dt=%.17g\n",
+                        label,soltoimp[si],j,mat_nd(j),rhs[si][j],cs.new[si][j],cs.nco[j],cs.new_del);
+        }
+    }
     times(&after);
     tset = (after.tms_utime - before.tms_utime) / (HZ * 1.0);
 
@@ -348,6 +375,9 @@ PTR_FNC do_setup;
 	}
 
     }
+    if(negat && getenv("SUPREM4_SOLVE_DIAG"))
+        fprintf(stderr,"[solve-diag] rejected stage=%s iterations=%d rhs=%.17g previous_rhs=%.17g dt=%.17g\n",
+                label,count,rhs2,lstnm,cs.new_del);
     return( negat );
 }
 
@@ -377,6 +407,7 @@ double **update;
     double tmp;
     int imp;
     int negat = FALSE;
+    int reports = 0;
 
     for(bi = 0; bi < nsol; bi++) {
 	si = sol[bi];
@@ -395,6 +426,24 @@ double **update;
 
 		/*check to see if the new conc will be negative*/
 		if ( tmp < 0 ) {
+		    if (getenv("SUPREM4_SOLVE_DIAG")) {
+                        if(reports++<1) {
+                        int ti, vi, t, p = pt_nd(j);
+                        fprintf(stderr,
+                            "[solve-diag] negative imp=%d node=%d mat=%d value=%.17g update=%.17g dt=%.17g area=%.17g\n",
+                            imp,j,mat_nd(j),vars[si][j],update[si][j],cs.new_del,cs.nco[j]);
+                        fprintf(stderr,"[solve-diag] point=%d x=%.17g y=%.17g\n",
+                                p,cordinate(p,0),cordinate(p,1));
+                        if (reports == 1) for(ti=0;ti<num_tri_nd(j);ti++) {
+                            t=tri_nd(j,ti);
+                            for(vi=0;vi<num_vert(t);vi++) {
+                                p=pt_nd(vert_tri(t,vi));
+                                fprintf(stderr,"[solve-diag] triangle=%d vertex=%d point=%d x=%.17g y=%.17g area=%.17g\n",
+                                        t,vi,p,cordinate(p,0),cordinate(p,1),tri[t]->earea[vi]);
+                            }
+                        }
+                        }
+                    }
 		    /*only sweat non pseudo vars*/
 		    if ( ! IS_PSEUDO( imp ) ) negat++;
 

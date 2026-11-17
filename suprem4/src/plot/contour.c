@@ -40,7 +40,7 @@
  ************************************************************************/
 contour( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     float value;
     float arr[MAXVRT][3], p[2][3];

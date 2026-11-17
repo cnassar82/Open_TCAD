@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 08:21:02 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
@@ -85,11 +86,22 @@ int mk_nodes;
  *  Original:	MEL	9/90						*
  *									*
  ************************************************************************/
-bd_connect(when)
-char *when;
+static int connect_mesh(char *when,int etch_exposure);
+
+bd_connect(char *when)
+{
+    return connect_mesh(when,FALSE);
+}
+
+bd_connect_material(char *when)
+{
+    return connect_mesh(when,TRUE);
+}
+
+static int connect_mesh(char *when,int etch_exposure)
 {
 
-    int r;
+    int r,t,f,j,p,n,changed=FALSE,*boundary;
 
     /*free all existing skeletons*/
     while( nsreg > 0 ) free_skel(0);
@@ -108,6 +120,35 @@ char *when;
 
     /*generate edges*/
     build_edg();
+
+    if(etch_exposure) {
+        /* Boolean fragments can meet along a cut in another fragment.
+         * Final exposure follows the assembled triangle boundary, not the
+         * temporary cut-edge flags of an individual region. In particular,
+         * a completely enclosed junction must not retain a gas node. */
+        boundary=salloc(int,np);
+        for(p=0;p<np;p++)boundary[p]=FALSE;
+        t=0;
+        while(done_tri(t)) {
+            for(f=0;f<num_face(t);f++)
+                if(neigh_fc(t,f)<0 && neigh_fc(t,f)!=BC_OFFSET)
+                    for(j=0;j<num_nd_fc(t,f);j++)
+                        boundary[pt_nd(nd_face_ele(t,j,f))]=TRUE;
+            next_tri(t);
+        }
+        for(p=0;p<np;p++) {
+            if(boundary[p] || is_back(p) || !is_surf(p))continue;
+            clr_surf(p);
+            n=node_mat(nd_pt(p,0),GAS);
+            if(n>=0) {
+                if(num_tri_nd(n)!=0)panic("enclosed gas node has triangles");
+                rem_1nd(n);
+                changed=TRUE;
+            }
+        }
+        free(boundary);
+        if(changed)return connect_mesh(when,FALSE);
+    }
 
     /*build geometry*/
     geom( when );

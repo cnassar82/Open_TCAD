@@ -24,6 +24,44 @@
 #include "dbaccess.h"
 #include "material.h"
 
+/* Read-only diagnostic at mutation boundaries. The optional x window is in
+ * microns and only limits diagnostic cost; it never changes the mesh. */
+void mesh_embedding_trace(char *phase)
+{
+    char *v=getenv("SUPREM4_EMBED_TRACE");
+    int *edges,count=0,e,i,j,a,b,c,d,s1,s2,s3,s4;
+    double lo=-MAXFLOAT,hi=MAXFLOAT;
+    if(!v || !*v || mode!=TWOD)return;
+    if(sscanf(v,"%lf,%lf",&lo,&hi)==2){lo*=1e-4;hi*=1e-4;}
+    edges=salloc(int,ned);
+    for(e=0;e<ned;e++) {
+        if(dead_edg(e) || num_tri_edg(e)<1 || !is_border(e))continue;
+        a=pt_edg(e,0);b=pt_edg(e,1);
+        if(fmax(xcord(a),xcord(b))<lo || fmin(xcord(a),xcord(b))>hi)continue;
+        edges[count++]=e;
+    }
+    for(i=0;i<count;i++)for(j=i+1;j<count;j++) {
+        a=pt_edg(edges[i],0);b=pt_edg(edges[i],1);
+        c=pt_edg(edges[j],0);d=pt_edg(edges[j],1);
+        if(a==c || a==d || b==c || b==d)continue;
+        if(fmax(xcord(a),xcord(b))<fmin(xcord(c),xcord(d)) ||
+           fmax(xcord(c),xcord(d))<fmin(xcord(a),xcord(b)) ||
+           fmax(ycord(a),ycord(b))<fmin(ycord(c),ycord(d)) ||
+           fmax(ycord(c),ycord(d))<fmin(ycord(a),ycord(b)))continue;
+        s1=orient2d_float_sign(cord_arr(a),cord_arr(b),cord_arr(c));
+        s2=orient2d_float_sign(cord_arr(a),cord_arr(b),cord_arr(d));
+        s3=orient2d_float_sign(cord_arr(c),cord_arr(d),cord_arr(a));
+        s4=orient2d_float_sign(cord_arr(c),cord_arr(d),cord_arr(b));
+        if(s1*s2<0 && s3*s4<0) {
+            fprintf(stderr,"[embedding] first crossing after %s edges=%d,%d points=%d,%d,%d,%d\n",
+                    phase,edges[i],edges[j],a,b,c,d);
+            free(edges);
+            panic("diagnostic: crossed material boundaries");
+        }
+    }
+    free(edges);
+}
+
 #define report(S,A,B,C) {if (!err_cnt++)\
 		     fprintf(stderr, "Mesh failed self test %s:\n", when);\
 					     fprintf(stderr, S, A, B, C);}
@@ -213,7 +251,7 @@ mtest2( when)
 		    if (t < 0 || t >= ne)
 			report("node %d has a bad triangle %d at %d\n", n, t, i)
 		    else {
-			for (j = num_vert(t); j >= 0; j--)
+			for (j = num_vert(t) - 1; j >= 0; j--)
 			    if (vert_tri(t,j) == n) break;
 			if (j < 0)
 			  report("broken link triangle %d <== node %d\n",t,n,0)

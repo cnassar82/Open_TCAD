@@ -19,11 +19,13 @@ static char sccsid[]="$Header: ig2_meshio.c rev 5.1 7/3/91 08:30:45";
 #include "constant.h"
 #include "dbaccess.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include "material.h"
 #include "impurity.h"
 #include "sysdep.h"
 #include "expr.h"	/*for last_temp*/
+#include "process_surface.h"
 
 #define nop(J,I) nd[ tri[I]->nd[J] ]->pt
 #define ngh(J,I) tri[I]->nb[J]
@@ -63,6 +65,7 @@ ig2_read (name, flip, scale)
 
     /* Junk the previous mesh */
     dis_all();
+    process_surface_clear();
 
     /*default to reading in a two dimensional mesh*/
     set_dim( 2 );
@@ -76,6 +79,11 @@ ig2_read (name, flip, scale)
 	sscanf( iline, "%1s", flag);
 
 	switch(flag[0]) {
+
+        case 'G':
+            if(!process_surface_read(iline,scal[0],scal[1]))
+                ugh(line,"invalid process surface construction record",ierr++);
+            break;
 
 	case 'D' :
 	    /*read the dimensionality*/
@@ -94,11 +102,12 @@ ig2_read (name, flip, scale)
 	    SKIP( ip );
 
 	    for(i = 0; i < mode; i++) {
-		if ( sscanf( ip, "%e", &(cord[i]) ) != 1 ) {
+		if ( sscanf( ip, "%le", &x ) != 1 ) {
 		    ugh( line, "incomplete point line", ierr++ );
 		    break;
 		}
-		cord[i] *= scal[i];
+		/* Convert units before rounding to stored float precision. */
+		cord[i] = x * scal[i];
 
 		/*advance past the characters*/
 		SKIP(ip);
@@ -356,7 +365,9 @@ int ig2_write (name, lflip, scale)
     /* The next is to print the points one by one */
     for (ip = 0; ip < np; ip++) {
 	fprintf (lu, "c %d", ip+1);
-	for(i = 0; i < mode; i++) fprintf(lu, " %g", cordinate(ip,i)*scal[i]);
+	/* Six-digit output collapsed narrow triangles and could invert them
+	 * on restart. Preserve the scaled coordinate and solution precision. */
+	for(i = 0; i < mode; i++) fprintf(lu, " %.17g", cordinate(ip,i)*scal[i]);
 	fprintf (lu, "  0\n" );
     }
 
@@ -371,6 +382,7 @@ int ig2_write (name, lflip, scale)
 #  define tcode(ie,j) ((neigh_t(ie,j) >= 0)? neigh_t(ie,j)+1 : neigh_t(ie,j))
 
     for(it = 0; it < ne; it++) {
+        if (getenv("SUPREM4_DIAG_LIVE_TRIANGLES") && dead_tri(it)) continue;
 	fprintf (lu, "t %d %d ", it+1, reg_tri(it) + 1);
 
         if(lflip)
@@ -410,8 +422,9 @@ int ig2_write (name, lflip, scale)
 
     /* print the node data for all the nodes */
     for( in = 0; in < nn; in++ ) {
+        if (getenv("SUPREM4_DIAG_LIVE_TRIANGLES") && dead_nd(in)) continue;
 	fprintf( lu, "n %d   %d  ", pt_nd(in), mat_nd(in) );
-	for( is = 0; is < num_sol(in); is++ ) fprintf(lu," %e", sol_nd(in,is));
+	for( is = 0; is < num_sol(in); is++ ) fprintf(lu," %.17g", sol_nd(in,is));
 	fprintf( lu, "\n" );
     }
 
@@ -419,6 +432,7 @@ int ig2_write (name, lflip, scale)
     for( i = 0; i < n_imp; i++ ) fprintf(lu, " %d", IS_IMPLANTED(soltoimp[i]));
     fprintf( lu, "\n" );
 
+    process_surface_write(lu,scal[0],scal[1]);
     /* Bye now. */
     fclose (lu);
     return(0);

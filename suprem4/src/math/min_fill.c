@@ -20,6 +20,10 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#ifdef SUPREM_USE_AMD
+#include <limits.h>
+#include <suitesparse/amd.h>
+#endif
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
@@ -37,17 +41,58 @@ struct d_sort {
        int  nbin, mat;
        } ;
 
-/* All links come off a single big list */
+/* Blocks never move: active adjacency lists contain pointers into them. */
 typedef struct _link {struct _link *n; int v;} link;
-link *storage, *freelist;
-int   storage_size;
-int   su, hwm;			/* Storage used, high water mark */
+typedef struct link_block {
+    struct link_block *next;
+    link *items;
+} link_block;
+static link_block *storage;
+static link *freelist;
+static size_t storage_size;
+static size_t su, hwm;		/* Storage used, high water mark */
+static void new_storage(void);
+static void free_storage(void);
 
 #define takefrom( F, O) {link *t = (O); (O) = (F); (F) = (F)->n; (O)->n = t;}
 
 #define new_link(A) {if (!freelist) new_storage(); takefrom( freelist, A);\
 		     if (++su > hwm) hwm = su;}
 #define free_link(A) {takefrom((A)->n, freelist); su--;}
+
+#ifdef SUPREM_USE_AMD
+static int amd_fill(int *ia, int *reorder, int talk)
+{
+    int n = ia[0] - 1, base = ia[0], i, status;
+    int *columns, *permutation;
+    double info[AMD_INFO];
+    columns = salloc(int, (size_t)n + 1);
+    permutation = salloc(int, n);
+    if (!columns || !permutation) panic("Out of memory");
+    for (i = 0; i <= n; i++) columns[i] = ia[i] - base;
+    /* The adjacency map is CSR. AMD orders the pattern of A+A', so its
+     * transpose (CSC interpretation) gives the same symmetric graph. */
+    status = amd_order(n, columns, ia + base, permutation, NULL, info);
+    free(columns);
+    if (status != AMD_OK && status != AMD_OK_BUT_JUMBLED)
+        panic("AMD sparse ordering failed");
+    for (i = 0; i < n; i++) reorder[i] = -1;
+    for (i = 0; i < n; i++) {
+        int old = permutation[i];
+        if (old < 0 || old >= n || reorder[old] != -1)
+            panic("AMD returned an invalid permutation");
+        /* SUPREM wants old->new; AMD returns new->old. */
+        reorder[old] = i;
+    }
+    free(permutation);
+    if (!isfinite(info[AMD_LNZ]) || info[AMD_LNZ] < 0 || info[AMD_LNZ] > INT_MAX)
+        panic("AMD fill estimate exceeds integer capacity");
+    if (talk) printf("AMD ordering: nodes=%d, estimated strict L entries=%.0f\n",
+                     n, info[AMD_LNZ]);
+    /* FEsymb uses this only as an initial symbolic storage estimate. */
+    return (int)ceil(info[AMD_LNZ]);
+}
+#endif
 
 
 /************************************************************************
@@ -83,6 +128,9 @@ min_ia_fill(ia, reorder, talk)
     register link *q, *lastq;
     int  nnb, step, Obestn = -1, total = 0, e;
 
+#ifdef SUPREM_USE_AMD
+    if (mode == TWOD) return amd_fill(ia, reorder, talk);
+#endif
 
     /* Initialize storage - make a guess of l ~ 5*a, update later.*/
     nn = ia[0] - 1;
@@ -95,9 +143,10 @@ min_ia_fill(ia, reorder, talk)
     }
 
     nbrs = salloc( link, nn);
-    storage_size = 10*ia[ nn];
+    storage_size = suprem_array_bytes((size_t)ia[nn], 10);
     su = hwm = 0;
     storage = 0;
+    freelist = 0;
     new_storage();
 
     /* Initialize link table */
@@ -237,11 +286,11 @@ min_ia_fill(ia, reorder, talk)
    }
 
     if (talk)
-	 printf("high water mark=%d [%f *asize]  loff=%d\n",
+	 printf("high water mark=%zu [%f *asize]  loff=%d\n",
 		hwm, (float) hwm / ia[ nn], total);
 
     free(nbrs);
-    free(storage);
+    free_storage();
     free(order);
     return( total - nn);
 }
@@ -261,26 +310,40 @@ struct d_sort  *f1, *f2;
 	return( 0 );
 }
 
-new_storage()
+static void new_storage(void)
 {
     link *start, *end, *p;
+    link_block *block;
 
-    if (!storage) {
-	storage = salloc( link, storage_size);
-	start = storage;
-	end   = storage + storage_size -1;
+    assert(!freelist && storage_size > 0);
+    block = salloc(link_block, 1);
+    if (!block) panic("Out of memory");
+    block->items = salloc(link, storage_size);
+    if (!block->items) {
+        free(block);
+        panic("Out of memory");
     }
-    else {
-	storage = sralloc( link, 2*storage_size, storage);
-	start = storage + storage_size -1;
-	end   = storage + 2*storage_size -1;
-	storage_size *= 2;
-    }
-    assert( storage);
+    block->next = storage;
+    storage = block;
+    start = block->items;
+    end = start + storage_size - 1;
 
     for (p = start; p < end; p++) p->n = p+1;
     end->n = 0;
     freelist = start;
+}
+
+static void free_storage(void)
+{
+    link_block *block;
+    while (storage) {
+        block = storage;
+        storage = block->next;
+        free(block->items);
+        free(block);
+    }
+    freelist = 0;
+    su = 0;
 }
 
 #ifdef notdef

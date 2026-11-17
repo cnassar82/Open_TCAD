@@ -1,0 +1,41 @@
+{
+  "passed": false,
+  "results": [
+    {
+      "case": "stack_5",
+      "relative_errors": {
+        "3:5": 0.0,
+        "4:5": -6.8392192015882895e-15
+      },
+      "passed": true
+    },
+    {
+      "case": "stack_10",
+      "relative_errors": {
+        "3:5": 0.0,
+        "4:5": -6.984733997847973e-15
+      },
+      "passed": true
+    },
+    {
+      "case": "stack_20",
+      "relative_errors": {
+        "3:5": 0.0,
+        "4:5": -6.839218401255472e-15
+      },
+      "passed": true
+    },
+    {
+      "case": "real_contact_sanitized",
+      "relative_errors": {
+        "3:3": 1.1325633373280406e-10,
+        "3:5": -2.593453890204972e-10,
+        "4:3": -2.1206133277786705e-09,
+        "4:5": -6.55098996919918e-10
+      },
+      "passed": false
+    }
+  ],
+  "relative_tolerance": 1e-12,
+  "interpretation": "Strict 1e-12 inventory comparison passes all three analytic stacks but fails the captured real etch at up to 2.12e-9 relative. Recorded unchanged; no correction or tolerance widening applied. The etch refines shared native-float material interfaces, unlike fixed-domain rezoning. This is a remaining numerical-accuracy limitation, not evidence of absent gate dielectric."
+}

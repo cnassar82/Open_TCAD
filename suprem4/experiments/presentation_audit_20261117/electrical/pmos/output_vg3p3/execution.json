@@ -1,0 +1,9 @@
+{
+  "device": "pmos",
+  "case": "output_vg3p3",
+  "returncode": 0,
+  "elapsed_seconds": 178.77265296317637,
+  "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+  "deck_sha256": "737d19bdfed1d42e62b2caf75e5fa11810e3d9788bf432b956b94f7397295235",
+  "input_tif_sha256": "d894f3a99895a82d5d8d983738fab4981d1ad889da34a2efbdf1275c41c3890f"
+}

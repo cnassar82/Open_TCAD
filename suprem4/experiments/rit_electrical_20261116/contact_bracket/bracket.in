@@ -1,0 +1,30 @@
+option quiet
+structure infile=annealed.str
+
+# PDF p.117/118: use 0.5 um ILD, despite p.17 summary 0.4 um.
+deposit oxide thick=0.5 divisions=10 space=0.06
+structure outfile=after_ild.str
+deposit photoresist file=resist_top.dat divisions=8
+etch photoresist start x=0.75 y=-5
+etch continue x=0.75 y=1
+etch continue x=1.75 y=1
+etch done x=1.75 y=-5
+etch photoresist start x=3.75 y=-5
+etch continue x=3.75 y=1
+etch continue x=4.75 y=1
+etch done x=4.75 y=-5
+etch photoresist start x=5.55 y=-5
+etch continue x=5.55 y=1
+etch continue x=6.45 y=1
+etch done x=6.45 y=-5
+etch photoresist start x=7.25 y=-5
+etch continue x=7.25 y=1
+etch continue x=8.25 y=1
+etch done x=8.25 y=-5
+structure outfile=before_contact_etch.str
+etch oxide dry thick=1.5
+structure outfile=after_contact_etch.str
+etch photoresist all
+
+structure outfile=after_resist_strip.str
+quit

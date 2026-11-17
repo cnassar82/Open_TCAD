@@ -31,7 +31,7 @@
  ************************************************************************/
 man( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     FILE *help, *more;
     char *s;

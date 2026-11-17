@@ -40,7 +40,7 @@
  ************************************************************************/
 profile( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     register int i;
     char *infile;

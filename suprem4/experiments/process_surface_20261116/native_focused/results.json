@@ -1,0 +1,30 @@
+[
+  {
+    "case": "pmos_native_seed",
+    "passed": true
+  },
+  {
+    "case": "pmos_activation_seed",
+    "passed": true
+  },
+  {
+    "case": "pmos_reflecting_normal",
+    "passed": true
+  },
+  {
+    "case": "nmos_construction_spacer",
+    "passed": true
+  },
+  {
+    "case": "nmos_domain_spacer",
+    "passed": true
+  },
+  {
+    "case": "pmos_spacer_clip",
+    "passed": true
+  },
+  {
+    "case": "pmos_spacer_flat",
+    "passed": true
+  }
+]

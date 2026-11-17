@@ -18,11 +18,25 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
 #include "material.h"	/* For nmat, mattyp, SiO2 etc */
 #include "matrix.h"	/* For UpdateSymbolic */
+
+/* Experimental P1 row-sum mass matrix. This is a discretization choice,
+ * shared by diffusion and dose accounting, not a minimum-area cutoff. */
+static int p1_mass_lumping(void)
+{
+    static int enabled = -1;
+    if (enabled < 0) {
+        const char *value = getenv("SUPREM4_MASS_LUMPING");
+        enabled = value && !strcmp(value,"p1");
+    }
+    return enabled;
+}
 
 #define report(S,A,B,C) {if (!err_cnt++)\
 		     fprintf(stderr, "Mesh failed self test %s:\n", when);\
@@ -179,11 +193,11 @@ tri_geom(ie)
 int ie;			/*the triangle number*/
 {
     int i,j,k;
-    float xij,yij,xjk,yjk,xki,yki;	/*separation terms*/
-    float xi,yi,xj,yj,xk,yk;		/*coordinate terms*/
-    float disq,djsq,dksq,di,dj,dk;	/*distances*/
-    float ai,aj,ak;			/*area terms*/
-    float s,s4,r,rsq,den;	/*temps and misc.*/
+    double xij,yij,xjk,yjk,xki,yki;	/*separation terms*/
+    double xi,yi,xj,yj,xk,yk;		/*coordinate terms*/
+    double disq,djsq,dksq,di,dj,dk;	/*distances*/
+    double ai,aj,ak,ci,cj,ck;		/*area terms and half cotangents*/
+    double s,den;
 
     /*assume the son of gun is clockwise*/
     /*get the point numbers*/
@@ -221,9 +235,9 @@ int ie;			/*the triangle number*/
     den = 0.5 / den;
 
     /*calculate those coupling coeeficients*/
-    tri[ie]->ehed[0] = (xki * xij + yki * yij) * den;
-    tri[ie]->ehed[1] = (xij * xjk + yij * yjk) * den;
-    tri[ie]->ehed[2] = (xjk * xki + yjk * yki) * den;
+    tri[ie]->ehed[0] = ci = (xki * xij + yki * yij) * den;
+    tri[ie]->ehed[1] = cj = (xij * xjk + yij * yjk) * den;
+    tri[ie]->ehed[2] = ck = (xjk * xki + yjk * yki) * den;
 
     /*compute the area weighting*/
     disq = xjk * xjk + yjk * yjk;
@@ -241,18 +255,17 @@ int ie;			/*the triangle number*/
     if ((di == 0.0) || (dj == 0.0) || (dk == 0.0)) 
 	panic("zero length side in triangle %d\n");
 
-    /*calculate area, radius for circle and tangents*/
-    s4 = s * 4.0;
-    r = di * dj * dk / s4;
-    rsq = r * r;
-
-    /*calculate area assuming the acute angle case from the original*/
-    ai = 0.250 * di * sqrt(fabs(rsq - 0.25 * disq));
-    aj = 0.250 * dj * sqrt(fabs(rsq - 0.25 * djsq));
-    ak = 0.250 * dk * sqrt(fabs(rsq - 0.25 * dksq));
+    /* The same circumcentric areas, using edge^2 * |cot(angle)| / 8.
+     * Subtracting two squared radii loses the area near a right angle.
+     * Keep double intermediates until the final legacy float storage. */
+    ai = 0.25 * disq * fabs(ci);
+    aj = 0.25 * djsq * fabs(cj);
+    ak = 0.25 * dksq * fabs(ck);
     tri[ie]->earea[0] = aj + ak;
     tri[ie]->earea[1] = ak + ai;
     tri[ie]->earea[2] = ai + aj;
+    if (p1_mass_lumping())
+        tri[ie]->earea[0] = tri[ie]->earea[1] = tri[ie]->earea[2] = s/3.0;
 }
 
 
@@ -351,11 +364,11 @@ chp_fix( obe )
 int obe;
 {
     int i,j,k;
-    float xij,yij,xjk,yjk,xki,yki;	/*separation terms*/
-    float xi,yi,xj,yj,xk,yk;		/*coordinate terms*/
-    float disq,djsq,dksq,di,dj,dk;	/*distances*/
-    float s,s4,den;	/*temps and misc.*/
-    float tan[3];
+    double xij,yij,xjk,yjk,xki,yki;	/*separation terms*/
+    double xi,yi,xj,yj,xk,yk;		/*coordinate terms*/
+    double disq,djsq,dksq,di,dj,dk;	/*distances*/
+    double s,s4,den;
+    double tan[3],aj,ak;
 
     /*get the point numbers*/
     i = tri[obe]->nd[0];
@@ -378,9 +391,6 @@ int obe;
     /*triangle area is one half of this value*/
     s = -0.5 * den;
 
-    /*we want one half of the cotangent*/
-    den = 0.5 / den;
-
     /*compute the area weighting*/
     disq = xjk * xjk + yjk * yjk;
     djsq = xki * xki + yki * yki;
@@ -397,31 +407,38 @@ int obe;
     /*calculate area, radius for circle and tangents*/
     s4 = s * 4.0;
 
-    /*Compute the local tangents*/
-    tan[0] = djsq + dksq - disq;
-    tan[1] = dksq + disq - djsq;
-    tan[2] = disq + djsq - dksq;
+    /* Twice the vertex dot products. The squared-side subtraction is
+     * algebraically equivalent but rounds acute-angle denominators to zero
+     * in high-aspect-ratio triangles. No mesh modification is required. */
+    tan[0] = -2.0 * (xki*xij + yki*yij);
+    tan[1] = -2.0 * (xij*xjk + yij*yjk);
+    tan[2] = -2.0 * (xjk*xki + yjk*yki);
 
     /*figure out which side is the bad one*/
-    if      (tri[obe]->ehed[0] <= 0) i = 0; 
-    else if (tri[obe]->ehed[1] <= 0) i = 1; 
-    else if (tri[obe]->ehed[2] <= 0) i = 2;
+    if      (tan[0] <= 0) i = 0;
+    else if (tan[1] <= 0) i = 1;
+    else if (tan[2] <= 0) i = 2;
     else panic("redo_geom: bad arguments");
     j = (i+1)%3; k = (i+2)%3;
 
     tan[j] = s4 / tan[j];
     tan[k] = s4 / tan[k];
 
-    di = 2.0 * tri[obe]->d[i];
-    dj = 2.0 * tri[obe]->d[j];
-    dk = 2.0 * tri[obe]->d[k];
+    /* Retain the double lengths instead of reloading rounded float data. */
+    {
+        double sides[3];
+        sides[0]=di;sides[1]=dj;sides[2]=dk;
+        dj=sides[j];dk=sides[k];
+    }
 
     /*do the CHP fix for side lengths and areas*/
     tri[ obe] ->ehed[ i] = 0;
     tri[ obe] ->ehed[ j] = 0.5 * tan[k];
     tri[ obe] ->ehed[ k] = 0.5 * tan[j];
     
-    tri[ obe] ->earea[ j] = 0.125 * dk * tan[j] * dk;
-    tri[ obe] ->earea[ k] = 0.125 * dj * tan[k] * dj;
-    tri[ obe] ->earea[ i] = s - tri[obe]->earea[j] - tri[obe]->earea[k];
+    tri[ obe] ->earea[ j] = aj = 0.125 * dk * tan[j] * dk;
+    tri[ obe] ->earea[ k] = ak = 0.125 * dj * tan[k] * dj;
+    tri[ obe] ->earea[ i] = s - aj - ak;
+    if (p1_mass_lumping())
+        tri[obe]->earea[0] = tri[obe]->earea[1] = tri[obe]->earea[2] = s/3.0;
 }

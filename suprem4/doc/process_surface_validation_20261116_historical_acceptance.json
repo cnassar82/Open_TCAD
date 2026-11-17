@@ -1,0 +1,151 @@
+{
+  "accepted": true,
+  "scope": "Current separate RIT NMOS/PMOS decks from initialization through first metal; specified geometry options; no electrical calibration or general mesh-convergence claim",
+  "candidate": "/home/chris/Open_TCAD/suprem4/build/native64_ducjxrq7/src/suprem4",
+  "candidate_sha256": "19642a13add48a87c372aacfa68d0385c95ec7d140f5e4b6483b56e706d1ab03",
+  "sanitized_candidate": "/home/chris/Open_TCAD/suprem4/build/native64_rgomhyjr/src/suprem4",
+  "sanitized_sha256": "bdfcf480f3704f2b42469ce0af7832df35aa4149612717061d46bad5d1c99ccf",
+  "build_manifest_sha256": "3b5a734a6a10d5a9b121fb060220331254ca302e582f7e321a4e89d335ae36fe",
+  "runtime_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_MASS_LUMPING": null,
+    "SUPREM4_TIME_INTEGRATOR": null,
+    "SUPREM4_POSITIVITY_STEP": null,
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_VERTICAL_CONSTRAINTS": null,
+    "SUPREM4_PROCESS_SURFACE": "1"
+  },
+  "full_fresh_results": "/home/chris/Open_TCAD/decks/subcmos2014/results/astra_surface_overlap_fresh/results.json",
+  "complete_checkpoint_audit": "/home/chris/Open_TCAD/decks/subcmos2014/results/astra_surface_overlap_fresh/complete_checkpoint_audit.json",
+  "checkpoints_passed": 32,
+  "bounded_checks": {
+    "overlap_extended_sanitized": true,
+    "overlap_perturbations_inventory": true,
+    "overlap_focused": true,
+    "overlap_buffers_sanitized": true,
+    "overlap_closed_sanitized": true,
+    "focused_16": true,
+    "overlap_analytic_corner_suite": true
+  },
+  "focused_p1_test_correction": "/home/chris/Open_TCAD/suprem4/experiments/process_surface_20261116/focused/p1_explicit_mode_rerun.json",
+  "devices": {
+    "nmos": {
+      "elapsed_seconds": 588.5571286906488,
+      "returncode": 0,
+      "final_mesh": {
+        "triangles": 43835,
+        "area_by_region_um2": {
+          "1": 78.14685884825717,
+          "2": 0.500095360558003,
+          "3": 0.6556277624166807,
+          "4": 0.5778366768707333,
+          "5": 0.22898023697955056,
+          "6": 0.2289548186761996,
+          "7": 0.20199837474724847,
+          "8": 0.22500645207531464,
+          "9": 0.22505132900188318,
+          "10": 0.8808633250524166,
+          "11": 0.41025318318118037,
+          "12": 0.7790666578476811,
+          "13": 1.0634802525847568e-05,
+          "14": 7.486107892777844e-06,
+          "15": 1.6894261041720802,
+          "16": 1.7390702900719441,
+          "17": 1.1568166162480245,
+          "18": 1.8858676908603624
+        }
+      },
+      "device_checks": {
+        "gate_length_um": 1.0000000474974513,
+        "poly_midpoint": {
+          "boron_cm3": 14294527782806.977,
+          "phosphorus_cm3": 5.682698321838679e+19,
+          "net_donor_cm3": 5.682696892385901e+19
+        },
+        "gate_dielectric_um": 0.016674534892119938,
+        "source_50nm_below_surface": {
+          "boron_cm3": 7.153317164519611e+16,
+          "phosphorus_cm3": 8.513079759021905e+19,
+          "net_donor_cm3": 8.505926441857384e+19
+        },
+        "drain_50nm_below_surface": {
+          "boron_cm3": 7.113461861817954e+16,
+          "phosphorus_cm3": 8.361004946738941e+19,
+          "net_donor_cm3": 8.353891484877123e+19
+        },
+        "body_50nm_below_surface": {
+          "boron_cm3": 3.2217788461367525e+19,
+          "phosphorus_cm3": 1.1525320980436738e+17,
+          "net_donor_cm3": -3.210253525156316e+19
+        },
+        "metal_islands": 4,
+        "body_contact_gap_um": 0.0,
+        "source_contact_gap_um": 0.0,
+        "gate_contact_gap_um": 0.0,
+        "drain_contact_gap_um": 0.0
+      }
+    },
+    "pmos": {
+      "elapsed_seconds": 552.6481313589029,
+      "returncode": 0,
+      "final_mesh": {
+        "triangles": 46506,
+        "area_by_region_um2": {
+          "1": 76.61508220640799,
+          "2": 0.5000310199860566,
+          "3": 0.9237675951550292,
+          "4": 0.35610120796880435,
+          "5": 0.3561255833125027,
+          "6": 0.8047636638193377,
+          "7": 0.3207002288291649,
+          "8": 0.871640340742485,
+          "9": 0.21791157370971787,
+          "10": 0.21785703345413834,
+          "11": 0.7722257948628499,
+          "12": 0.4080771089116736,
+          "13": 2.7077827962707426e-05,
+          "14": 1.0694374882423555e-05,
+          "15": 1.8539004278615838,
+          "16": 1.8207194043082422,
+          "17": 1.2885531729572623,
+          "18": 1.9734564977248357
+        }
+      },
+      "device_checks": {
+        "gate_length_um": 1.0000000474974513,
+        "poly_midpoint": {
+          "boron_cm3": 3.623002863109523e+19,
+          "phosphorus_cm3": 5.9489231630792835e+19,
+          "net_donor_cm3": 2.3259202999697605e+19
+        },
+        "gate_dielectric_um": 0.01697009793287127,
+        "source_50nm_below_surface": {
+          "boron_cm3": 2.8338504115912385e+19,
+          "phosphorus_cm3": 1.2539694553171962e+17,
+          "net_donor_cm3": -2.8213107170380665e+19
+        },
+        "drain_50nm_below_surface": {
+          "boron_cm3": 2.8025211299166368e+19,
+          "phosphorus_cm3": 1.2649921282862634e+17,
+          "net_donor_cm3": -2.789871208633774e+19
+        },
+        "body_50nm_below_surface": {
+          "boron_cm3": 1.779332052983074e+17,
+          "phosphorus_cm3": 1.1885912763055779e+20,
+          "net_donor_cm3": 1.1868119442525947e+20
+        },
+        "metal_islands": 4,
+        "body_contact_gap_um": 0.0,
+        "source_contact_gap_um": 0.0,
+        "gate_contact_gap_um": 0.0,
+        "drain_contact_gap_um": 0.0
+      }
+    }
+  },
+  "deck_sha256": {
+    "nmos": "bf4a822272d350c2ccfbab04d52d8012748bc97541eb7de51932d4fee6233952",
+    "pmos": "1450fe719bbb1997926e4d625d660a786749332c72659d7c4185f4e8266ab304"
+  },
+  "general_launcher_unchanged": "suprem4/build/validated-native64 -> native64_2r55t88h"
+}

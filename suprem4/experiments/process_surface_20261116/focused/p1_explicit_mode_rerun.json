@@ -1,0 +1,8 @@
+{
+  "test": "run_p1_mass.sh",
+  "returncode": 0,
+  "passed": true,
+  "log": "suprem4/experiments/process_surface_20261116/focused/run_p1_mass_explicit_mode.log",
+  "log_sha256": "9826d3a4e0bdb88ff3e82cdce9efd2459abfdf0056314894db5522e4ad58b228",
+  "reason": "The test now explicitly selects the experimental P1 discretization it asserts, rather than depending on caller environment. Default discretization remains unchanged."
+}

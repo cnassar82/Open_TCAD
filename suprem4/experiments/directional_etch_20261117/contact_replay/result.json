@@ -1,0 +1,76 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_ec3ihno0/src/suprem4",
+  "binary_sha256": "a2d39df3c5b1131f4d357c43607a1fa449308a78af61bc97f0948c7031d31707",
+  "fixture_sha256": "6288b1c44c279363cfaf75ec2a92086a16d37e702d43a1bacc4d68939aead33b",
+  "deck_sha256": "2c69466af87984ea3a17d85f47bf1c0c95b2b5cf4af8be57629900d218b0fcc7",
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "errors": [],
+  "runtime_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_MASS_LUMPING": null,
+    "SUPREM4_TIME_INTEGRATOR": null,
+    "SUPREM4_POSITIVITY_STEP": null,
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_VERTICAL_CONSTRAINTS": null,
+    "SUPREM4_PROCESS_SURFACE": "1"
+  },
+  "build_manifest_sha256": "caa437341ddf7c6fd0dbed725a63e5268d97110557bfa8122318fafbd6d04aef",
+  "returncode": 0,
+  "mesh": {
+    "triangles": 44064,
+    "area_by_region_um2": {
+      "1": 78.14685884840975,
+      "2": 0.5000953629610886,
+      "3": 0.943597754421392,
+      "4": 2.613704776997227,
+      "5": 0.9342567453966883,
+      "6": 2.29721012988789,
+      "7": 0.9343044177024415,
+      "8": 1.0470932268057724,
+      "9": 0.49469847831169844,
+      "10": 0.49467622430929675,
+      "11": 0.9123835744569745,
+      "12": 0.3834006726254391,
+      "13": 0.4652056328161949,
+      "14": 0.8808633251479046,
+      "15": 0.4102531831811803,
+      "16": 0.7790666578476843,
+      "17": 1.0634802525847568e-05,
+      "18": 7.486107892777844e-06
+    }
+  },
+  "partition": {
+    "triangle_pairs_checked": 111157,
+    "boundary_pairs_checked": 938,
+    "triangles": 44064,
+    "boundary_edges": 938
+  },
+  "gate_oxide_material_probes": [
+    {
+      "x_um": 5.599999974947423,
+      "oxide_thickness_um": 0.017206274075457856
+    },
+    {
+      "x_um": 5.74999998207204,
+      "oxide_thickness_um": 0.01670362054642968
+    },
+    {
+      "x_um": 5.999999993946403,
+      "oxide_thickness_um": 0.016674534892151663
+    },
+    {
+      "x_um": 6.250000005820766,
+      "oxide_thickness_um": 0.0167028900348178
+    },
+    {
+      "x_um": 6.400000012945384,
+      "oxide_thickness_um": 0.01719307876698989
+    }
+  ],
+  "passed": true
+}

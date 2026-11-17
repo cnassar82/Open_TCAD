@@ -1,0 +1,10 @@
+{
+  "sha256": "54cf4926a1cd681918e0ac118a89a8f6b103e57c3e9a4d283d6aea4c563f0b8c",
+  "source": "decks/subcmos2014/results/astra_native_seed_capture/before.str",
+  "settings": [
+    "option quiet",
+    "method fermi vertical grid.oxide=0.04"
+  ],
+  "command": "diffuse time=0.001 temp=825 dryo2",
+  "known_failure": "NativeOxide starts inside an exposed run at an arbitrary skeleton list head, skips the leading edge, and leaves an exposed silicon point without an exposed face"
+}

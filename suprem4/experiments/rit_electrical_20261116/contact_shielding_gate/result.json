@@ -1,0 +1,57 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_ducjxrq7/src/suprem4",
+  "binary_sha256": "19642a13add48a87c372aacfa68d0385c95ec7d140f5e4b6483b56e706d1ab03",
+  "fixture_sha256": "6288b1c44c279363cfaf75ec2a92086a16d37e702d43a1bacc4d68939aead33b",
+  "deck_sha256": "2c69466af87984ea3a17d85f47bf1c0c95b2b5cf4af8be57629900d218b0fcc7",
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "errors": [
+    "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.07308607156896463, silicon top=0.09029234564442248"
+  ],
+  "runtime_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_MASS_LUMPING": null,
+    "SUPREM4_TIME_INTEGRATOR": null,
+    "SUPREM4_POSITIVITY_STEP": null,
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_VERTICAL_CONSTRAINTS": null,
+    "SUPREM4_PROCESS_SURFACE": "1"
+  },
+  "build_manifest_sha256": "3b5a734a6a10d5a9b121fb060220331254ca302e582f7e321a4e89d335ae36fe",
+  "returncode": 0,
+  "mesh": {
+    "triangles": 41166,
+    "area_by_region_um2": {
+      "1": 78.14685884825717,
+      "2": 0.500095360558003,
+      "3": 0.943597754421392,
+      "4": 2.613704777294662,
+      "5": 0.9342567453966883,
+      "6": 2.2972101292105602,
+      "7": 0.9343044177024415,
+      "8": 0.6556277624166813,
+      "9": 0.5778366768707345,
+      "10": 0.22898023697955056,
+      "11": 0.2289548186761995,
+      "12": 0.20199837474724835,
+      "13": 0.22500645207531464,
+      "14": 0.22505132900188318,
+      "15": 0.8808633250524166,
+      "16": 0.41025318318118037,
+      "17": 0.7790666578476811,
+      "18": 1.0634802525847568e-05,
+      "19": 7.486107892777844e-06
+    }
+  },
+  "partition": {
+    "triangle_pairs_checked": 100985,
+    "boundary_pairs_checked": 1204,
+    "triangles": 41166,
+    "boundary_edges": 1196
+  },
+  "passed": false
+}

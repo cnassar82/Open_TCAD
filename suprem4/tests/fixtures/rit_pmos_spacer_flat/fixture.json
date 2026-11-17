@@ -1,0 +1,8 @@
+{
+  "sha256": "8fd288aef30d82ec4a21c250930d55ed35cc309ad1be395b2b58b027fd87760c",
+  "source": "decks/subcmos2014/results/astra_incident_fresh/pmos/ldd.str",
+  "settings": [],
+  "command": "deposit oxide thick=0.5 divisions=10 space=0.04\netch oxide dry thick=0.5",
+  "scope": "Regularized Boolean must not emit exactly collinear retained material fragments",
+  "control": "native64_agkpdaik"
+}

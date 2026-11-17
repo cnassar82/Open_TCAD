@@ -1,0 +1,1443 @@
+{
+  "date": "2026-11-15",
+  "scope": "Candidate numerical/domain repairs; full CMOS and physics acceptance remain open",
+  "candidate_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain"
+  },
+  "experimental_build_flags": [
+    "--ordering",
+    "amd",
+    "--domain-offset"
+  ],
+  "sanitizer_options": {
+    "ASAN_OPTIONS": "detect_leaks=0",
+    "UBSAN_OPTIONS": "halt_on_error=1"
+  },
+  "validated_launcher_target": "native64_2r55t88h",
+  "builds": [
+    {
+      "build": "native64_m23qw5jt",
+      "latest_candidate": false,
+      "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+      "build_manifest_sha256": "3f65c207199e9e8f34306d2bb2391441b4ec32e02662f2ab4013908cfd2bec44",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/new_layer.c",
+        "dbase/couple.c",
+        "dbase/grid_upd.c",
+        "dbase/geometry.c",
+        "dbase/mesh_patch.c",
+        "dbase/mesh_patch_remove.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_zhq5f5_p",
+      "latest_candidate": false,
+      "binary_sha256": "20333a5c06776f0081db7866707e2ebce6b38347d6fce042232c0715cb58a94f",
+      "build_manifest_sha256": "c3581f9529ea89f8eb3a7109777d6d763f6cb5d1dcb6a877407990f72c34d0d4",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/new_layer.c",
+        "dbase/couple.c",
+        "dbase/grid_upd.c",
+        "dbase/geometry.c",
+        "dbase/mesh_patch.c",
+        "dbase/mesh_patch_remove.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_n0paar46",
+      "latest_candidate": false,
+      "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+      "build_manifest_sha256": "55640811c532e469645ccf99bd29520a595e1206b1378c6e60db617f1ed77ffb",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/new_layer.c",
+        "dbase/couple.c",
+        "dbase/grid_upd.c",
+        "dbase/geometry.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_k8ofsow3",
+      "latest_candidate": false,
+      "binary_sha256": "6c0f7a3524baa915c1bb7a400cee3baa79d86630a5846bb4b22b16e6fa01f7fb",
+      "build_manifest_sha256": "2257b77f3b8d0165b7fc0c7f2ad3d2b2f5f11eb750609421d53708cabc260769",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/new_layer.c",
+        "dbase/couple.c",
+        "dbase/grid_upd.c",
+        "dbase/geometry.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_6jztdvdl",
+      "latest_candidate": false,
+      "binary_sha256": "2963a8f0a616511a4397644fa20fb24a9f1aec9ecf93a2c63c26691702ad10cb",
+      "build_manifest_sha256": "9b46a9c0cd656a8f8bedb720a744f1f12f5b57475bcf1278fb49687be4ba28c1",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/new_layer.c",
+        "dbase/couple.c",
+        "dbase/geometry.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_32q9_n2u",
+      "latest_candidate": false,
+      "binary_sha256": "60da6f8cd68e4c180c87229dc2e7ae4599b70884e6b9a280167f06e65185ce7f",
+      "build_manifest_sha256": "f3dac81a7c7ec21aef383266c3a0cccca85ac22cc0b2697fbd4373c8d44488fb",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/new_layer.c",
+        "dbase/couple.c",
+        "dbase/geometry.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_yuj0z1w7",
+      "latest_candidate": false,
+      "binary_sha256": "eff2ab22c2267ede19384638495d57735c2b19f80fefca919c0984ec73162699",
+      "build_manifest_sha256": "34a742e8e22c54dbd93a8ff3d44fd4c2393a09dcbfb29c6c75add0bfcbbdcc95",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/couple.c",
+        "dbase/geometry.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_70li8k7h",
+      "latest_candidate": false,
+      "binary_sha256": "890a191aec2a2ad3538d5dc888bb6e26a19cb51b022877bb977cca2d520eb8da",
+      "build_manifest_sha256": "9bb6c975140d7d3e84e9452d84d69702bd7bea93eb18ad1a6a48df74865cbe96",
+      "current_source_mismatches": [
+        "include/diffuse.h",
+        "diffuse/solve_time.c",
+        "diffuse/solve.c",
+        "diffuse/moving.c",
+        "diffuse/time.c",
+        "diffuse/setup.c",
+        "dbase/geom.c",
+        "dbase/couple.c",
+        "dbase/geometry.c",
+        "refine/triheur.c",
+        "refine/sp_edge.c",
+        "refine/triang.c",
+        "refine/skel.c",
+        "refine/rect_tri.c",
+        "refine/dbase.c",
+        "refine/offset.c"
+      ]
+    },
+    {
+      "build": "native64_o54fuavs",
+      "latest_candidate": false,
+      "binary_sha256": "0a5d375e9ca641b98d76cff89aaedf22329e9c6b6d1d86686e33f6f873721609",
+      "build_manifest_sha256": "e127fdd3d9e263051c42af9f9ab51868395167ab35fc66639a0e585e49ea9f8a",
+      "current_source_mismatches": [
+        "dbase/geom.c",
+        "refine/triheur.c",
+        "refine/triang.c",
+        "refine/rect_tri.c",
+        "refine/domain_offset.cpp"
+      ]
+    },
+    {
+      "build": "native64_99j1uzl7",
+      "latest_candidate": false,
+      "binary_sha256": "8abf5a400a189c3c63719647d26ad978c88c67b74b01f75c18514f4f2b2c2135",
+      "build_manifest_sha256": "306fade22952e9c30075ca5528aaffa7329b2849348d237b3120b0402b749dc8",
+      "current_source_mismatches": [
+        "dbase/geom.c",
+        "refine/triheur.c",
+        "refine/triang.c",
+        "refine/rect_tri.c",
+        "refine/domain_offset.cpp"
+      ]
+    },
+    {
+      "build": "native64_l3ozbabw",
+      "latest_candidate": true,
+      "binary_sha256": "150952287055d9d1345e588f7b09b0aa77b82969326b70a87fcefccf832e6e11",
+      "build_manifest_sha256": "1523d9c1933a2c663f86fbf7b419973ebe62f4ea8bd9b712664af8f5144cc919",
+      "current_source_mismatches": []
+    },
+    {
+      "build": "native64_92cvoyp7",
+      "latest_candidate": true,
+      "binary_sha256": "cd4266b40cc7e3d0df687f289087db5d04cbe21c159fe8a7177012556e25582c",
+      "build_manifest_sha256": "9f3ba35b3fe1225b90d92fe52c80e77a862147ca726415d166d1684118fc8620",
+      "current_source_mismatches": []
+    }
+  ],
+  "runs": [
+    {
+      "case": "astra_final_ild",
+      "result": "decks/subcmos2014/results/astra_final_ild/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_l3ozbabw/src/suprem4",
+      "binary_sha256": "150952287055d9d1345e588f7b09b0aa77b82969326b70a87fcefccf832e6e11",
+      "errors": [],
+      "result_sha256": "f7f5bba063af34cae21ae0f3f1e797b2d15ea7de90d4c5b9b569de2e88268648"
+    },
+    {
+      "case": "astra_final_ild_sanitized",
+      "result": "decks/subcmos2014/results/astra_final_ild_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_92cvoyp7/src/suprem4",
+      "binary_sha256": "cd4266b40cc7e3d0df687f289087db5d04cbe21c159fe8a7177012556e25582c",
+      "errors": [],
+      "result_sha256": "088f179a1afec87043ca61122422e0973f7fbcd422c4d79441ae19e9ead27dc4"
+    },
+    {
+      "case": "astra_final_spacer_sanitized",
+      "result": "decks/subcmos2014/results/astra_final_spacer_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_92cvoyp7/src/suprem4",
+      "binary_sha256": "cd4266b40cc7e3d0df687f289087db5d04cbe21c159fe8a7177012556e25582c",
+      "errors": [],
+      "result_sha256": "481a7fc97e4b9b5914b0a0058353c3be08897268ffe3085e2c57749a342aa75d"
+    },
+    {
+      "case": "astra_final_pmos_finish/pmos",
+      "result": "decks/subcmos2014/results/astra_final_pmos_finish/pmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_l3ozbabw/src/suprem4",
+      "elapsed_seconds": 167.87901195697486,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null,
+          "SUPREM4_DEPOSITION_GEOMETRY": "domain"
+        },
+        "binary_sha256": "150952287055d9d1345e588f7b09b0aa77b82969326b70a87fcefccf832e6e11",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "1523d9c1933a2c663f86fbf7b419973ebe62f4ea8bd9b712664af8f5144cc919"
+      },
+      "errors": [],
+      "result_sha256": "82a43e2791d2f01a301f218b287f9b77a2bab8d463158046153adb90e4666cd4"
+    },
+    {
+      "case": "astra_regularized_spacer",
+      "result": "decks/subcmos2014/results/astra_regularized_spacer/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_g1_w161b/src/suprem4",
+      "binary_sha256": "b673e5e0accdbbd6d82fd78a240c118c02ed0a65357ca3ba440f2cbcb8c36cf2",
+      "errors": [],
+      "result_sha256": "191a8f1d7d7d2de87bc743d426404dc020c9e9a6b9cee79da0178b106ac728ef"
+    },
+    {
+      "case": "astra_regularized_spacer_sanitized",
+      "result": "decks/subcmos2014/results/astra_regularized_spacer_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_0cid41sg/src/suprem4",
+      "binary_sha256": "0a72331a3af19d69f939147e3db322ce42146c770938ba07fc1c794daeea8e4f",
+      "errors": [],
+      "result_sha256": "e6a7f33b3a1e562765fa88d66b3ccdde55f3e412ef0fa180be2f48737bbbc843"
+    },
+    {
+      "case": "astra_domain_ild_float_grid",
+      "result": "decks/subcmos2014/results/astra_domain_ild_float_grid/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_o54fuavs/src/suprem4",
+      "binary_sha256": "0a5d375e9ca641b98d76cff89aaedf22329e9c6b6d1d86686e33f6f873721609",
+      "errors": [],
+      "result_sha256": "bf74cb838b963e459c2e425c9f01681860828fa5789c7e4cab042338eda90345"
+    },
+    {
+      "case": "astra_domain_ild_sanitized",
+      "result": "decks/subcmos2014/results/astra_domain_ild_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_99j1uzl7/src/suprem4",
+      "binary_sha256": "8abf5a400a189c3c63719647d26ad978c88c67b74b01f75c18514f4f2b2c2135",
+      "errors": [],
+      "result_sha256": "7e1a169d9745938f86a7ec2d5c624084aa1a1f39b617902a65edd9af894f9899"
+    },
+    {
+      "case": "astra_domain_spacer_float_grid",
+      "result": "decks/subcmos2014/results/astra_domain_spacer_float_grid/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_o54fuavs/src/suprem4",
+      "binary_sha256": "0a5d375e9ca641b98d76cff89aaedf22329e9c6b6d1d86686e33f6f873721609",
+      "errors": [],
+      "result_sha256": "ec6f3afa53ac2d51fbaa91f365d623859dba95dc51815eb99a0558ce4db60f51"
+    },
+    {
+      "case": "astra_domain_spacer_sanitized",
+      "result": "decks/subcmos2014/results/astra_domain_spacer_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_99j1uzl7/src/suprem4",
+      "binary_sha256": "8abf5a400a189c3c63719647d26ad978c88c67b74b01f75c18514f4f2b2c2135",
+      "errors": [],
+      "result_sha256": "b0e4113ccd418c96adef82ddc22778c189a1e0c2951d9dc94b5c75b617ed3eb1"
+    },
+    {
+      "case": "astra_domain_pmos_finish/pmos",
+      "result": "decks/subcmos2014/results/astra_domain_pmos_finish/pmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_o54fuavs/src/suprem4",
+      "elapsed_seconds": 222.51856715977192,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null
+        },
+        "binary_sha256": "0a5d375e9ca641b98d76cff89aaedf22329e9c6b6d1d86686e33f6f873721609",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "e127fdd3d9e263051c42af9f9ab51868395167ab35fc66639a0e585e49ea9f8a"
+      },
+      "errors": [],
+      "result_sha256": "e699cfb4cdd9a54606a5bfd38f5dfb33119767178612a9270e1d89d5e5b45998"
+    },
+    {
+      "case": "astra_domain_fresh/nmos",
+      "result": "decks/subcmos2014/results/astra_domain_fresh/nmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_o54fuavs/src/suprem4",
+      "elapsed_seconds": 285.71882630093023,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null
+        },
+        "binary_sha256": "0a5d375e9ca641b98d76cff89aaedf22329e9c6b6d1d86686e33f6f873721609",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "e127fdd3d9e263051c42af9f9ab51868395167ab35fc66639a0e585e49ea9f8a"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/nmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/nmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/nmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/nmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/nmos/metal1.str'"
+      ],
+      "result_sha256": "dee85ca02b0b206c77f161524369d1c7202ce7c6cce1848207b9cf5879cb663a"
+    },
+    {
+      "case": "astra_domain_fresh/pmos",
+      "result": "decks/subcmos2014/results/astra_domain_fresh/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_o54fuavs/src/suprem4",
+      "elapsed_seconds": 186.30792761594057,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null
+        },
+        "binary_sha256": "0a5d375e9ca641b98d76cff89aaedf22329e9c6b6d1d86686e33f6f873721609",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "e127fdd3d9e263051c42af9f9ab51868395167ab35fc66639a0e585e49ea9f8a"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_fresh/pmos/metal1.str'"
+      ],
+      "result_sha256": "c91193aff1ebe20b044caa333ffac51b0744081c80349bbc809e929e6f3acea3"
+    },
+    {
+      "case": "astra_domain_stable_angles/pmos",
+      "result": "decks/subcmos2014/results/astra_domain_stable_angles/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_g_nbziet/src/suprem4",
+      "elapsed_seconds": 78.41860366705805,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null,
+          "SUPREM4_DEPOSITION_GEOMETRY": "domain"
+        },
+        "binary_sha256": "8618c706bf9f6903cafe40869f41acdb5d009c75282a09e1b459b69deae0aeb4",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "71caeb0e7fce715df0cd7cc137037f9cdf5d4f1d6c3c9fe7c6387fd1e1d50e9d"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_domain_stable_angles/pmos/metal1.str'"
+      ],
+      "result_sha256": "cc77e58429843c0a83587b0218eb8bd4917f981bdcb212d2fb3a10b4f137f8d1"
+    },
+    {
+      "case": "astra_ordered_projection_nmos/nmos",
+      "result": "decks/subcmos2014/results/astra_ordered_projection_nmos/nmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_pcg8tlho/src/suprem4",
+      "elapsed_seconds": 2.119931933004409,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null,
+          "SUPREM4_DEPOSITION_GEOMETRY": "domain"
+        },
+        "binary_sha256": "177bb5d7c99bab11f2f551d9c5bda4618e8909bc69cdb8ddf422206999df58ca",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "5d993c8588760abc0338044e576c3031ccfd10d1ffebea85a67eccc09bd2dce6"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_ordered_projection_nmos/nmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_ordered_projection_nmos/nmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_ordered_projection_nmos/nmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_ordered_projection_nmos/nmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_ordered_projection_nmos/nmos/metal1.str'"
+      ],
+      "result_sha256": "20c5cf962a8efd5e564f1bf43a024e67c0c8a9f8d5ffdc89055f362541ed69a4"
+    },
+    {
+      "case": "astra_be_activation/pmos",
+      "result": "decks/subcmos2014/results/astra_be_activation/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_c333l4_7/src/suprem4",
+      "elapsed_seconds": 6.592399666085839,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null
+        },
+        "binary_sha256": "f8b860dc9c221f74ffe22223992cd0173d1b2afb96d81b841690211207431669",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "6d19ad687fc3ce81652a9bde7d6e10c1bc8066cc3daec4c0ac5f08b7644819e7"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_be_activation/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_be_activation/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_be_activation/pmos/metal1.str'"
+      ],
+      "result_sha256": "9a8d524f4a88b05a0a6f78564574f4b5081a4347c3d0523972d44405fcca9743"
+    },
+    {
+      "case": "astra_be_error_diagnosis/pmos",
+      "result": "decks/subcmos2014/results/astra_be_error_diagnosis/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_nnlthrtc/src/suprem4",
+      "elapsed_seconds": 3.875708790961653,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null
+        },
+        "binary_sha256": "5099a811068803f31aef9a5bcaa56b147a66d9c880e2cf04c0e035f7269ec71c",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "2dc298ea141e143d0e9bde2a30538aa0c3b4281708cb4d6b6a869e9fd56f7afe"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_be_error_diagnosis/pmos/annealed.str'"
+      ],
+      "result_sha256": "4481287b168561945e7d438965b61fc43b477427ab99c06759bf7d053eb009a7"
+    },
+    {
+      "case": "astra_p1_fresh/pmos",
+      "result": "decks/subcmos2014/results/astra_p1_fresh/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_5yh90xtb/src/suprem4",
+      "elapsed_seconds": 124.38489922508597,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": "p1"
+        },
+        "binary_sha256": "b075c5717d1e6bb7cd272984bfe146c1966a721da201ffc6d1ab63da32a00458",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "7ed1834c3721260a9683084c93de9f3595bd066ffde19a3651ba2381b3ba6cd1"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/pmos/metal1.str'"
+      ],
+      "result_sha256": "01ece23b5b9ee7598a35b269c9d068ee43abcaf1160193c4e5ab2f263a7cf86e"
+    },
+    {
+      "case": "astra_p1_fresh/nmos",
+      "result": "decks/subcmos2014/results/astra_p1_fresh/nmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_5yh90xtb/src/suprem4",
+      "elapsed_seconds": 30.461504101287574,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": "p1"
+        },
+        "binary_sha256": "b075c5717d1e6bb7cd272984bfe146c1966a721da201ffc6d1ab63da32a00458",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "7ed1834c3721260a9683084c93de9f3595bd066ffde19a3651ba2381b3ba6cd1"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "locos_mask: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/locos_mask.str'",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_p1_fresh/nmos/metal1.str'"
+      ],
+      "result_sha256": "b4ce5e0dc28f3970923a2fd44d68cfb7dc5e2d2b6b44680929a050d3f67748a7"
+    },
+    {
+      "case": "astra_velocity_history_continue/pmos",
+      "result": "decks/subcmos2014/results/astra_velocity_history_continue/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_p0ssqzmd/src/suprem4",
+      "elapsed_seconds": 84.72528514498845,
+      "provenance": {
+        "runtime_options": {
+          "SUPREM4_MATERIAL_DOMAINS": "oxide",
+          "SUPREM4_MESH_PATCH_REMOVAL": "1",
+          "SUPREM4_MASS_LUMPING": null,
+          "SUPREM4_TIME_INTEGRATOR": null
+        },
+        "binary_sha256": "25f7676725b4771a42b937997db9adce85e9b24fb69575bbc7d754b4ed288fcd",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "7d7dfb3d00f253f503dda887ef5f2925f6ce9ec5719747baf70a0b150d4f8d3c"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_velocity_history_continue/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_velocity_history_continue/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_velocity_history_continue/pmos/metal1.str'"
+      ],
+      "result_sha256": "415ab405144c15287309517f0953e8ccddabccd4611e5d87acc0f574d9d46f0c"
+    },
+    {
+      "case": "astra_finite_clip_continue/pmos",
+      "result": "decks/subcmos2014/results/astra_finite_clip_continue/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_06_jel3j/src/suprem4",
+      "elapsed_seconds": 8.738150253891945,
+      "provenance": {
+        "binary_sha256": "22e3c9dd2a57e5b6141c65136a3f7211dd3f8703a5b39a00539c3e528bab09cc",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "ffdcf8ce3bab79d801e0a9f09f57c0fa83ce56ff90912e171c87174ff131e5bd"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_finite_clip_continue/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_finite_clip_continue/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_finite_clip_continue/pmos/metal1.str'"
+      ],
+      "result_sha256": "776e4c62dcc2561bd6d9af74510d487478bc72e8ddd918e6deaa5e16d38434da"
+    },
+    {
+      "case": "astra_activation_geometry/pmos",
+      "result": "decks/subcmos2014/results/astra_activation_geometry/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_0o563h8b/src/suprem4",
+      "elapsed_seconds": 0.8220143620856106,
+      "provenance": {
+        "binary_sha256": "7ab1627f7efe9a4018729b05dc60a6bfc424f0694f7963f8acd503dd08a371a0",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "f177bc2ce6d6ca4115b0d141ddd7e79edac884656a62e7bb0c12b86973cc5366"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_activation_geometry/pmos/annealed.str'"
+      ],
+      "result_sha256": "d8b8ec776e23442b88e94fb7e0df99265ed3f1ffaffe2a87e4c9082960cfacf4"
+    },
+    {
+      "case": "astra_finite_spacer_sanitized",
+      "result": "decks/subcmos2014/results/astra_finite_spacer_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_70li8k7h/src/suprem4",
+      "binary_sha256": "890a191aec2a2ad3538d5dc888bb6e26a19cb51b022877bb977cca2d520eb8da",
+      "errors": [],
+      "result_sha256": "e30bbf75e099dbc30cbe232ff9f50f4d7ef85ee7aa21ec1119bfc929f2bbbcbf"
+    },
+    {
+      "case": "astra_reflecting_control",
+      "result": "decks/subcmos2014/results/astra_reflecting_control/result.json",
+      "passed": false,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_0o563h8b/src/suprem4",
+      "binary_sha256": "7ab1627f7efe9a4018729b05dc60a6bfc424f0694f7963f8acd503dd08a371a0",
+      "errors": [
+        "reflecting face left its prescribed plane: triangle 6817, face 1, [(0.0, 0.17533955542603508), (5.684342356405358e-17, 0.17376913092448376)]"
+      ],
+      "result_sha256": "e8781312fab7c4dc85a1da3064292cc6f4df0f011b51068ec563aca85eea9886"
+    },
+    {
+      "case": "astra_reflecting_sanitized",
+      "result": "decks/subcmos2014/results/astra_reflecting_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_70li8k7h/src/suprem4",
+      "binary_sha256": "890a191aec2a2ad3538d5dc888bb6e26a19cb51b022877bb977cca2d520eb8da",
+      "errors": [],
+      "result_sha256": "ac22ebed76ededfc10aeae0156d0cf7bfcfc54533de6e94f0da1f4ca8465e293"
+    },
+    {
+      "case": "astra_tangent_boundary_continue/pmos",
+      "result": "decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_yuj0z1w7/src/suprem4",
+      "elapsed_seconds": 16.813410279341042,
+      "provenance": {
+        "binary_sha256": "eff2ab22c2267ede19384638495d57735c2b19f80fefca919c0984ec73162699",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "34a742e8e22c54dbd93a8ff3d44fd4c2393a09dcbfb29c6c75add0bfcbbdcc95"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_boundary_continue/pmos/metal1.str'"
+      ],
+      "result_sha256": "5e80f99c4ceeca962ee1261356f32754bc68f529b7201a27ead9270d99779faf"
+    },
+    {
+      "case": "astra_tangent_from_wells/pmos",
+      "result": "decks/subcmos2014/results/astra_tangent_from_wells/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_yuj0z1w7/src/suprem4",
+      "elapsed_seconds": 187.40159105695784,
+      "provenance": {
+        "binary_sha256": "eff2ab22c2267ede19384638495d57735c2b19f80fefca919c0984ec73162699",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "34a742e8e22c54dbd93a8ff3d44fd4c2393a09dcbfb29c6c75add0bfcbbdcc95"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_from_wells/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_from_wells/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_from_wells/pmos/metal1.str'"
+      ],
+      "result_sha256": "d920f5fb0c7e6b44d699ed2e561e5924249a9db368a2093f6ba4136fd7e40a98"
+    },
+    {
+      "case": "astra_tangent_nmos/nmos",
+      "result": "decks/subcmos2014/results/astra_tangent_nmos/nmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_yuj0z1w7/src/suprem4",
+      "elapsed_seconds": 269.0663577360101,
+      "provenance": {
+        "binary_sha256": "eff2ab22c2267ede19384638495d57735c2b19f80fefca919c0984ec73162699",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "34a742e8e22c54dbd93a8ff3d44fd4c2393a09dcbfb29c6c75add0bfcbbdcc95"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "source_drain: wrong body polarity: {'boron_cm3': 2.98634623668903e+19, 'phosphorus_cm3': 1.2812370594476802e+20, 'net_donor_cm3': 9.826024357787773e+19}",
+        "annealed: wrong body polarity: {'boron_cm3': 8.758907598405657e+19, 'phosphorus_cm3': 9.872638578171832e+19, 'net_donor_cm3': 1.1137309797661753e+19}",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_nmos/nmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/astra_tangent_nmos/nmos/metal1.str'"
+      ],
+      "result_sha256": "c5de18ad3b67b202909ac5e6702db862c9fd252ad384a221943b807da6f17301"
+    },
+    {
+      "case": "sol_side_boundary_pad_replay",
+      "result": "decks/subcmos2014/results/sol_side_boundary_pad_replay/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n0paar46/src/suprem4",
+      "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+      "errors": [],
+      "result_sha256": "7f1190ebf050957e455dfa76872e17df288caf316c2ada9c98fcdc9e860f1021"
+    },
+    {
+      "case": "sol_side_boundary_pad_sanitized",
+      "result": "decks/subcmos2014/results/sol_side_boundary_pad_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_k8ofsow3/src/suprem4",
+      "binary_sha256": "6c0f7a3524baa915c1bb7a400cee3baa79d86630a5846bb4b22b16e6fa01f7fb",
+      "errors": [],
+      "result_sha256": "f9e0d33cbf67b80b2de5b5757518ca4ef399bd73456b8cfee9edafc9462f4782"
+    },
+    {
+      "case": "sol_side_boundary_full_activation/pmos",
+      "result": "decks/subcmos2014/results/sol_side_boundary_full_activation/pmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n0paar46/src/suprem4",
+      "elapsed_seconds": 179.8805981078185,
+      "provenance": {
+        "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "55640811c532e469645ccf99bd29520a595e1206b1378c6e60db617f1ed77ffb"
+      },
+      "errors": [],
+      "result_sha256": "f4f253c11304dfef9954ff01cb47dc6254590be9e7fcd7d51efe9f6769c0fc26"
+    },
+    {
+      "case": "sol_side_boundary_fresh/nmos",
+      "result": "decks/subcmos2014/results/sol_side_boundary_fresh/nmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n0paar46/src/suprem4",
+      "elapsed_seconds": 471.8274847562425,
+      "provenance": {
+        "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "55640811c532e469645ccf99bd29520a595e1206b1378c6e60db617f1ed77ffb"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "source_drain: wrong body polarity: {'boron_cm3': 2.838707573847356e+19, 'phosphorus_cm3': 1.2746993457973995e+20, 'net_donor_cm3': 9.908285884126639e+19}",
+        "annealed: wrong body polarity: {'boron_cm3': 7.971807242252291e+19, 'phosphorus_cm3': 8.868097879129155e+19, 'net_donor_cm3': 8.962906368768639e+18}",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/nmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/nmos/metal1.str'"
+      ],
+      "result_sha256": "47833a4bc26bd8dd614cf951245a4362767ab4bb4c5b72e8e2d552ee73df215e"
+    },
+    {
+      "case": "sol_side_boundary_fresh/pmos",
+      "result": "decks/subcmos2014/results/sol_side_boundary_fresh/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n0paar46/src/suprem4",
+      "elapsed_seconds": 209.88599833892658,
+      "provenance": {
+        "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "55640811c532e469645ccf99bd29520a595e1206b1378c6e60db617f1ed77ffb"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_fresh/pmos/metal1.str'"
+      ],
+      "result_sha256": "f49a8dcd2f18f12fcd1109a2bec489a5d2a433aed358bbcf341869185e098416"
+    },
+    {
+      "case": "sol_side_boundary_threshold_control/pmos",
+      "result": "decks/subcmos2014/results/sol_side_boundary_threshold_control/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n0paar46/src/suprem4",
+      "elapsed_seconds": 5.731516906060278,
+      "provenance": {
+        "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "55640811c532e469645ccf99bd29520a595e1206b1378c6e60db617f1ed77ffb"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_side_boundary_threshold_control/pmos/threshold.str'"
+      ],
+      "result_sha256": "18bedff056f252acfd7e37298722ff744e5a551302ebe2d9ebe0bdd493799b51"
+    },
+    {
+      "case": "sol_kooi_back_pedal_control",
+      "result": "decks/subcmos2014/results/sol_kooi_back_pedal_control/result.json",
+      "passed": false,
+      "returncode": -6,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n0paar46/src/suprem4",
+      "binary_sha256": "9bd99004ed94a51e9e34d1879c25ed78ba69e73d44492821fffc659732828a77",
+      "errors": [
+        "simulator error",
+        "[Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_kooi_back_pedal_control/after.str'"
+      ],
+      "result_sha256": "b84c76651d8674bd6eb2fe483b6ab388d5ece1428b20bbf95739343a15ef9450"
+    },
+    {
+      "case": "sol_kooi_back_pedal_fixed",
+      "result": "decks/subcmos2014/results/sol_kooi_back_pedal_fixed/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_6jztdvdl/src/suprem4",
+      "binary_sha256": "2963a8f0a616511a4397644fa20fb24a9f1aec9ecf93a2c63c26691702ad10cb",
+      "errors": [],
+      "result_sha256": "de37c176c442126832111ac208e4e4ed37c2de4be2a3e3373e3b87bae17b6427"
+    },
+    {
+      "case": "sol_kooi_back_pedal_sanitized",
+      "result": "decks/subcmos2014/results/sol_kooi_back_pedal_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_32q9_n2u/src/suprem4",
+      "binary_sha256": "60da6f8cd68e4c180c87229dc2e7ae4599b70884e6b9a280167f06e65185ce7f",
+      "errors": [],
+      "result_sha256": "ea17d73c037a46ce064c17bd9361b7d976b1050759217e6611688f1e8c6fe1f3"
+    },
+    {
+      "case": "sol_back_pedal_double_continue/pmos",
+      "result": "decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_6jztdvdl/src/suprem4",
+      "elapsed_seconds": 82.83190756896511,
+      "provenance": {
+        "binary_sha256": "2963a8f0a616511a4397644fa20fb24a9f1aec9ecf93a2c63c26691702ad10cb",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "9b46a9c0cd656a8f8bedb720a744f1f12f5b57475bcf1278fb49687be4ba28c1"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/metal1.str'"
+      ],
+      "result_sha256": "dce153caf08e52ce6aab1dc5940cbacb469f50abac9d95c22ef30d5e26802f49"
+    },
+    {
+      "case": "sol_back_pedal_spacer_diag/pmos",
+      "result": "decks/subcmos2014/results/sol_back_pedal_spacer_diag/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_6jztdvdl/src/suprem4",
+      "elapsed_seconds": 1.2172748898155987,
+      "provenance": {
+        "binary_sha256": "2963a8f0a616511a4397644fa20fb24a9f1aec9ecf93a2c63c26691702ad10cb",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "9b46a9c0cd656a8f8bedb720a744f1f12f5b57475bcf1278fb49687be4ba28c1"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_back_pedal_spacer_diag/pmos/spacers.str'"
+      ],
+      "result_sha256": "f6c22951c5a58dae57553fae4313a4c4d638679a4ab34a0ba910194d91601025"
+    },
+    {
+      "case": "sol_pmos_spacer_clip_control",
+      "result": "decks/subcmos2014/results/sol_pmos_spacer_clip_control/result.json",
+      "passed": false,
+      "returncode": -6,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_6jztdvdl/src/suprem4",
+      "binary_sha256": "2963a8f0a616511a4397644fa20fb24a9f1aec9ecf93a2c63c26691702ad10cb",
+      "errors": [
+        "simulator error",
+        "[Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_pmos_spacer_clip_control/after.str'"
+      ],
+      "result_sha256": "0fc44d2a968e9082a2e1c1e08da3e14a621bea56797a1297ca052537d4e4642d"
+    },
+    {
+      "case": "sol_stable_weights_activation",
+      "result": "decks/subcmos2014/results/sol_stable_weights_activation/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+      "errors": [],
+      "result_sha256": "a46cd2a170296e6862b8491edd9fdcf2db86f7b9d681ac0ec47d6eb387159a4c"
+    },
+    {
+      "case": "sol_stable_weights_activation_sanitized",
+      "result": "decks/subcmos2014/results/sol_stable_weights_activation_sanitized/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_zhq5f5_p/src/suprem4",
+      "binary_sha256": "20333a5c06776f0081db7866707e2ebce6b38347d6fce042232c0715cb58a94f",
+      "errors": [],
+      "result_sha256": "64c9dbaf5944099de4e99a6431ea0b013b14d2c421c79aa3cd61ab6ea7872b32"
+    },
+    {
+      "case": "sol_stable_weights_spacer_nmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_spacer_nmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+      "result_sha256": "d905c4c56c894723ad5c84d9048f6f62abd20d06f74e931b332c46606cda379c"
+    },
+    {
+      "case": "sol_stable_weights_spacer_pmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_spacer_pmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+      "result_sha256": "a64f2dfbf518feda089645f1dc40ddb8a1d85e317412a13749b7998737ba5aa0"
+    },
+    {
+      "case": "sol_stable_weights_locos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_locos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+      "errors": [],
+      "result_sha256": "9496d0f7407f246acaa504792f4831ad6613f2855d3593ecc3bfc679193feadf"
+    },
+    {
+      "case": "sol_stable_weights_full_activation/pmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_full_activation/pmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "elapsed_seconds": 127.17797234095633,
+      "provenance": {
+        "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "3f65c207199e9e8f34306d2bb2391441b4ec32e02662f2ab4013908cfd2bec44"
+      },
+      "errors": [],
+      "result_sha256": "fb0c51ad1330398a408b8cda08ac68666d0b5eb960c3927e25e3f9fab467f5e2"
+    },
+    {
+      "case": "sol_stable_weights_full_sanitized/pmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_full_sanitized/pmos/result.json",
+      "passed": true,
+      "returncode": 0,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_zhq5f5_p/src/suprem4",
+      "elapsed_seconds": 540.6478990530595,
+      "provenance": {
+        "binary_sha256": "20333a5c06776f0081db7866707e2ebce6b38347d6fce042232c0715cb58a94f",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "c3581f9529ea89f8eb3a7109777d6d763f6cb5d1dcb6a877407990f72c34d0d4"
+      },
+      "errors": [],
+      "result_sha256": "974698130e4190c95069d7828bcfa5947738c0a61f103ec992ebb3b1080987e4"
+    },
+    {
+      "case": "sol_stable_weights_pmos_finish/pmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_pmos_finish/pmos/result.json",
+      "passed": false,
+      "returncode": -6,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "elapsed_seconds": 0.3147526737302542,
+      "provenance": {
+        "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "3f65c207199e9e8f34306d2bb2391441b4ec32e02662f2ab4013908cfd2bec44"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_pmos_finish/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_pmos_finish/pmos/metal1.str'"
+      ],
+      "result_sha256": "4e58893b2035065f538b2bec7b0b7e872349e665e1d8fc46832219099a534694"
+    },
+    {
+      "case": "sol_stable_weights_fresh/nmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_fresh/nmos/result.json",
+      "passed": false,
+      "returncode": -9,
+      "timed_out": true,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "elapsed_seconds": 900.0081393988803,
+      "provenance": {
+        "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "3f65c207199e9e8f34306d2bb2391441b4ec32e02662f2ab4013908cfd2bec44"
+      },
+      "errors": [
+        "runtime limit exceeded",
+        "pad: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/pad.str'",
+        "well_mask: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/well_mask.str'",
+        "wells: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/wells.str'",
+        "locos_mask: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/locos_mask.str'",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/nmos/metal1.str'"
+      ],
+      "result_sha256": "fd4f66c0d022b9946f249dc07590ed0bc01e4abdcaf4dc6e13212e702a6ea4ed"
+    },
+    {
+      "case": "sol_stable_weights_fresh/pmos",
+      "result": "decks/subcmos2014/results/sol_stable_weights_fresh/pmos/result.json",
+      "passed": false,
+      "returncode": -9,
+      "timed_out": true,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "elapsed_seconds": 900.007803235203,
+      "provenance": {
+        "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "3f65c207199e9e8f34306d2bb2391441b4ec32e02662f2ab4013908cfd2bec44"
+      },
+      "errors": [
+        "runtime limit exceeded",
+        "pad: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/pad.str'",
+        "well_mask: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/well_mask.str'",
+        "wells: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/wells.str'",
+        "locos_mask: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/locos_mask.str'",
+        "locos: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/locos.str'",
+        "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/threshold.str'",
+        "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/gate_oxide.str'",
+        "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/poly_doped.str'",
+        "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/gate.str'",
+        "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/ldd.str'",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/source_drain.str'",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/annealed.str'",
+        "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/contacts.str'",
+        "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_stable_weights_fresh/pmos/metal1.str'"
+      ],
+      "result_sha256": "ec195d0b441f0e3a6a03dcd332c643f42d01062c78df499aad35216ac7fcdc05"
+    },
+    {
+      "case": "sol_domain_final_full_activation/pmos",
+      "result": "decks/subcmos2014/results/sol_domain_final_full_activation/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64__faneiky/src/suprem4",
+      "elapsed_seconds": 119.50992064690217,
+      "provenance": {
+        "binary_sha256": "59fb667a973bf83eb207f21d913945575a117e7ea439c8d98233ef053c52f9bd",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "ba57d0ddfe04db2ef0f806d76e7927dfb472e91b31c2643b23e433bd2167ff5b"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_domain_final_full_activation/pmos/annealed.str'"
+      ],
+      "result_sha256": "e120627c1b4d7b9004da935929230b867b04c39d6f9c24b3ab2df884841872e6"
+    },
+    {
+      "case": "sol_domain_valid_estimator_full/pmos",
+      "result": "decks/subcmos2014/results/sol_domain_valid_estimator_full/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_qhb132_s/src/suprem4",
+      "elapsed_seconds": 171.12437301687896,
+      "provenance": {
+        "binary_sha256": "1202105d0d1781204b18072f372d2fb1c46f51aef955164e8ad3667aa0efd8ac",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "c7f4a11b13606acbc8c901147e2db5d802466475342ea5d2ab715a8b2f0147f5"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_domain_valid_estimator_full/pmos/annealed.str'"
+      ],
+      "result_sha256": "e3bb40fe2cdfb438e37418dc992a97f575fa710e6c4fba27e7a8700bf8ac3ef7"
+    },
+    {
+      "case": "sol_domain_residual_trace/pmos",
+      "result": "decks/subcmos2014/results/sol_domain_residual_trace/pmos/result.json",
+      "passed": false,
+      "returncode": 1,
+      "timed_out": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_domain_trace_20261115/src/suprem4",
+      "elapsed_seconds": 154.52250481583178,
+      "provenance": {
+        "binary_sha256": "a8c61db6739305f6bf91996c121d397606dbe02113e90e8ef3a10c8b2f4f7c1e",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "3fe338dc3929287dcedf4150f151c3c965ea76203f63e5a783c984a904ccd119"
+      },
+      "errors": [
+        "simulator reported a command or mesh error",
+        "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_domain_residual_trace/pmos/annealed.str'"
+      ],
+      "result_sha256": "11cf582d2564f2b33f1747887722d4bfb8cffb36749c2751b78a8e8831b27041"
+    },
+    {
+      "case": "sol_ild_boundary_fixture_control",
+      "result": "decks/subcmos2014/results/sol_ild_boundary_fixture_control/result.json",
+      "passed": false,
+      "returncode": -6,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "binary_sha256": "0ee58158957c23250ce5fab8e6afc6bfa71c78692f9c2e61e4c05190c9fc4cc3",
+      "errors": [
+        "simulator error",
+        "[Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/sol_ild_boundary_fixture_control/after.str'"
+      ],
+      "result_sha256": "879abe7c91bc3b2cd5065c34d18083f193201e35f0a484d0ae53b4bf2400a53b"
+    },
+    {
+      "case": "sol_pad_motion_capture",
+      "result": "decks/subcmos2014/results/sol_pad_motion_capture/result.json",
+      "passed": false,
+      "returncode": null,
+      "timed_out": true,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_m23qw5jt/src/suprem4",
+      "result_sha256": "92e9db135ac5a9914314ea7ffa671c9283bd39bf89711976d08ed33a33c2302f"
+    }
+  ],
+  "test_source_sha256": {
+    "geometry_weights.c": "1a3e598354a5b22bd17ac4f80aa51d37503df889f81d39bea375e03bfff61678",
+    "run_geometry_weights.sh": "589421175c905a693dde50ea30fcb7b0674756dd5c99aacf9ab9a17e6e988ade",
+    "time_stage.c": "6f5b716a02b859e8cd5f0dd58c0c7c5f462c7570a6f2ea8e9e03058174770952",
+    "test_time_stage.py": "ed80f07e5e2d980b3c1fd32965243cf4d76fd172407a17d591e6fee4d82a623b",
+    "material_domain.c": "1a2c8d17a152414591b01978666308225e61e5ad2b916c85eb0045a72eefc413",
+    "material_domain_db.c": "83139554ceffe6c0c166311eeb7b4b848fa200b739a196f121d8b4439a86afcd",
+    "run_material_domain.sh": "0d1520b06bae5494754b87667f3a9772b86480b30e9a7acfef06e427fd098f82",
+    "moving_flux.c": "15e645e284144f92a25f4e806fbd1bfb19feb40c1ab873fed99371863604bd60",
+    "run_moving_flux.sh": "208562e0bb4663ace6397f5ebab91f619e95954b9df535eadd7521895f365e5a",
+    "mesh_trial.c": "402f414affe78ee516c5f38905f2b8542a2f4982e3db4868bc55532939396b16",
+    "run_mesh_trial.sh": "11ab2f37106ea59304d54df4d95139abd76ba5f270b8294e0a101090e7f8b0c1",
+    "diffusion_retry.c": "be1bf8102f60bd361b070f5673d9bef2f72b09518800465f54618a7add5c6ae2",
+    "test_diffusion_retry.py": "06d25d40e7e92639a6c036cd801a593aeb20943e5698b9f56ad2f4c4dede2471",
+    "mesh_patch_commit.c": "d644a46957582d19d644bce770c528aaed14d93d01b7b6248fdcacaa94ebb281",
+    "test_mesh_patch_c.py": "0ceb3488814d0cee1600680da26863bd05a888e67cedf9ef6e764f128933c71a",
+    "run_mesh_patch_commit.sh": "d6a6f714a78a4c2861a444c264aaf27f1dac22511f5b20e9613b88050dbf9da8",
+    "run_rit_locos_strip.py": "01cda761f8c22b2a7728ceece40f19514aefab9a5f94947fbab58d08c8a0bba3",
+    "reflecting_normal.c": "133a04c3f4625a82f54efe1ff94c1407f1a2dd235172e662b8e04addcb24de9e",
+    "run_reflecting_normal.sh": "ca5970a49c77371e4c35c41ed2fe44c2d4cf4e0422c3a67353a181aa320090f4",
+    "etch_corner.c": "a8f7834ec0e4a158d9a04e2827427dba5ab46bfddec1bdd3e8cec5ed5ec8aa69",
+    "run_etch_corner.sh": "53473c2fb59c86d05358b8beb8eb5935cb6e473a18daf851b720f92f6fc15673",
+    "interface_measure.c": "b9abf19623fd906b03135325128d33ab213aa4e3bfdc83e11803962b311f10fa",
+    "run_interface_measure.sh": "19b4561224ee8161000f60389379e372cb36d418238bc55fe1cc7b2a63ed264a",
+    "be_time.c": "3e94587e385501127916bc2b4a93d2dadd025aaf541c369c3acae0df1fa2a5a8",
+    "run_be_time.sh": "b08ea527d87a652e3470084d50cd4f44c884e1d3ebfbe47299ba8b74fce93daa",
+    "be_mass_term.c": "1f9789e8097d2c50387fa3365e2a88a17d5353a9559290900c26b91168ec4927",
+    "run_be_mass_term.sh": "362299799201f45d69b4b3d2c456982ca4bb7539b9c68699a2f01e0d1ef92706",
+    "p1_mass.c": "88335af58ecc8fb04aef0d0dcd536649810b87cb4f9d7fbf4f2cbf2546d2e493",
+    "run_p1_mass.sh": "05f0ef47dfe134b6b73e7dd2b0d575c948c4907341e8a41f9d8d2e9337629885",
+    "boundary_angle.c": "ec1fb7c6eb206fa8616ceaf6d9066a6cd7e3bdcd0e4b2165eddf95aa73001312",
+    "run_boundary_angle.sh": "2da508a7451a0fb41db09489aa160c00c37e11deff2fd79893b79bcdfb003ec1",
+    "rect_projection.c": "4e8abef1099da6ad18e88dfe9737542733de44e4b691061522cb5ac1a82af70f",
+    "run_rect_projection.sh": "d690e489b09df4726632bc86c01d3136ea5da6088dc5010a1d7c6309a397d74e",
+    "domain_offset.cpp": "098df5507542b07821addb9aa212f5cf56f664cebe3cd2836973f9ec03f705bc",
+    "run_domain_offset.sh": "b07d6c4ae36c5849f5a07ba12ec307ae67b0c2b93068510a2acab65da6848cdd"
+  },
+  "focused_check_report": {
+    "path": "suprem4/experiments/reflecting_boundary_20261115/focused_checks.json",
+    "sha256": "6ab577091294dd892339137a3cb271aae101061cd0dd92f008297d84a231d7ea"
+  },
+  "domain_backend_sanitizer_log": {
+    "path": "suprem4/experiments/robust_offset_20261115/domain_offset_final.log",
+    "sha256": "7540abdb953b65bcf1f758b290ade5f75bf5c7c84fba3fa604fe3fabd27e66a8"
+  },
+  "negative_controls": {
+    "geometry_weights": "geometry_weights_negative_control.log",
+    "time_stage": "time_stage_negative_control.log",
+    "directory": "suprem4/experiments/material_domain_20261115"
+  },
+  "independent_audits": [
+    "decks/subcmos2014/results/astra_final_pmos_finish/pmos/contacts_partition_audit.json",
+    "decks/subcmos2014/results/astra_final_pmos_finish/pmos/metal1_partition_audit.json",
+    "decks/subcmos2014/results/astra_domain_pmos_finish/pmos/contacts_partition_audit.json",
+    "decks/subcmos2014/results/astra_domain_pmos_finish/pmos/metal1_partition_audit.json",
+    "decks/subcmos2014/results/sol_side_boundary_fresh/nmos/annealed_partition_audit.json",
+    "decks/subcmos2014/results/sol_side_boundary_full_activation/pmos/annealed_partition_audit.json",
+    "decks/subcmos2014/results/sol_stable_weights_full_activation/pmos/annealed_partition_audit.json",
+    "decks/subcmos2014/results/sol_stable_weights_full_sanitized/pmos/annealed_partition_audit.json",
+    "decks/subcmos2014/results/sol_stable_weights_ild_boundary/boundary_audit.json"
+  ]
+}

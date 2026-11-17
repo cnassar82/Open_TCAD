@@ -10,9 +10,18 @@
 /*   Last Modification : 7/3/91  08:34:05 */
 
 #include <math.h>
+#include <float.h>
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
+
+#if FLT_RADIX != 2 || DBL_MANT_DIG < 2*FLT_MANT_DIG || \
+    DBL_MIN_EXP > 2*(FLT_MIN_EXP-FLT_MANT_DIG) || DBL_MAX_EXP < 2*FLT_MAX_EXP
+#error "Exact stored-coordinate predicates require binary32 products representable in binary64"
+#endif
+#ifdef __FAST_MATH__
+#error "Exact stored-coordinate predicates require error-free floating-point sums"
+#endif
 
 /************************************************************************
  *									*
@@ -76,7 +85,11 @@ int t;
 float area_tri(a1,a2,b1,b2,c1,c2)
 float a1,a2,b1,b2,c1,c2;
 {
-    return( (b1*(c2-a2) + c1*(a2-b2) + a1*(b2-c2) ) * 0.5 );
+    /* Translate before multiplying and promote before subtraction.
+     * The expanded float determinant loses small triangle areas at large
+     * lateral coordinates, even rejecting points on an actual edge. */
+    return 0.5*(((double)b1-a1)*((double)c2-a2)-
+                ((double)b2-a2)*((double)c1-a1));
 }
 
 
@@ -134,4 +147,30 @@ int tr;
     return(-1);
 }
 
+
+/* Exact orientation sign for stored float coordinates. Each product of two
+ * IEEE binary32 coordinates is exact in binary64 (at most 48 significant
+ * bits, with exponent range safely inside binary64). Error-free TwoSum
+ * accumulates the six products without losing small terms near an origin. */
+int orient2d_float_sign(float *a, float *b, float *c)
+{
+    double terms[6], expansion[6], next[6], q, sum, bv, error;
+    int i,j,n=0,m;
+    terms[0]=(double)a[0]*b[1]; terms[1]=-(double)a[0]*c[1];
+    terms[2]=(double)b[0]*c[1]; terms[3]=-(double)b[0]*a[1];
+    terms[4]=(double)c[0]*a[1]; terms[5]=-(double)c[0]*b[1];
+    for(i=0;i<6;i++) {
+        q=terms[i];m=0;
+        for(j=0;j<n;j++) {
+            sum=q+expansion[j]; bv=sum-q;
+            error=(q-(sum-bv))+(expansion[j]-bv);
+            if(error!=0)next[m++]=error;
+            q=sum;
+        }
+        if(q!=0 || m==0)next[m++]=q;
+        n=m;
+        for(j=0;j<n;j++)expansion[j]=next[j];
+    }
+    return expansion[n-1]>0 ? 1 : expansion[n-1]<0 ? -1 : 0;
+}
 

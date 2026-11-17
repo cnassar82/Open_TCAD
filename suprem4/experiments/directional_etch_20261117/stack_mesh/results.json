@@ -1,0 +1,31 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_wpdiiq88/src/suprem4",
+  "binary_sha256": "aa6b91771245d025d70af715fc15dba7d93faa609bbc7c2130afe2a5815f6eed",
+  "results": [
+    {
+      "divisions": 5,
+      "errors": [
+        "overlapping collinear boundary edges: (551, 548), (554, 567)"
+      ],
+      "returncode": 0,
+      "passed": false
+    },
+    {
+      "divisions": 10,
+      "errors": [
+        "overlapping collinear boundary edges: (2096, 2093), (2099, 2112)"
+      ],
+      "returncode": 0,
+      "passed": false
+    },
+    {
+      "divisions": 20,
+      "errors": [
+        "overlapping collinear boundary edges: (8186, 8183), (8189, 8202)"
+      ],
+      "returncode": 0,
+      "passed": false
+    }
+  ],
+  "passed": false
+}

@@ -1,0 +1,50 @@
+{
+  "nmos": {
+    "before_implant": {
+      "mean_P_sheet_cm2_per_10um_width_by_material": {},
+      "total": 0
+    },
+    "after_implant": {
+      "mean_P_sheet_cm2_per_10um_width_by_material": {
+        "3": 78.2258400712756,
+        "1": 2.015747470013335,
+        "4": 1.3275099875238148e+16
+      },
+      "total": 1.3275099875238228e+16
+    },
+    "after_activation": {
+      "mean_P_sheet_cm2_per_10um_width_by_material": {
+        "3": 59177243764725.24,
+        "1": 8666741894197.321,
+        "4": 5499383213797789.0
+      },
+      "total": 5567227199456712.0
+    }
+  },
+  "pmos": {
+    "before_implant": {
+      "mean_P_sheet_cm2_per_10um_width_by_material": {
+        "3": 8651770290955.816,
+        "1": 42789087071.37825,
+        "4": 2565.6347558289713
+      },
+      "total": 8694559380592.829
+    },
+    "after_implant": {
+      "mean_P_sheet_cm2_per_10um_width_by_material": {
+        "3": 8651770290955.816,
+        "1": 42789087071.37825,
+        "4": 1.3122206982366808e+16
+      },
+      "total": 1.3130901541744836e+16
+    },
+    "after_activation": {
+      "mean_P_sheet_cm2_per_10um_width_by_material": {
+        "3": 150907382983839.16,
+        "1": 8926200974315.225,
+        "4": 5368399423654478.0
+      },
+      "total": 5528233007612632.0
+    }
+  }
+}

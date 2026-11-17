@@ -24,19 +24,17 @@ SUPREM_MATERIAL_TO_TIF = {
     6: "Elec",
 }
 
+# Match suprem4/src/include/impurity.h: 7/8 are holes/X velocity,
+# 24/25 are grain size/tracer, not aluminum/nitrogen dopants.
 DOPING_CODE_TO_NAME = {
     2: "Arsenic",
     3: "Phosphorus",
     4: "Antimony",
     5: "Boron",
-    7: "Aluminum",
-    8: "Nitrogen",
     20: "ArsenicActive",
     21: "PhosphorusActive",
     22: "AntimonyActive",
     23: "BoronActive",
-    24: "AluminumActive",
-    25: "NitrogenActive",
 }
 
 

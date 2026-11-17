@@ -32,7 +32,7 @@
  ************************************************************************/
 c_mater( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     int mat = -1;
     int wd = -1;
@@ -106,7 +106,7 @@ int param;
  *----------------------------------------------------------------------*/
 ChosenMater( par, param, other)
      char *par;
-     int param;
+     struct par_str *param;
      int other;			/* 1 for /mater, 0 for mater */
 {
     int i, offset = other? 0 : 1;
@@ -117,7 +117,7 @@ ChosenMater( par, param, other)
 }
 
 ChosenBC( par, param, other)
-     char *par; int param; int other;
+     char *par; struct par_str *param; int other;
 {
     int i, offset = other? 0:1;
     for (i = 0; i <3; i++)

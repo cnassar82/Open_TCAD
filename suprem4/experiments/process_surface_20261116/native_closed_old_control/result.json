@@ -1,0 +1,8 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_h9nj1yiz/src/suprem4",
+  "binary_sha256": "c0f00e1ca91b86639c70ab80ce94a14dd19ca1d154916f8f252e04855681269c",
+  "errors": [
+    "Command '['/home/chris/Open_TCAD/suprem4/build/native64_h9nj1yiz/src/suprem4']' timed out after 20 seconds"
+  ],
+  "passed": false
+}

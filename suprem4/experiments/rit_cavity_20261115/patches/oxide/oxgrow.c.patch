@@ -1,0 +1,29 @@
+--- baseline/oxide/oxgrow.c
++++ experiment/oxide/oxgrow.c
+@@ -16,6 +16,7 @@
+ /*   oxgrow.c                Version 5.1     */
+ /*   Last Modification : 7/3/91 10:52:33 */
+ #include <stdio.h>
++#include <stdlib.h>
+ #include <sys/times.h>
+ 
+ #include <global.h>
+@@ -43,15 +44,18 @@
+ 
+     /* Compute the velocity vector using whatever oxide growth model */
+     oxide_vel (temp, ornt, oxhow, *dt);
++    if(getenv("SUPREM4_OXIDE_STAGE_SNAPSHOTS"))ig2_write("oxide_before_loop.str",0,1.0);
+ 
+     /* Check for boundary loops */
+     /* Before grid_add to clean up boundary before decorating with new nodes*/
+     if(DetectLoop())
+ 	UpdateSymbolic++;
++    if(getenv("SUPREM4_OXIDE_STAGE_SNAPSHOTS"))ig2_write("oxide_after_loop.str",0,1.0);
+ 
+     /* Now drop in any new nodes. Velocities, concentrations as old ones */
+     if (grid_add(*dt))
+ 	UpdateSymbolic++;
++    if(getenv("SUPREM4_OXIDE_STAGE_SNAPSHOTS"))ig2_write("oxide_after_grid_add.str",0,1.0);
+ 
+     /* Make a pointwise velocity list: do this AFTER np has been bumped */
+     point_vel( );

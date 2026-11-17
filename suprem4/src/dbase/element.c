@@ -316,6 +316,18 @@ nxtel()
     register int i, p, j;
     int nsidea, nsideb, jelemb;
 
+    /*
+     * Rebuild triangle neighbors from scratch.  Topology changes can leave
+     * old triangles marked NEIGHB even though their reciprocal neighbor slots
+     * are no longer valid.  Keeping those stale slots lets build_edg create
+     * edges that only one triangle actually owns.
+     */
+    for (jelema = 0; jelema < ne; jelema++) {
+	if (tri[jelema] == NULL || dead_tri(jelema)) continue;
+	for (i = 0; i < num_face(jelema); i++) tri[jelema]->nb[i] = BC_OFFSET;
+	clr(tri[jelema], NEIGHB);
+    }
+
     /*this routine does not check or build the external edge codes*/
     make_bc();
 

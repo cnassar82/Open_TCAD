@@ -285,7 +285,7 @@ double *noni;
  ************************************************************************/
 antimony( par, param )
 char *par;
-int param;
+struct par_str *param;
 { 
     int mat;
     int mat2 = -1;

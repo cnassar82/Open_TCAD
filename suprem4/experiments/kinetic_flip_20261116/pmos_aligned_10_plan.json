@@ -1,0 +1,68 @@
+{
+  "source": "decks/subcmos2014/results/astra_motion_limiter_pmos/pmos/first_rejected_motion.str",
+  "dt": 10.0,
+  "initial_bad": 1,
+  "remaining_bad": 1,
+  "flips": 0,
+  "unresolved": [
+    6399
+  ],
+  "plan": [],
+  "alignment": [
+    {
+      "edge": [
+        3387,
+        3396
+      ],
+      "sample": 4022,
+      "new_point": 7528,
+      "construction_error_cm": 8.572918884389245e-13
+    },
+    {
+      "edge": [
+        7528,
+        3396
+      ],
+      "sample": 4023,
+      "new_point": 7529,
+      "construction_error_cm": 4.48525673660315e-13
+    },
+    {
+      "edge": [
+        7529,
+        3396
+      ],
+      "sample": 4024,
+      "new_point": 7530,
+      "construction_error_cm": 2.6195454768014603e-13
+    },
+    {
+      "edge": [
+        7530,
+        3396
+      ],
+      "sample": 4025,
+      "new_point": 7531,
+      "construction_error_cm": 4.0826433081670235e-13
+    },
+    {
+      "edge": [
+        7531,
+        3396
+      ],
+      "sample": 4026,
+      "new_point": 7532,
+      "construction_error_cm": 3.9222589070945016e-14
+    },
+    {
+      "edge": [
+        7532,
+        3396
+      ],
+      "sample": 4027,
+      "new_point": 7533,
+      "construction_error_cm": 1.8159739594773676e-13
+    }
+  ],
+  "input_sha256": "bfbaf9f85ac03e675523c271eea800014774537e04bf45ea16de95db39de2c41"
+}

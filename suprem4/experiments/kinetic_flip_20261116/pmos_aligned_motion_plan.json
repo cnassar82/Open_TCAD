@@ -1,0 +1,28 @@
+{
+  "source": "decks/subcmos2014/results/astra_motion_limiter_pmos/pmos/first_rejected_motion.str",
+  "dt": 0.5452478147701432,
+  "initial_bad": 0,
+  "remaining_bad": 0,
+  "flips": 0,
+  "unresolved": [],
+  "plan": [],
+  "alignment": [
+    {
+      "edge": [
+        3387,
+        3396
+      ],
+      "sample": 4026,
+      "new_point": 7528,
+      "construction_error_cm": 6.864918484746681e-13
+    }
+  ],
+  "input_sha256": "bfbaf9f85ac03e675523c271eea800014774537e04bf45ea16de95db39de2c41",
+  "partition_audit": {
+    "triangle_pairs_checked": 27809,
+    "boundary_pairs_checked": 1153,
+    "triangles": 13902,
+    "boundary_edges": 1152
+  },
+  "passed_geometry": true
+}

@@ -1,0 +1,87 @@
+structure infile=/home/chris/Open_TCAD/decks/rit_pmos_remesh/remeshed_01.str
+
+#------------------------------------------------
+#Pattern Gate Oxide Region
+deposit photores thick=1.0 divisions=5
+
+etch photores start   x=50.0 y=-5.0
+etch continue         x=50.0 y=5.0
+etch continue         x=90.0 y=5
+etch done             x=90.0 y=-5
+
+etch oxide dry thick=1
+etch photores all
+#700A Oxide Growth
+
+# Re-apply the tuned parameters in this chunk too (remesh splits the deck,
+# and parameter overrides don't carry across chunks).
+boron silicon Dip.0=0.48
+boron silicon /oxide Seg.0=100
+boron silicon /oxide Trn.0=1e-5
+
+diffuse time=95 temp=1000 dryo2
+
+structure outfile=700_ox.str
+
+#------------------------------------------------
+#Contact Etch
+
+deposit photores thick=1.8
+
+etch photores start   x=20.0 y=-5.0
+etch continue         x=20.0 y=5.0
+etch continue         x=30.0 y=5
+etch done             x=30.0 y=-5
+
+etch photores start   x=110 y=-5.0
+etch continue         x=110 y=5.0
+etch continue         x=119.5 y=5
+etch done             x=119.5 y=-5
+
+etch oxide dry thick=1
+
+etch photores all
+
+structure outfile=cont_etch.str
+
+#------------------------------------------------
+#Deposit Metal
+
+deposit alumin thick=1 divisions=10
+
+structure outfile=dep_alumin.str
+
+#------------------------------------------------
+#Etch Metal
+
+etch alumin start   x=50.0 y=-5.0
+etch continue         x=50.0 y=5.0
+etch continue         x=60.0 y=5
+etch done             x=60.0 y=-5
+
+etch alumin start   x=80 y=-5.0
+etch continue         x=80 y=5.0
+etch continue         x=90 y=5
+etch done             x=90 y=-5
+
+#structure outfile=pr_etch_alumin.str
+
+#etch alumin dry thick=1.2
+
+structure outfile=etch_alumin.str
+
+#etch photores all
+
+structure outfile=pmos.str
+
+
+
+
+
+
+
+
+
+
+
+

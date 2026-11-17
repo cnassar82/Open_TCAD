@@ -1,0 +1,31 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_ama1fou1/src/suprem4",
+  "binary_sha256": "997289cca9e8144f5a86335a2ee44a22581a24254edf7c77c804787a7e5d2584",
+  "results": [
+    {
+      "divisions": 5,
+      "errors": [
+        "simulator error"
+      ],
+      "returncode": -6,
+      "passed": false
+    },
+    {
+      "divisions": 10,
+      "errors": [
+        "simulator error"
+      ],
+      "returncode": -6,
+      "passed": false
+    },
+    {
+      "divisions": 20,
+      "errors": [
+        "simulator error"
+      ],
+      "returncode": -6,
+      "passed": false
+    }
+  ],
+  "passed": false
+}

@@ -1,0 +1,9 @@
+{
+  "device": "nmos",
+  "case": "output_vg1p5",
+  "returncode": 0,
+  "elapsed_seconds": 210.0274051441811,
+  "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+  "deck_sha256": "c3ba32b2452dc239a3d5fb38f15cd927ed4995009edc4487b988d76dc129e5ea",
+  "input_tif_sha256": "e3f23d425c978c27d3d458d9df31c4ca7507239b8883367820bae293567023db"
+}

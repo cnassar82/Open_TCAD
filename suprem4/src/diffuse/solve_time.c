@@ -21,6 +21,7 @@
 #include <sys/times.h>
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 
 #include "global.h"
 #include "constant.h"
@@ -33,12 +34,16 @@
 #include "device.h"
 #include "poly.h"
 #include "defect.h"
+#include "time_control.h"
 
 #define DAMP 0.9
 
 extern double timed_milne(), timed_trbdf(), timed_hybrid();
 extern double start_step(), solstep(), do_oxide(), grid_dt();
 extern double do_poly();
+extern int time_val();
+static double state_loss_step(float temp,double *area);
+static double rezone_loss_step(float temp);
 
 
 /************************************************************************
@@ -84,6 +89,13 @@ int cont;
     dump_data( total, dump, movie, &wrcnt );
 
     if ( itime != 0.0 ) del_df = itime;
+    /* A structure restart can begin with `continue` before this process has
+     * taken any adaptive step. Its static history is then still zero. */
+    if(!isfinite(del_df) || del_df<=0)del_df=methdata.init_time;
+    /* A restart after implantation/deposition can contain a fast interface
+     * relaxation. The requested first step is an upper bound, not a reason
+     * to discard the inventory-based startup estimate. */
+    if(isfinite(err) && err>0 && err<del_df)del_df=err;
     last_ddf = del_df;
 
     /*loop until t = the time at the end of the ride*/
@@ -117,6 +129,17 @@ int cont;
 
 	/*solve the time step and get the increase*/
 	/* Choose the more conservative of the oxide and diffusion increases */
+        {
+            const char *control=getenv("SUPREM4_POSITIVITY_STEP");
+            if(control && !strcmp(control,"1") && UpdateSymbolic) {
+                double bound=rezone_loss_step(temp);
+                if(isfinite(bound) && bound>0 && bound<del_df) {
+                    if(getenv("SUPREM4_SOLVE_DIAG"))
+                        fprintf(stderr,"[time-bound] time=%.17g requested=%.17g depletion=%.17g\n",total,del_df,bound);
+                    del_df=bound;
+                }
+            }
+        }
 	Ktd = solstep( del_df, temp, timemeth, TRUE );
 
 	total += del_df;
@@ -212,17 +235,32 @@ int timemeth;
 int compute;	/*flag for computation of the split variable*/
 {
     double Kt;
-    double scale;
+    static unsigned int trial_depth=0, trial_count=0;
     int xv = imptosol[XVEL];
     int yv = imptosol[YVEL];
-    int dela = imptosol[DELA];
     register int i,j,sj;
     double tsave;
+    struct retry_velocity {
+        struct nd_str *node;
+        double start[2], end[2];
+    } *history=NULL;
+    int history_count=0;
 
+    /* Bound the existing recursive retry tree. An unresolvable moving mesh
+     * is a reported failed run, with a valid checkpoint, never infinite
+     * subdivision or a published successful process stage. */
+    if (!trial_depth) trial_count=0;
+    if (trial_depth>=16 || ++trial_count>128 || del_df<=0 ||
+        !isfinite(del_df) || total+del_df==total) {
+        fprintf(stderr,"ERROR: diffusion retry budget exhausted at time=%.17g dt=%.17g "
+                "depth=%u trials=%u; writing last valid state to step_failure.str\n",
+                total,del_df,trial_depth,trial_count);
+        if (ig2_write("step_failure.str",0,1.0)<0)
+            fprintf(stderr,"ERROR: could not write failed-step checkpoint\n");
+        exit(EXIT_FAILURE);
+    }
+    trial_depth++;
     tsave = total;
-
-    /*set up the scale factor for the velocities*/
-    scale = 2.0 - sqrt(2.0);
 
     if (n_imp != 0) {
 	switch( timemeth ) {
@@ -245,35 +283,33 @@ int compute;	/*flag for computation of the split variable*/
 	/*back the points up*/
 	del_df *= 0.5;
 
-	/*fix the velocities and coefficients*/
-	if ( xv != -1 ) {
-	    for(i = 0; i < nn; i++) {
-		new[xv][i] = 0.5 * (old[xv][i] + new[xv][i]);
-		new[yv][i] = 0.5 * (old[yv][i] + new[yv][i]);
-		new[dela][i] = 0.5 * (old[dela][i] + new[dela][i]);
-		mid[xv][i] = (1.0-scale) * old[xv][i] + scale * new[xv][i];
-		mid[yv][i] = (1.0-scale) * old[yv][i] + scale * new[yv][i];
-		mid[dela][i] = (1.0-scale) * old[dela][i] + scale * new[dela][i];
-	    }
-	}
+        /* timed_trbdf/do_vel reload velocity history from nd[].sol.
+         * Keep it there, not in scratch arrays which the child overwrites.
+         * Node objects remain stable when min-fill permutes their indices. */
+        if (xv!=-1) {
+            history_count=nn;
+            history=salloc(struct retry_velocity,history_count);
+            for(i=0;i<history_count;i++) {
+                history[i].node=nd[i];
+                history[i].start[0]=nd[i]->sol[MAXIMP-5];
+                history[i].start[1]=nd[i]->sol[MAXIMP-6];
+                history[i].end[0]=nd[i]->sol[xv];
+                history[i].end[1]=nd[i]->sol[yv];
+                nd[i]->sol[xv]=.5*(history[i].start[0]+history[i].end[0]);
+                nd[i]->sol[yv]=.5*(history[i].start[1]+history[i].end[1]);
+            }
+        }
 
 	/*solve first half of step*/
 	Kt = solstep( del_df, temp, timemeth, FALSE );
 
-	/*update the velocities and coefficients*/
-	if ( xv != -1 ) {
-	    for(i = 0; i < nn; i++) {
-		new[xv][i] = 2.0 * new[xv][i] - old[xv][i];
-		new[yv][i] = 2.0 * new[yv][i] - old[yv][i];
-		new[dela][i] = 2.0 * new[dela][i] - old[dela][i];
-		old[xv][i] = 0.5 * (old[xv][i] + new[xv][i]);
-		old[yv][i] = 0.5 * (old[yv][i] + new[yv][i]);
-		old[dela][i] = 0.5 * (old[dela][i] + new[dela][i]);
-		mid[xv][i] = (1.0-scale) * old[xv][i] + scale * new[xv][i];
-		mid[yv][i] = (1.0-scale) * old[yv][i] + scale * new[yv][i];
-		mid[dela][i] = (1.0-scale) * old[dela][i] + scale * new[dela][i];
-	    }
-	}
+        if (xv!=-1) for(i=0;i<history_count;i++) {
+            struct nd_str *node=history[i].node;
+            node->sol[MAXIMP-5]=.5*(history[i].start[0]+history[i].end[0]);
+            node->sol[MAXIMP-6]=.5*(history[i].start[1]+history[i].end[1]);
+            node->sol[xv]=history[i].end[0];
+            node->sol[yv]=history[i].end[1];
+        }
 
 	total += del_df;
 
@@ -287,20 +323,18 @@ int compute;	/*flag for computation of the split variable*/
 	Kt = solstep( del_df, temp, timemeth, compute );
 	total -= del_df;
 
-	/*restore the velocities and coefficients*/
-	if ( xv != -1 ) {
-	    for(i = 0; i < nn; i++) {
-		old[xv][i] = 2.0 * old[xv][i] - new[xv][i];
-		old[yv][i] = 2.0 * old[yv][i] - new[yv][i];
-		old[dela][i] = 2.0 * old[dela][i] - new[dela][i];
-		mid[xv][i] = (1.0-scale) * old[xv][i] + scale * new[xv][i];
-		mid[yv][i] = (1.0-scale) * old[yv][i] + scale * new[yv][i];
-		mid[dela][i] = (1.0-scale) * old[dela][i] + scale * new[dela][i];
-	    }
-	}
+        if (xv!=-1) for(i=0;i<history_count;i++) {
+            struct nd_str *node=history[i].node;
+            node->sol[MAXIMP-5]=history[i].start[0];
+            node->sol[MAXIMP-6]=history[i].start[1];
+            node->sol[xv]=history[i].end[0];
+            node->sol[yv]=history[i].end[1];
+        }
+        free(history);
 
     }
     total = tsave;
+    trial_depth--;
     return( Kt );
 }
 
@@ -392,7 +426,7 @@ int cont;
     register int i;
     register int cimp;
     int is;
-    double tmp, del;
+    double del;
 
 
     /*compute the total area for use in calculations*/
@@ -457,20 +491,42 @@ int cont;
 	oxide_model = save_om;
     }
 
-    /*pretend to take an euler step but limit the change in C to 1%*/
-    for(del = 1e37, i = 0; i < tm_nsol; i++) {
+    /* Initialization above changes potentials and defect fields. Estimate
+     * from the resulting state, not the stale pre-initialization RHS. */
+    del=state_loss_step(temp,oarea);
+    free(oarea);
+    return del;
+}
+
+/* A rezone can create a new fast chemical relaxation. Recompute a startup
+ * estimate on the actual current mesh, without reinitializing defects,
+ * potentials or physical concentrations. This is a depletion predictor,
+ * not a proof of nonlinear TR-BDF2 positivity; trial rejection remains. */
+static double rezone_loss_step(float temp)
+{
+    double *area=salloc(double,(ned>nn)?ned:nn),bound;
+    upd_diff(0.0,area,FALSE,TRUE);
+    bound=state_loss_step(temp,area);
+    free(area);return bound;
+}
+
+static double state_loss_step(float temp,double *oarea)
+{
+    int j,i,is;double del,tmp;
+    for(j=0;j<n_imp;j++)for(i=0;i<nn;i++)old[j][i]=nd[i]->sol[j];
+    init_rhs(temp,old,olda,oarea);
+    /* Only generic conservative, non-pseudo transient equations have M*C
+     * storage. Algebraic variables and custom storage laws cannot use this
+     * estimate. No zero-area or zero-concentration row can force dt=0. */
+    for(del = MAXFLOAT, i = 0; i < tm_nsol; i++) {
 	is = tm_sol[i];
+	if(IS_PSEUDO(soltoimp[is]) || IS_STEADY(soltoimp[is]) ||
+           impur[soltoimp[is]].time_val!=time_val)continue;
 	for(j = 0; j < nn; j++) {
-
-	    if ( newb[is][j] != 0.0 ) {
-		tmp = 0.5 * old[is][j] * oarea[j] / newb[is][j];
-
-		if ( tmp < 0.0 ) tmp = -tmp;
-		if ( tmp < del ) del = tmp;
-	    }
+	    tmp=diffusion_loss_step(old[is][j],oarea[j],newb[is][j]);
+	    if(tmp<del)del=tmp;
 	}
     }
-    free(oarea);
     return( del );
 }
 

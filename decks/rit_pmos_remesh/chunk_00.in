@@ -1,0 +1,56 @@
+#RIT METAL GATE PMOS PROCESS
+
+line x loc=0.0  spac=1 tag=left
+line x loc=150.0  spac=1 tag=right
+line y loc=0.0  spac=0.0005 tag=surf
+line y loc=2  spac=0.2
+line y loc=10  spac=3  tag=back
+
+# (Removed boron Dip.0=0.5 and Seg.0=640 — those were compensating for the
+# implant bug where setprs(B, SiO2) silently aborted because canonical
+# sup4gs.imp had no B-in-SiO2 entries AND setprs did not translate the
+# SUPREM-IV SiO2=1 code to the SUPREM-III oxide=5 code used in the .imp
+# file. Fixed in src/implant/{imp_setprs.c,pearson.c} + data/sup4gs.imp.)
+
+region silicon xlo=left xhi=right ylo=surf yhi=back
+boundary exposed  xlo=left xhi=right ylo=surf yhi=surf
+boundary backsid xlo=left xhi=right ylo=back  yhi=back
+
+initialize phosphorus conc=3e14
+
+#------------------------------------------------
+#6500A Oxide Growth
+
+
+diffuse time=5 temp=1100 dryo2 
+diffuse time=57 temp=1100 weto2 continue
+diffuse time=5 temp=1100 nitrogen continue
+structure outfile=inital_ox.str
+#------------------------------------------------
+#Pattern Level #1 Diffusion
+deposit photores thick=1.0 divisions=5
+
+etch photores start   x=10.0 y=-5.0
+etch continue         x=10.0 y=5.0
+etch continue         x=60.0 y=5
+etch done             x=60.0 y=-5
+
+etch photores start   x=80.0 y=-5.0
+etch continue         x=80.0 y=5.0
+etch continue         x=130.0 y=5
+etch done             x=130.0 y=-5
+
+etch oxide dry thick=1
+
+structure outfile=diffusion_photo_etch.str angle=7
+
+etch photores all
+
+# Densify the oxide mesh before the implant so the Pearson peak (drp ~60 nm,
+# centered ~Rp=0.22 um inside the 0.66 um oxide) is sampled by enough nodes
+# to integrate the deposit correctly. Without this, SUPREM has only ~1
+# vertical oxide node per x position and dose-conservation drops to ~26 %
+# of the theoretical 2e15/cm^2 x non-window-width in oxide regions.
+# Engine: tools/refine_oxide.py (structured column triangulation, gmsh-free).
+
+structure outfile=/home/chris/Open_TCAD/decks/rit_pmos_remesh/state_00.str

@@ -39,7 +39,7 @@
  ************************************************************************/
 sel_var( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     char *zstr;
     struct vec_str *zexp;

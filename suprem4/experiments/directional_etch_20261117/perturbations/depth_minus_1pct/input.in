@@ -1,0 +1,6 @@
+option quiet
+structure infile=input.str
+etch oxide dry thick=1.485
+etch photoresist all
+structure outfile=after.str
+quit

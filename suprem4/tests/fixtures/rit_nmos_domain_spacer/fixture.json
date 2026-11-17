@@ -1,0 +1,14 @@
+{
+  "sha256": "d231cc4ec05701d658d5623aee452ad74c53ab4cf09e306c91219445ee6cc092",
+  "source": "decks/subcmos2014/results/astra_domain_fresh/nmos/ldd.str",
+  "settings": [],
+  "command": "deposit oxide thick=0.5 divisions=10 space=0.04\netch oxide dry thick=0.5",
+  "scope": "Fresh domain-backend NMOS spacer failure at a reversing side-boundary quad",
+  "runtime_options": {
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1"
+  },
+  "known_failure": "Quad at right domain side doubles back across an existing collinear edge",
+  "control": "native64_4eqdlgif"
+}

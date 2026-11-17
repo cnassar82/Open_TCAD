@@ -1,0 +1,5 @@
+{
+  "dt": 5.0,
+  "passed_geometry": false,
+  "reason": "rounded interface subdivision invalid at input coordinates; proposal refused"
+}

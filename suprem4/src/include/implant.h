@@ -107,8 +107,8 @@ EXTERN int imp_model;
 /*various double functions*/
 extern double imp_vert();
 extern double prson();
-extern double zeqv();
-extern double qeqv();
+extern double zeqv(double dose,double qtot,double dx,double bt,struct imp_info *data);
+extern double qeqv(double xst,double xen,double qtot,double dx,struct imp_info *data);
 extern double dam_vert();
 extern double imp_latr();
 extern double dam_lat();

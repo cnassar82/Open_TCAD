@@ -1,0 +1,523 @@
+{
+  "date": "2026-11-10",
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+  "binary_sha256": "b84ff18c13b02ab629fe7c4424eb6312f3c6d0891a7202407fa515a5242e7bb2",
+  "primary_study": [
+    {
+      "case": "baseline",
+      "nominal_initial_density": 1,
+      "spacing_scale": 1.0,
+      "refine_layers": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+      "directory": "/tmp/suprem4_locos_refinement_ejyidgav/baseline",
+      "timeout_seconds": 180.0,
+      "timed_out": false,
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 1020,
+          "area_by_region_um2": {
+            "1": 2.0000000000000013
+          },
+          "points": 560
+        },
+        "masked.str": {
+          "triangles": 1195,
+          "area_by_region_um2": {
+            "1": 2.0000000000000013,
+            "2": 0.039999999999999994,
+            "3": 0.15000000000000013
+          },
+          "points": 654
+        },
+        "field_oxide.str": {
+          "triangles": 1468,
+          "area_by_region_um2": {
+            "1": 1.7394188693733013,
+            "2": 0.6119911585931805,
+            "3": 0.15056906197769002
+          },
+          "points": 794
+        },
+        "locos.str": {
+          "triangles": 1363,
+          "area_by_region_um2": {
+            "1": 1.7394188693733013,
+            "2": 0.6119911585931805
+          },
+          "points": 737
+        }
+      },
+      "errors": [],
+      "elapsed_seconds": 17.61761243105866,
+      "returncode": 0,
+      "last_logged_step_start_seconds": 5285.63,
+      "geometry": {
+        "points": 737,
+        "nodes": 737,
+        "triangles": 1363,
+        "regions": 2,
+        "bbox": [
+          -1.0,
+          1.0,
+          -0.306476,
+          1.0
+        ],
+        "min_edge": 0.0006426385920562314,
+        "min_area": 6.501943200000121e-06,
+        "missing_tri_vertices": 0,
+        "materials": {
+          "3": {
+            "area": 1.7394188693733013,
+            "bbox": [
+              -1.0,
+              1.0,
+              8.7996e-05,
+              1.0
+            ],
+            "triangles": 744
+          },
+          "1": {
+            "area": 0.6119911585931805,
+            "bbox": [
+              -1.0,
+              1.0,
+              -0.306476,
+              0.238545
+            ],
+            "triangles": 619
+          }
+        },
+        "silicon_surface_y_um": {
+          "field": 0.237543004599816,
+          "under_mask": 0.0008645039986215888,
+          "near_mask_edge": 0.14021756758874762
+        }
+      },
+      "passed": true,
+      "measured_initial_density_ratio": 1.0,
+      "oxide_area_change_percent": 0.0,
+      "expected_process_seconds": 5400,
+      "last_logged_step_end_seconds": 5400.0,
+      "final_sha256": "9e00a0463b16c07c7d4f598a6e09b26170367c745a4bb804746e5668ce665195"
+    },
+    {
+      "case": "substrate_2x",
+      "nominal_initial_density": 2,
+      "spacing_scale": 0.7071067811865476,
+      "refine_layers": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+      "directory": "/tmp/suprem4_locos_refinement_ejyidgav/substrate_2x",
+      "timeout_seconds": 180.0,
+      "timed_out": false,
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 2200,
+          "area_by_region_um2": {
+            "1": 2.0000000000000036
+          },
+          "points": 1173
+        },
+        "masked.str": {
+          "triangles": 2457,
+          "area_by_region_um2": {
+            "1": 2.0000000000000036,
+            "2": 0.039999999999999994,
+            "3": 0.15000000000000022
+          },
+          "points": 1309
+        }
+      },
+      "errors": [
+        "triangles are not clock wise, data base corrupted",
+        "field_oxide.str: [Errno 2] No such file or directory: '/tmp/suprem4_locos_refinement_ejyidgav/substrate_2x/field_oxide.str'",
+        "locos.str: [Errno 2] No such file or directory: '/tmp/suprem4_locos_refinement_ejyidgav/substrate_2x/locos.str'"
+      ],
+      "elapsed_seconds": 34.29946553008631,
+      "returncode": -6,
+      "last_logged_step_start_seconds": 3130.72,
+      "failure_mesh_audit_error": "nonpositive area at triangle 2463: -2.3141999998799473e-10",
+      "passed": false,
+      "measured_initial_density_ratio": 2.094642857142857,
+      "expected_process_seconds": 5400,
+      "last_logged_step_end_seconds": 3131.18
+    },
+    {
+      "case": "substrate_4x",
+      "nominal_initial_density": 4,
+      "spacing_scale": 0.5,
+      "refine_layers": false,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+      "directory": "/tmp/suprem4_locos_refinement_ejyidgav/substrate_4x",
+      "timeout_seconds": 180.0,
+      "timed_out": false,
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 4320,
+          "area_by_region_um2": {
+            "1": 2.000000000000004
+          },
+          "points": 2263
+        },
+        "masked.str": {
+          "triangles": 4685,
+          "area_by_region_um2": {
+            "1": 2.000000000000004,
+            "2": 0.03999999999999996,
+            "3": 0.14999999999999988
+          },
+          "points": 2452
+        }
+      },
+      "errors": [
+        "triangles are not clock wise, data base corrupted",
+        "field_oxide.str: [Errno 2] No such file or directory: '/tmp/suprem4_locos_refinement_ejyidgav/substrate_4x/field_oxide.str'",
+        "locos.str: [Errno 2] No such file or directory: '/tmp/suprem4_locos_refinement_ejyidgav/substrate_4x/locos.str'"
+      ],
+      "elapsed_seconds": 116.94774113013409,
+      "returncode": -6,
+      "last_logged_step_start_seconds": 5210.31,
+      "failure_mesh_audit_error": "nonpositive area at triangle 4562: -3.996000000153344e-10",
+      "passed": false,
+      "measured_initial_density_ratio": 4.041071428571429,
+      "expected_process_seconds": 5400,
+      "last_logged_step_end_seconds": 5210.32
+    },
+    {
+      "case": "full_2x",
+      "nominal_initial_density": 2,
+      "spacing_scale": 0.7071067811865476,
+      "refine_layers": true,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+      "directory": "/tmp/suprem4_locos_refinement_ejyidgav/full_2x",
+      "timeout_seconds": 180.0,
+      "timed_out": false,
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 2200,
+          "area_by_region_um2": {
+            "1": 2.0000000000000036
+          },
+          "points": 1173
+        },
+        "masked.str": {
+          "triangles": 2557,
+          "area_by_region_um2": {
+            "1": 2.0000000000000036,
+            "2": 0.03999999999999999,
+            "3": 0.15000000000000013
+          },
+          "points": 1361
+        },
+        "field_oxide.str": {
+          "triangles": 3038,
+          "area_by_region_um2": {
+            "1": 1.740618080096781,
+            "2": 0.6096743621385203,
+            "3": 0.15052896879319985
+          },
+          "points": 1607
+        },
+        "locos.str": {
+          "triangles": 2785,
+          "area_by_region_um2": {
+            "1": 1.740618080096781,
+            "2": 0.6096743621385203
+          },
+          "points": 1474
+        }
+      },
+      "errors": [],
+      "elapsed_seconds": 133.644522608025,
+      "returncode": 0,
+      "last_logged_step_start_seconds": 5322.41,
+      "geometry": {
+        "points": 1474,
+        "nodes": 1474,
+        "triangles": 2785,
+        "regions": 2,
+        "bbox": [
+          -1.0,
+          1.0,
+          -0.305685,
+          1.0
+        ],
+        "min_edge": 0.0017205400227835442,
+        "min_area": 8.07356754500001e-06,
+        "missing_tri_vertices": 0,
+        "materials": {
+          "3": {
+            "area": 1.740618080096781,
+            "bbox": [
+              -1.0,
+              1.0,
+              4.99956e-05,
+              1.0
+            ],
+            "triangles": 1568
+          },
+          "1": {
+            "area": 0.6096743621385203,
+            "bbox": [
+              -1.0,
+              1.0,
+              -0.305685,
+              0.238134
+            ],
+            "triangles": 1217
+          }
+        },
+        "silicon_surface_y_um": {
+          "field": 0.23654930998364238,
+          "under_mask": 0.000673603446868481,
+          "near_mask_edge": 0.1360182334531768
+        }
+      },
+      "passed": true,
+      "measured_initial_density_ratio": 2.094642857142857,
+      "oxide_area_change_percent": -0.37856698125933175,
+      "expected_process_seconds": 5400,
+      "last_logged_step_end_seconds": 5400.0,
+      "final_sha256": "2f17e7b15e5487c1527dd18c7f08642b912f12098cbd09919bbb816faaf1d0fa"
+    },
+    {
+      "case": "full_4x",
+      "nominal_initial_density": 4,
+      "spacing_scale": 0.5,
+      "refine_layers": true,
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+      "directory": "/tmp/suprem4_locos_refinement_ejyidgav/full_4x",
+      "timeout_seconds": 180.0,
+      "timed_out": true,
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 4320,
+          "area_by_region_um2": {
+            "1": 2.000000000000004
+          },
+          "points": 2263
+        },
+        "masked.str": {
+          "triangles": 4902,
+          "area_by_region_um2": {
+            "1": 2.000000000000004,
+            "2": 0.03999999999999997,
+            "3": 0.1499999999999993
+          },
+          "points": 2564
+        }
+      },
+      "errors": [
+        "simulation exceeded time limit",
+        "field_oxide.str: [Errno 2] No such file or directory: '/tmp/suprem4_locos_refinement_ejyidgav/full_4x/field_oxide.str'",
+        "locos.str: [Errno 2] No such file or directory: '/tmp/suprem4_locos_refinement_ejyidgav/full_4x/locos.str'"
+      ],
+      "elapsed_seconds": 180.00509333680384,
+      "returncode": -9,
+      "last_logged_step_start_seconds": 2298.58,
+      "passed": false,
+      "measured_initial_density_ratio": 4.041071428571429,
+      "expected_process_seconds": 5400,
+      "last_logged_step_end_seconds": 2373.78
+    }
+  ],
+  "full_2x_repeat": {
+    "case": "full_2x",
+    "nominal_initial_density": 2,
+    "spacing_scale": 0.7071067811865476,
+    "refine_layers": true,
+    "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+    "directory": "/tmp/suprem4_locos_refinement_63ixvhbx/full_2x",
+    "timeout_seconds": 300.0,
+    "timed_out": false,
+    "checkpoints": {
+      "initial.str": {
+        "triangles": 2200,
+        "area_by_region_um2": {
+          "1": 2.0000000000000036
+        },
+        "points": 1173
+      },
+      "masked.str": {
+        "triangles": 2557,
+        "area_by_region_um2": {
+          "1": 2.0000000000000036,
+          "2": 0.03999999999999999,
+          "3": 0.15000000000000013
+        },
+        "points": 1361
+      },
+      "field_oxide.str": {
+        "triangles": 3038,
+        "area_by_region_um2": {
+          "1": 1.740618080096781,
+          "2": 0.6096743621385203,
+          "3": 0.15052896879319985
+        },
+        "points": 1607
+      },
+      "locos.str": {
+        "triangles": 2785,
+        "area_by_region_um2": {
+          "1": 1.740618080096781,
+          "2": 0.6096743621385203
+        },
+        "points": 1474
+      }
+    },
+    "errors": [],
+    "elapsed_seconds": 131.79494764492847,
+    "returncode": 0,
+    "last_logged_step_start_seconds": 5322.41,
+    "geometry": {
+      "points": 1474,
+      "nodes": 1474,
+      "triangles": 2785,
+      "regions": 2,
+      "bbox": [
+        -1.0,
+        1.0,
+        -0.305685,
+        1.0
+      ],
+      "min_edge": 0.0017205400227835442,
+      "min_area": 8.07356754500001e-06,
+      "missing_tri_vertices": 0,
+      "materials": {
+        "3": {
+          "area": 1.740618080096781,
+          "bbox": [
+            -1.0,
+            1.0,
+            4.99956e-05,
+            1.0
+          ],
+          "triangles": 1568
+        },
+        "1": {
+          "area": 0.6096743621385203,
+          "bbox": [
+            -1.0,
+            1.0,
+            -0.305685,
+            0.238134
+          ],
+          "triangles": 1217
+        }
+      },
+      "silicon_surface_y_um": {
+        "field": 0.23654930998364238,
+        "under_mask": 0.000673603446868481,
+        "near_mask_edge": 0.1360182334531768
+      }
+    },
+    "passed": true,
+    "expected_process_seconds": 5400,
+    "last_logged_step_end_seconds": 5400.0,
+    "measured_initial_density_ratio": 2.094642857142857,
+    "oxide_area_change_percent": -0.37856698125933175,
+    "final_sha256": "2f17e7b15e5487c1527dd18c7f08642b912f12098cbd09919bbb816faaf1d0fa"
+  },
+  "full_2x_byte_identical_checkpoints": {
+    "initial.str": true,
+    "masked.str": true,
+    "field_oxide.str": true,
+    "locos.str": true
+  },
+  "full_4x_extended": {
+    "case": "full_4x",
+    "nominal_initial_density": 4,
+    "spacing_scale": 0.5,
+    "refine_layers": true,
+    "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+    "directory": "/tmp/suprem4_locos_refinement_e586tv18/full_4x",
+    "timeout_seconds": 600.0,
+    "timed_out": false,
+    "checkpoints": {
+      "initial.str": {
+        "triangles": 4320,
+        "area_by_region_um2": {
+          "1": 2.000000000000004
+        },
+        "points": 2263
+      },
+      "masked.str": {
+        "triangles": 4902,
+        "area_by_region_um2": {
+          "1": 2.000000000000004,
+          "2": 0.03999999999999997,
+          "3": 0.1499999999999993
+        },
+        "points": 2564
+      },
+      "field_oxide.str": {
+        "triangles": 5785,
+        "area_by_region_um2": {
+          "1": 1.737576368985868,
+          "2": 0.6161416375007652,
+          "3": 0.15060788233039998
+        },
+        "points": 3013
+      },
+      "locos.str": {
+        "triangles": 5353,
+        "area_by_region_um2": {
+          "1": 1.737576368985868,
+          "2": 0.6161416375007652
+        },
+        "points": 2791
+      }
+    },
+    "errors": [],
+    "elapsed_seconds": 565.5071013690904,
+    "returncode": 0,
+    "last_logged_step_start_seconds": 5375.37,
+    "geometry": {
+      "points": 2791,
+      "nodes": 2791,
+      "triangles": 5353,
+      "regions": 2,
+      "bbox": [
+        -1.0,
+        1.0,
+        -0.30553,
+        1.0
+      ],
+      "min_edge": 0.0020606849443813493,
+      "min_area": 6.756609499999954e-06,
+      "missing_tri_vertices": 0,
+      "materials": {
+        "3": {
+          "area": 1.737576368985868,
+          "bbox": [
+            -1.0,
+            1.0,
+            4.23291e-05,
+            1.0
+          ],
+          "triangles": 3089
+        },
+        "1": {
+          "area": 0.6161416375007652,
+          "bbox": [
+            -1.0,
+            1.0,
+            -0.30553,
+            0.23779
+          ],
+          "triangles": 2264
+        }
+      },
+      "silicon_surface_y_um": {
+        "field": 0.23661869011299436,
+        "under_mask": 0.0006728251317228206,
+        "near_mask_edge": 0.14445075085223671
+      }
+    },
+    "passed": true,
+    "expected_process_seconds": 5400,
+    "last_logged_step_end_seconds": 5400.0,
+    "measured_initial_density_ratio": 4.041071428571429,
+    "oxide_area_change_percent": 0.6781926257114046,
+    "final_sha256": "71eec67507dcbb6d8b1ed1091ada2edd7e6c92239ec9f4e1329f52d028a9b145"
+  }
+}

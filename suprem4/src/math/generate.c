@@ -19,7 +19,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <limits.h>
 #include "global.h"
+
+/* Grow before writing; keep all array offsets representable by int. */
+static int reserve_map(int **map, int *capacity, int needed)
+{
+    int next;
+    int *grown;
+    if (needed <= *capacity) return(0);
+    next = *capacity > INT_MAX / 2 ? INT_MAX : 2 * *capacity;
+    if (next < needed) next = needed;
+    grown = sralloc(int, next, *map);
+    if (!grown) return(-1);
+    *map = grown;
+    *capacity = next;
+    return(0);
+}
 
 /************************************************************************
  *									*
@@ -31,23 +47,31 @@ generate( nn, symb_var, symm, get_connect, pia, aoff)
     int nn;			/* Number of nodes */
     int symb_var;		/* Numbers of degrees of freedom per node */
     int symm;			/* Do upper *and* lower halves? */
-    int (*get_connect)();	/* Returns nodal connections */
+    int (*get_connect)(int, int *, int *); /* Returns full-width node IDs */
     int **pia;			/* Symbolic matrix map */
     int *aoff;			/* Size of upper triangle (redundant) */
 {
     int i, j;			/*indices*/
     int cnt;			/*first empty space in ia*/
-    short *neigh;		/*neighbors of the current point*/
+    int *neigh, *grown;		/*neighbors of the current point*/
     int len;
     int num;			/*#of entries in neigh*/
     int ih, il, row, col, iamax = *aoff, *ia = *pia;
 
 
     len = 100;
-    neigh = salloc(short, 100);
+    neigh = salloc(int, len);
+    if (!neigh) return(-1);
 
     /*symbolic entries for each node begin just beyond the head pointers */
     /*or to put it another way, ja[0] == ia[neq]+1*/
+    if (nn < 0 || symb_var <= 0 || nn > (INT_MAX - 1) / symb_var)
+        panic("Sparse matrix dimension exceeds integer capacity");
+    if (reserve_map(pia, &iamax, symb_var * nn + 1) < 0) {
+        free(neigh);
+        return(-1);
+    }
+    ia = *pia;
     ia[ 0]= symb_var * nn + 1;
     cnt = ia[ 0];
 
@@ -57,10 +81,18 @@ generate( nn, symb_var, symm, get_connect, pia, aoff)
 	/*call the connection routine for a list of the node's neighbors */
 	num = len;
 	while ( ! (0== (*get_connect)( i, neigh, &num)) ) {
+	    if (len > INT_MAX / 2)
+                panic("Sparse neighbor count exceeds integer capacity");
 	    len *= 2;
 	    num = len;
-	    neigh = sralloc(short, len, neigh);
+	    grown = sralloc(int, len, neigh);
+            if (!grown) { free(neigh); return(-1); }
+            neigh = grown;
 	}
+        if (num < 0 || num > len) panic("Invalid sparse neighbor count");
+        for (j = 0; j < num; j++)
+            if (neigh[j] < 0 || neigh[j] >= nn)
+                panic("Sparse neighbor is outside the mesh");
 
 	/*put this fine group into the ia, ja list*/
 	/*remember each node may have multiple variables*/
@@ -74,12 +106,14 @@ generate( nn, symb_var, symm, get_connect, pia, aoff)
 
 		    /*Symmetry: just keep the upper triangle */
 		    if (symm || col > row) {
-			ia[ cnt ] = col;
-			if (cnt++ >= iamax-10) {
-			    /* Ooops. Sure hope the caller malloc'ed ia... */
-			    iamax *= 1.5;
-			    ia = *pia = sralloc( int, iamax, *pia);
-			}
+                        if (cnt == INT_MAX)
+                            panic("Sparse matrix entries exceed integer capacity");
+                        if (reserve_map(pia, &iamax, cnt + 1) < 0) {
+                            free(neigh);
+                            return(-1);
+                        }
+                        ia = *pia;
+			ia[ cnt++ ] = col;
 		    }
 
 		}
@@ -88,6 +122,7 @@ generate( nn, symb_var, symm, get_connect, pia, aoff)
     }
 
     *aoff = ia[symb_var*nn] - ia[ 0];
+    free(neigh);
     return(0);
 
 #ifdef DEBUG

@@ -130,26 +130,15 @@ double l_edge(ie)
 double intang(n1,n2,n3)
     int n1,n2,n3;
 {
-    double dx1,dy1,dx2,dy2,l1,l2,denom,cosa,sina,alph;
-
-    dx1 = XCP(n2) - XCP(n1);
-    dy1 = YCP(n2) - YCP(n1);
-    dx2 = XCP(n3) - XCP(n2);
-    dy2 = YCP(n3) - YCP(n2);
-    l1 =  sqrt (dx1*dx1 + dy1*dy1);
-    l2 =  sqrt (dx2*dx2 + dy2*dy2);
-    denom = l1*l2;
-    if (denom <= 0) return(MAXFLOAT);
-    cosa = (dx1*dx2 + dy1*dy2) / denom;
-    sina = (dx1*dy2 - dx2*dy1) / denom;
-
-    /*Protect against rounding error*/
-    if (cosa > 1) cosa = 1;
-    if (cosa < -1) cosa = -1;
-
-    alph =  acos(cosa);
-    if (sina<0) alph= -alph;
-    return(PI-alph);
+    double dx1,dy1,dx2,dy2;
+    dx1 = (double)XCP(n2) - XCP(n1);
+    dy1 = (double)YCP(n2) - YCP(n1);
+    dx2 = (double)XCP(n3) - XCP(n2);
+    dy2 = (double)YCP(n3) - YCP(n2);
+    if ((dx1==0 && dy1==0) || (dx2==0 && dy2==0))return MAXFLOAT;
+    /* acos(dot/(lengths)) loses the turn as the cosine rounds to one.
+     * atan2 retains small signed turns used in the boundary winding test. */
+    return PI-atan2(dx1*dy2-dx2*dy1,dx1*dx2+dy1*dy2);
 }
 
 /*-----------------LIL--------------------------------------------------

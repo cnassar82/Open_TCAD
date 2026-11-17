@@ -1,0 +1,552 @@
+{
+  "date": "2026-11-14",
+  "scope": "RIT NMOS spacer boundary repair",
+  "overall_rit_cmos_accepted": false,
+  "candidate": "/home/chris/Open_TCAD/suprem4/build/native64_mnxbw7bf/src/suprem4",
+  "binary_sha256": "4348b0446e0c073374d5eac6aa6ea013b183feb034900355f2edede28d1cdb02",
+  "build_manifest_sha256": "c6507ae146722b6573a99be306d5797f24d80c37fde4b870be7ae894aee6fe56",
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "engine_source_matches_candidate_manifest": true,
+  "fixes": [
+    "Preserve classified ON junction identity only on the actual intersected clip segment",
+    "Expose formerly covered interfaces only after assembled mesh adjacency establishes that no solid neighbor remains"
+  ],
+  "replay": {
+    "binary": "/home/chris/Open_TCAD/suprem4/build/native64_mnxbw7bf/src/suprem4",
+    "binary_sha256": "4348b0446e0c073374d5eac6aa6ea013b183feb034900355f2edede28d1cdb02",
+    "fixture_sha256": "06f0e640fbe652c274905f3b22690ee032342b0e84b17fd1655a94fbddc1c38e",
+    "deck_sha256": "b5f726c4cebe01c7299e78fa5aaf18c4690fd695d8ea09996f89e2f7d5d840ad",
+    "data_sha256": {
+      "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+      "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+      "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+    },
+    "workdir": "/tmp/rit_nmos_spacer_3k60y2nb",
+    "stages": {
+      "spacer_deposit": {
+        "status": "PASS",
+        "audit": {
+          "triangles": 14453,
+          "area_by_region_um2": {
+            "1": 78.22582361204056,
+            "2": 0.00018091317017624676,
+            "3": 0.7157120185801994,
+            "4": 0.0002014448339330125,
+            "5": 0.8141197914377428,
+            "6": 0.00017775279510971214,
+            "7": 0.4082590577743506,
+            "8": 0.0005189186295397149,
+            "9": 0.07847073029577507,
+            "10": 0.001423415556476197,
+            "11": 0.00041203682169910715,
+            "12": 0.0004775416036944521,
+            "13": 0.00041894771846021973,
+            "14": 0.0003633305204337657,
+            "15": 0.00037163076756191346,
+            "16": 0.0004282621553499782,
+            "17": 0.5000000283544443,
+            "18": 5.574699988449773
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 25312,
+          "boundary_pairs_checked": 463,
+          "triangles": 14453,
+          "boundary_edges": 463
+        }
+      },
+      "spacer_etch": {
+        "status": "PASS",
+        "audit": {
+          "triangles": 14940,
+          "area_by_region_um2": {
+            "1": 78.22582361204056,
+            "2": 0.00017775279510971214,
+            "3": 0.00041203682169910715,
+            "4": 0.0004775416036944521,
+            "5": 0.00041894771846021973,
+            "6": 0.0003633305204337657,
+            "7": 0.00037163076756191346,
+            "8": 0.0004282621553499782,
+            "9": 0.5000000283544443,
+            "10": 0.0003008256412284497,
+            "11": 0.043781183754018065,
+            "12": 0.0012754041828997446,
+            "13": 0.00021399077207968475,
+            "14": 4.09131868949302e-09,
+            "15": 2.6211580136572133e-09,
+            "16": 4.109629159532494e-09,
+            "17": 0.19611097008544606,
+            "18": 0.19611103781916234,
+            "19": 1.6319889673867011e-09,
+            "20": 1.110603130660237e-09,
+            "21": 3.166976780445024e-09,
+            "22": 2.6307698523750795e-09,
+            "23": 0.0002142641894353545,
+            "24": 0.0012454213252164217,
+            "25": 0.044048147735173904,
+            "26": 0.046543334489142565,
+            "27": 0.001412701944020696,
+            "28": 0.0014649062394916281,
+            "29": 0.04353719871631173,
+            "30": 0.00018090729993881376,
+            "31": 0.7157119099971988,
+            "32": 0.00020142247421005727,
+            "33": 0.8141197914700504,
+            "34": 0.4082587351565942,
+            "35": 0.0005188835056827247,
+            "36": 0.07847061170396806,
+            "37": 0.0014232908590094428
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 42199,
+          "boundary_pairs_checked": 970,
+          "triangles": 14940,
+          "boundary_edges": 970
+        }
+      },
+      "resist_deposit": {
+        "status": "PASS",
+        "audit": {
+          "triangles": 21689,
+          "area_by_region_um2": {
+            "1": 78.22582361204056,
+            "2": 0.00017775279510971214,
+            "3": 0.00041203682169910715,
+            "4": 0.0004775416036944521,
+            "5": 0.00041894771846021973,
+            "6": 0.0003633305204337657,
+            "7": 0.00037163076756191346,
+            "8": 0.0004282621553499782,
+            "9": 0.5000000283544443,
+            "10": 0.0003008256412284497,
+            "11": 0.043781183754018065,
+            "12": 0.0012754041828997446,
+            "13": 0.00021399077207968475,
+            "14": 4.09131868949302e-09,
+            "15": 2.6211580136572133e-09,
+            "16": 4.109629159532494e-09,
+            "17": 0.19611097008544606,
+            "18": 0.19611103781916234,
+            "19": 1.6319889673867011e-09,
+            "20": 1.110603130660237e-09,
+            "21": 3.166976780445024e-09,
+            "22": 2.6307698523750795e-09,
+            "23": 0.0002142641894353545,
+            "24": 0.0012454213252164217,
+            "25": 0.044048147735173904,
+            "26": 0.046543334489142565,
+            "27": 0.001412701944020696,
+            "28": 0.0014649062394916281,
+            "29": 0.04353719871631173,
+            "30": 0.00018090729993881376,
+            "31": 0.7157119099971988,
+            "32": 0.00020142247421005727,
+            "33": 0.8141197914700504,
+            "34": 0.4082587351565942,
+            "35": 0.0005188835056827247,
+            "36": 0.07847061170396806,
+            "37": 0.0014232908590094428,
+            "38": 18.676306677082014
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 71801,
+          "boundary_pairs_checked": 229,
+          "triangles": 21689,
+          "boundary_edges": 229
+        },
+        "coverage": {
+          "xmin_um": 0.0,
+          "xmax_um": 10.000000474974513,
+          "top_um": -1.9999999494757503,
+          "coated_area_um2": 99.99992477858204
+        }
+      }
+    },
+    "build_manifest_sha256": "c6507ae146722b6573a99be306d5797f24d80c37fde4b870be7ae894aee6fe56",
+    "returncode": 0,
+    "simulator_error": false,
+    "passed": true
+  },
+  "focused_sanitizers": {
+    "status": "PASS",
+    "command": "sh suprem4/tests/run_etch_corner.sh",
+    "sanitizers": [
+      "address",
+      "undefined",
+      "leak"
+    ],
+    "shared_cut_variants": 70,
+    "variants": [
+      "ring reversal",
+      "start-edge rotation",
+      "0.5x/2x coordinate scale",
+      "x-origin translation",
+      "90 degree rotation"
+    ]
+  },
+  "unit_tests": {
+    "status": "PASS",
+    "count": 8,
+    "command": "PYTHONPATH=suprem4/tests python3 -m unittest suprem4/tests/test_partition_audit.py suprem4/tests/test_boundary_axis_overlap.py"
+  },
+  "controls": {
+    "junction_fix_disabled": {
+      "status": "FAIL",
+      "expected": "FAIL",
+      "diagnosis": "shared cut C replaced by B, shifted 28 float ULPs",
+      "log": "/tmp/rit_spacer_control_yevi0owv/control.log"
+    },
+    "junction_fix_without_exposure_fix": {
+      "status": "FAIL",
+      "expected": "FAIL",
+      "diagnosis": "resist only covers x=0..5.5 um",
+      "result": "/tmp/rit_nmos_spacer_1x2zti1e/result.json"
+    }
+  },
+  "resumed_heavy_implants": [
+    {
+      "device": "nmos",
+      "returncode": 0,
+      "passed": false,
+      "errors": [
+        "source_drain: wrong body polarity: {'boron_cm3': 2.86089349124124e+19, 'phosphorus_cm3': 1.312934098248681e+20, 'net_donor_cm3': 1.026844749124557e+20}"
+      ],
+      "provenance": {
+        "binary_sha256": "4348b0446e0c073374d5eac6aa6ea013b183feb034900355f2edede28d1cdb02",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "c6507ae146722b6573a99be306d5797f24d80c37fde4b870be7ae894aee6fe56"
+      },
+      "resumed_from": {
+        "folder": "/home/chris/Open_TCAD/decks/subcmos2014/results/exposure_rebuilt",
+        "after": "ldd"
+      }
+    },
+    {
+      "device": "pmos",
+      "returncode": 0,
+      "passed": false,
+      "errors": [
+        "source_drain: wrong drain polarity: {'boron_cm3': 2.5229340658870256e+19, 'phosphorus_cm3': 1.796070925861967e+20, 'net_donor_cm3': 1.5437775192732644e+20}"
+      ],
+      "provenance": {
+        "binary_sha256": "4348b0446e0c073374d5eac6aa6ea013b183feb034900355f2edede28d1cdb02",
+        "data_sha256": {
+          "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+          "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+          "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+        },
+        "build_manifest_sha256": "c6507ae146722b6573a99be306d5797f24d80c37fde4b870be7ae894aee6fe56"
+      },
+      "resumed_from": {
+        "folder": "/home/chris/Open_TCAD/decks/subcmos2014/results/exposure_rebuilt",
+        "after": "ldd"
+      }
+    }
+  ],
+  "source_drain_geometry": {
+    "nmos": {
+      "status": "PASS",
+      "triangles": 14944,
+      "independent_triangle_pairs": 42200
+    },
+    "pmos": {
+      "status": "PASS",
+      "triangles": 12520,
+      "independent_triangle_pairs": 31746
+    }
+  },
+  "isolation": [
+    {
+      "case": "locos",
+      "variant": "baseline",
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_mnxbw7bf/src/suprem4",
+      "spacing_scale": 1,
+      "mask_shift_um": 0,
+      "returncode": 0,
+      "elapsed_seconds": 19.78725877776742,
+      "log": "/tmp/suprem4_isolation_mmf7ta6f/locos_baseline/suprem4.log",
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 1020,
+          "area_by_region_um2": {
+            "1": 1.9999998989515015
+          }
+        },
+        "masked.str": {
+          "triangles": 1195,
+          "area_by_region_um2": {
+            "1": 1.9999998989515015,
+            "2": 0.039999998888524714,
+            "3": 0.14999999924257273
+          }
+        },
+        "field_oxide.str": {
+          "triangles": 1468,
+          "area_by_region_um2": {
+            "1": 1.7394187819563802,
+            "2": 0.6119912048294769,
+            "3": 0.15056892304226438
+          }
+        },
+        "locos.str": {
+          "triangles": 1363,
+          "area_by_region_um2": {
+            "1": 1.7394187819563802,
+            "2": 0.6119912048294769
+          }
+        }
+      },
+      "errors": [],
+      "geometry": {
+        "points": 737,
+        "nodes": 737,
+        "triangles": 1363,
+        "regions": 2,
+        "bbox": [
+          -0.9999999747378752,
+          0.9999999747378752,
+          -0.3064759584958665,
+          0.9999999747378752
+        ],
+        "min_edge": 0.0006430128458104516,
+        "min_area": 6.506338739156348e-06,
+        "missing_tri_vertices": 0,
+        "materials": {
+          "3": {
+            "area": 1.7394187819563802,
+            "bbox": [
+              -0.9999999747378752,
+              0.9999999747378752,
+              8.79960015964798e-05,
+              0.9999999747378752
+            ],
+            "triangles": 744
+          },
+          "1": {
+            "area": 0.6119912048294769,
+            "bbox": [
+              -0.9999999747378752,
+              0.9999999747378752,
+              -0.3064759584958665,
+              0.238545035244897
+            ],
+            "triangles": 619
+          }
+        },
+        "silicon_surface_y_um": {
+          "field": 0.23754263406736645,
+          "under_mask": 0.0008644999002933057,
+          "near_mask_edge": 0.1402179883485949
+        }
+      },
+      "passed": true
+    },
+    {
+      "case": "sti",
+      "variant": "baseline",
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_mnxbw7bf/src/suprem4",
+      "spacing_scale": 1,
+      "mask_shift_um": 0,
+      "returncode": 0,
+      "elapsed_seconds": 0.339023401029408,
+      "log": "/tmp/suprem4_isolation_mmf7ta6f/sti_baseline/suprem4.log",
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 1900,
+          "area_by_region_um2": {
+            "1": 1.9999998989515064
+          }
+        },
+        "trench.str": {
+          "triangles": 1180,
+          "area_by_region_um2": {
+            "1": 1.78999988591473
+          }
+        },
+        "liner.str": {
+          "triangles": 1262,
+          "area_by_region_um2": {
+            "1": 1.7695094535372722,
+            "2": 0.04748385480397386
+          }
+        },
+        "filled.str": {
+          "triangles": 2603,
+          "area_by_region_um2": {
+            "1": 1.7695094535372722,
+            "2": 0.04748385480397386,
+            "3": 0.979787931462864
+          }
+        },
+        "sti.str": {
+          "triangles": 1460,
+          "area_by_region_um2": {
+            "1": 1.7695094535372722,
+            "2": 0.19678383753630174,
+            "3": 0.033706607877925336
+          }
+        }
+      },
+      "errors": [],
+      "geometry": {
+        "points": 798,
+        "nodes": 798,
+        "triangles": 1460,
+        "regions": 3,
+        "bbox": [
+          -0.9999999747378752,
+          0.9999999747378752,
+          0.0,
+          0.9999999747378752
+        ],
+        "min_edge": 0.0049826858065930004,
+        "min_area": 2.635692967717175e-05,
+        "missing_tri_vertices": 0,
+        "materials": {
+          "3": {
+            "area": 1.7695094535372722,
+            "bbox": [
+              -0.9999999747378752,
+              0.9999999747378752,
+              0.006437276169890538,
+              0.9999999747378752
+            ],
+            "triangles": 1174
+          },
+          "1": {
+            "area": 0.2304904454142271,
+            "bbox": [
+              -0.9999999747378752,
+              0.9999999747378752,
+              0.0,
+              0.3575532537070103
+            ],
+            "triangles": 286
+          }
+        },
+        "expected_trench_silicon_area_um2": 1.79,
+        "total_area_um2": 1.9999998989514993
+      },
+      "passed": true
+    },
+    {
+      "case": "sti_rounded",
+      "variant": "baseline",
+      "binary": "/home/chris/Open_TCAD/suprem4/build/native64_mnxbw7bf/src/suprem4",
+      "spacing_scale": 1,
+      "mask_shift_um": 0,
+      "returncode": 0,
+      "elapsed_seconds": 4.5856281337328255,
+      "log": "/tmp/suprem4_isolation_mmf7ta6f/sti_rounded_baseline/suprem4.log",
+      "checkpoints": {
+        "initial.str": {
+          "triangles": 12852,
+          "area_by_region_um2": {
+            "1": 1.999999898951514
+          }
+        },
+        "trench.str": {
+          "triangles": 4414,
+          "area_by_region_um2": {
+            "1": 1.7906937859371745
+          }
+        },
+        "liner.str": {
+          "triangles": 4642,
+          "area_by_region_um2": {
+            "1": 1.771344344504026,
+            "2": 0.04520857338748596
+          }
+        },
+        "filled.str": {
+          "triangles": 8486,
+          "area_by_region_um2": {
+            "1": 1.771344344504026,
+            "2": 0.04520857338748596,
+            "3": 0.9715097524115146
+          }
+        },
+        "sti.str": {
+          "triangles": 5782,
+          "area_by_region_um2": {
+            "1": 1.771344344504026,
+            "2": 0.1963454957458935,
+            "3": 0.03231005870158819
+          }
+        }
+      },
+      "errors": [],
+      "geometry": {
+        "points": 3036,
+        "nodes": 3036,
+        "triangles": 5782,
+        "regions": 3,
+        "bbox": [
+          -0.9999999747378752,
+          0.9999999747378752,
+          0.0,
+          0.9999999747378752
+        ],
+        "min_edge": 0.0013721582514438645,
+        "min_area": 8.064794457039501e-07,
+        "missing_tri_vertices": 0,
+        "materials": {
+          "3": {
+            "area": 1.771344344504026,
+            "bbox": [
+              -0.9999999747378752,
+              0.9999999747378752,
+              0.006534716590067546,
+              0.9999999747378752
+            ],
+            "triangles": 4386
+          },
+          "1": {
+            "area": 0.2286555544474816,
+            "bbox": [
+              -0.9999999747378752,
+              0.9999999747378752,
+              0.0,
+              0.35704444599105045
+            ],
+            "triangles": 1396
+          }
+        },
+        "expected_trench_silicon_area_um2": 1.790693897107941,
+        "total_area_um2": 1.9999998989515075
+      },
+      "passed": true
+    }
+  ],
+  "full_engine_sanitizer": {
+    "status": "FAIL",
+    "binary": "/home/chris/Open_TCAD/suprem4/build/native64_7m3jq8sa/src/suprem4",
+    "diagnosis": "Existing startup bounds violation at misc/read.c:58: read_list(&(cards[-1]), fd). Stops before geometry operations.",
+    "result": "/tmp/rit_nmos_spacer_tyhdaxdz/result.json",
+    "leak_detection": false
+  },
+  "remaining": [
+    "NMOS wrong body polarity",
+    "PMOS wrong drain polarity",
+    "Fresh complete RIT flows and full reliability matrix",
+    "Startup parser undefined behavior blocks a clean full-engine sanitizer run",
+    "General material-domain/conservation validation beyond the replay reference"
+  ],
+  "launcher_promoted": false,
+  "test_source_sha256": {
+    "suprem4/tests/etch_corner.c": "160783177a5513ff26fda04fcb1d48eb24818ac2622bcb1ccdff698c019fc7d6",
+    "suprem4/tests/partition_audit.py": "a4e6dff8815361538ec35b3f52363236335c53bc80a597077332bc608578dfde",
+    "suprem4/tests/run_rit_nmos_spacer_regression.py": "dc1b8b1fca1964224bca4223b12eae4260ebb5e5b46941bb080a0584181e78ef"
+  }
+}

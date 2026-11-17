@@ -1,0 +1,127 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_rxq2pnrb/src/suprem4",
+  "binary_sha256": "7ecc199edc84db2f6ba063c85fde3ef3c76e7e3c67515780971e2e775bf29070",
+  "results": [
+    {
+      "divisions": 5,
+      "errors": [],
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 584,
+        "boundary_pairs_checked": 104,
+        "triangles": 1026,
+        "boundary_edges": 104
+      },
+      "areas_um2": {
+        "3": 20.000000444706536,
+        "4": 1.0000008225907855,
+        "1": 0.04000031230045773
+      },
+      "expected_buried_area_um2": 0.04000031230045774,
+      "gate_oxide": [
+        {
+          "x_um": 4.199999937554821,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 4.4999999954598024,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.000000091968104,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.500000188476406,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.800000246381387,
+          "oxide_thickness_um": 0.0200001522898674
+        }
+      ],
+      "passed": true
+    },
+    {
+      "divisions": 10,
+      "errors": [],
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 2104,
+        "boundary_pairs_checked": 189,
+        "triangles": 4031,
+        "boundary_edges": 189
+      },
+      "areas_um2": {
+        "3": 20.000000444706494,
+        "4": 1.0000008225907855,
+        "1": 0.040000312300457724
+      },
+      "expected_buried_area_um2": 0.04000031230045774,
+      "gate_oxide": [
+        {
+          "x_um": 4.199999937554821,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 4.4999999954598024,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.000000091968104,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.500000188476406,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.800000246381387,
+          "oxide_thickness_um": 0.0200001522898674
+        }
+      ],
+      "passed": true
+    },
+    {
+      "divisions": 20,
+      "errors": [],
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 8180,
+        "boundary_pairs_checked": 359,
+        "triangles": 16041,
+        "boundary_edges": 359
+      },
+      "areas_um2": {
+        "3": 20.000000444705858,
+        "4": 1.0000008225907855,
+        "1": 0.040000312300457745
+      },
+      "expected_buried_area_um2": 0.04000031230045774,
+      "gate_oxide": [
+        {
+          "x_um": 4.199999937554821,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 4.4999999954598024,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.000000091968104,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.500000188476406,
+          "oxide_thickness_um": 0.0200001522898674
+        },
+        {
+          "x_um": 5.800000246381387,
+          "oxide_thickness_um": 0.0200001522898674
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "passed": true
+}

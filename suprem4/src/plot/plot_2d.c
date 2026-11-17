@@ -45,7 +45,7 @@ void draw_flow( float vleng, float vmax, int col);
  *  Original :	MEL, CSR, MRP	11, 1984 (modeled on pisces2)		*
  *									*
  ************************************************************************/
-int plot_2d( char *par, int param )
+int plot_2d( char *par, struct par_str *param )
 {
     int i;
     int boundary;

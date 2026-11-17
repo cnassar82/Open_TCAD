@@ -195,7 +195,7 @@ ckt_scram( reorder)
 ckt_ia_bld( )
 {
     register int i, j, k, ij, c, p, row;
-    short *taken;
+    int *taken;
     int num;
 
     /*first assign the current and voltage numbers to the contacts*/
@@ -206,7 +206,7 @@ ckt_ia_bld( )
 
     /*get the device circuit block set*/
     ia_cn = salloc(int, 2 * n_con * (nn+1));
-    taken = salloc(short, nn);
+    taken = salloc(int, nn);
 
     /*build the list of circuit to voltage node connections*/
     ij = ia_cn[0] = nn+1;

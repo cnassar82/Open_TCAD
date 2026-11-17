@@ -1,0 +1,61 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_7wv6yrg7/src/suprem4",
+  "binary_sha256": "a16e133e30eee8c9a260ea8cfcbe5baa39ceb30e68744a3c883ab1ed8bcd46e0",
+  "fixture_sha256": "8fd288aef30d82ec4a21c250930d55ed35cc309ad1be395b2b58b027fd87760c",
+  "deck_sha256": "9aa6d6f8761c5f7a8b63c68aad8d8ecc1bba8432d76ef77f03410a8c288552b9",
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "errors": [],
+  "runtime_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_MASS_LUMPING": null,
+    "SUPREM4_TIME_INTEGRATOR": null,
+    "SUPREM4_POSITIVITY_STEP": null,
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_VERTICAL_CONSTRAINTS": null,
+    "SUPREM4_PROCESS_SURFACE": "1"
+  },
+  "build_manifest_sha256": "631f241a5b67acd800607ec9fa382af193747bfe06a6a7e56ef11c8bf60c0088",
+  "returncode": 0,
+  "mesh": {
+    "triangles": 17881,
+    "area_by_region_um2": {
+      "1": 76.66080645505905,
+      "2": 0.0011823807883547851,
+      "3": 0.0018314805803348623,
+      "4": 0.5000000291284632,
+      "5": 1.495064392103193e-06,
+      "6": 0.0008916650226347403,
+      "7": 0.001338181887200735,
+      "8": 0.04348634325979038,
+      "9": 0.044036423999226984,
+      "10": 0.0024270479818105897,
+      "11": 0.002156701690552965,
+      "12": 0.04423496835979821,
+      "13": 1.348447357770597e-05,
+      "14": 0.04639376303067337,
+      "15": 0.00140615987953032,
+      "16": 0.00018669792838467783,
+      "17": 0.1963361275978996,
+      "18": 0.19633655468485922,
+      "19": 0.7177950321228401,
+      "20": 0.8167164216132535,
+      "21": 0.4062674342862134,
+      "22": 0.0006162891707422543,
+      "23": 0.07676788404878652,
+      "24": 0.0014459340297749786,
+      "25": 0.001227729824041918
+    }
+  },
+  "partition": {
+    "triangle_pairs_checked": 59649,
+    "boundary_pairs_checked": 2013,
+    "triangles": 17881,
+    "boundary_edges": 2013
+  },
+  "passed": true
+}

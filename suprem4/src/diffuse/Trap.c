@@ -48,7 +48,7 @@
  ************************************************************************/
 trap(par, param)
 char *par;
-int param;
+struct par_str *param;
 {
     int mat;
 

@@ -1,0 +1,64 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_zy3t4_pr/src/suprem4",
+  "binary_sha256": "91e85f3a3e425590435a11f65aad7e8a8a2b95ba14c7f98144a22db1291a3b03",
+  "results": [
+    {
+      "divisions": 5,
+      "errors": [
+        "buried oxide area 0.04000031230045773 != 0.04 um2"
+      ],
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 903,
+        "boundary_pairs_checked": 127,
+        "triangles": 1049,
+        "boundary_edges": 127
+      },
+      "areas_um2": {
+        "3": 20.000000444706586,
+        "4": 1.0000008225907855,
+        "1": 0.04000031230045773
+      },
+      "passed": false
+    },
+    {
+      "divisions": 10,
+      "errors": [
+        "buried oxide area 0.040000312300457724 != 0.04 um2"
+      ],
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 3095,
+        "boundary_pairs_checked": 232,
+        "triangles": 4074,
+        "boundary_edges": 232
+      },
+      "areas_um2": {
+        "3": 20.000000444706483,
+        "4": 1.0000008225907855,
+        "1": 0.040000312300457724
+      },
+      "passed": false
+    },
+    {
+      "divisions": 20,
+      "errors": [
+        "buried oxide area 0.040000312300457745 != 0.04 um2"
+      ],
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 10171,
+        "boundary_pairs_checked": 442,
+        "triangles": 16124,
+        "boundary_edges": 442
+      },
+      "areas_um2": {
+        "3": 20.000000444705666,
+        "4": 1.0000008225907855,
+        "1": 0.040000312300457745
+      },
+      "passed": false
+    }
+  ],
+  "passed": false
+}

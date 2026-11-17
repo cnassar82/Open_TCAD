@@ -58,7 +58,7 @@
 
 coeffox (par, param)
     char *par;
-    int param;
+    struct par_str *param;
 {
     int ornt=(-1);	/* the orientation for which the coefficient applies */
     int spes;		/* which oxidizing species we mean */
@@ -264,7 +264,7 @@ coeffox (par, param)
  * Read an array of floats from a string.
  *----------------------------------------------------------------------*/
 get_array( param, name, fla, nfla)
-    int param;			/* The mysterious param factor. */
+    struct par_str *param;			/* The mysterious param factor. */
     char *name;			/* The name of the parameter. */
     float **fla;			/* The array of floats. */
     int *nfla;			/* Input: how many required. Output: number used */

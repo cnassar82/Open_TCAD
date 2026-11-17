@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#include <float.h>
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
@@ -28,6 +30,211 @@
 #include "regrid.h"
 #include "refine.h"
 #include "poly.h"
+#include "process_surface.h"
+#include "matrix.h"
+
+/* Boundary subdivisions alone do not constrain interior elements.  A size
+ * queue drives conforming longest-edge bisection of the new film, with an
+ * h*sqrt(2) diagonal bound.  Lazy keys discard entries invalidated by a split;
+ * no O(N^2) repeated whole-mesh scan is needed for fine films. */
+struct deposition_edge { int edge; double length2; };
+struct deposition_heap {
+    struct deposition_edge *entry;
+    size_t count,capacity;
+};
+
+static int deposition_region_edge(int e,int region)
+{
+    int k,t;
+    if(dead_edg(e))return FALSE;
+    for(k=0;k<num_tri_edg(e);k++) {
+        t=tri_edg(e,k);
+        if(!dead_tri(t) && leaf(tri[t]) && reg_tri(t)==region)return TRUE;
+    }
+    return FALSE;
+}
+
+static void deposition_push(struct deposition_heap *q,int e,int region,double limit)
+{
+    size_t i,parent;
+    struct deposition_edge value,*grown;
+    if(!deposition_region_edge(e,region))return;
+    value.edge=e;value.length2=len_edg(e)*len_edg(e);
+    if(value.length2<=limit)return;
+    if(q->count==q->capacity) {
+        size_t capacity=q->capacity ? 2*q->capacity:256;
+        grown=realloc(q->entry,capacity*sizeof(*grown));
+        if(!grown)panic("cannot allocate deposition size queue");
+        q->entry=grown;q->capacity=capacity;
+    }
+    i=q->count++;
+    while(i) {
+        parent=(i-1)/2;
+        if(q->entry[parent].length2>=value.length2)break;
+        q->entry[i]=q->entry[parent];i=parent;
+    }
+    q->entry[i]=value;
+}
+
+static struct deposition_edge deposition_pop(struct deposition_heap *q)
+{
+    struct deposition_edge result=q->entry[0],last=q->entry[--q->count];
+    size_t i=0,child;
+    while(2*i+1<q->count) {
+        child=2*i+1;
+        if(child+1<q->count && q->entry[child+1].length2>q->entry[child].length2)child++;
+        if(last.length2>=q->entry[child].length2)break;
+        q->entry[i]=q->entry[child];i=child;
+    }
+    if(q->count)q->entry[i]=last;
+    return result;
+}
+
+static int deposition_incircle(int e)
+{
+    int t=tri_edg(e,0),u=tri_edg(e,1);
+    float *a=cord_arr(pt_nd(vert_tri(t,ewhich(t,e))));
+    float *b=cord_arr(pt_edg(e,0)),*c=cord_arr(pt_edg(e,1));
+    float *d=cord_arr(pt_nd(vert_tri(u,ewhich(u,e))));
+    long double ax=(long double)a[0]-d[0],ay=(long double)a[1]-d[1];
+    long double bx=(long double)b[0]-d[0],by=(long double)b[1]-d[1];
+    long double cx=(long double)c[0]-d[0],cy=(long double)c[1]-d[1];
+    long double al=ax*ax+ay*ay,bl=bx*bx+by*by,cl=cx*cx+cy*cy;
+    long double determinant=al*(bx*cy-by*cx)+bl*(cx*ay-cy*ax)+cl*(ax*by-ay*bx);
+    long double permanent=al*(fabsl(bx*cy)+fabsl(by*cx))+
+                          bl*(fabsl(cx*ay)+fabsl(cy*ax))+
+                          cl*(fabsl(ax*by)+fabsl(ay*bx));
+    /* A filtered strict decision: leave numerically cocircular edges to
+     * the global geometry builder, rather than oscillating a local queue. */
+    return orient2d_float_sign(a,b,c)*determinant>64*LDBL_EPSILON*permanent;
+}
+
+/* Legalize as points are inserted.  Deferring all flips until the end
+ * needlessly refines the long fans produced by a sparse offset boundary.
+ * Only the new film is rezoned; every flip uses the existing conservative
+ * field transfer and strict convexity check. */
+static void deposition_legalize(int point,int region,
+                               struct deposition_heap *sizes,double limit)
+{
+    int *work=NULL,e,t,u,i,j,node,count=0,capacity=0;
+    int k,l,m,n,other,side,opposite;
+    /* sp_edge updates edge ownership immediately, but deliberately defers
+     * triangle neighbor rebuilding. Reconnect this complete point star on
+     * all material sides before using the diagonal-swap API. */
+    for(i=0;i<num_nd(point);i++)for(j=0;j<num_tri_nd(nd_pt(point,i));j++) {
+        t=tri_nd(nd_pt(point,i),j);
+        if(dead_tri(t) || !leaf(tri[t]))continue;
+        for(k=0;k<3;k++)tri[t]->nb[k]=BC_OFFSET;
+    }
+    for(i=0;i<num_nd(point);i++)for(j=0;j<num_tri_nd(nd_pt(point,i));j++) {
+        t=tri_nd(nd_pt(point,i),j);
+        if(dead_tri(t) || !leaf(tri[t]))continue;
+        for(k=0;k<3;k++) {
+            int p=pt_nd(vert_tri(t,k));
+            for(l=0;l<num_nd(p);l++) {
+                n=nd_pt(p,l);
+                for(m=0;m<num_tri_nd(n);m++) {
+                    other=tri_nd(n,m);
+                    if(other==t || dead_tri(other) || !leaf(tri[other]))continue;
+                    if(tnabor(t,other,&side,&opposite)) {
+                        tri[t]->nb[side]=other;tri[other]->nb[opposite]=t;
+                    }
+                }
+            }
+        }
+    }
+#define DEPOSITION_CHECK_EDGE(E) do { \
+    if(count==capacity) { \
+        int *grown;capacity=capacity?2*capacity:64; \
+        grown=realloc(work,capacity*sizeof(*work)); \
+        if(!grown)panic("cannot allocate deposition legalization queue"); \
+        work=grown; \
+    } \
+    work[count++]=(E); \
+} while(0)
+    for(i=0;i<num_nd(point);i++) {
+        node=nd_pt(point,i);
+        for(j=0;j<num_tri_nd(node);j++) {
+            t=tri_nd(node,j);
+            if(dead_tri(t) || !leaf(tri[t]) || reg_tri(t)!=region)continue;
+            DEPOSITION_CHECK_EDGE(edg_ele(t,nwhich(t,node)));
+        }
+    }
+    while(count) {
+        e=work[--count];
+        if(dead_edg(e) || num_tri_edg(e)!=2)continue;
+        t=tri_edg(e,0);u=tri_edg(e,1);
+        if(reg_tri(t)!=region || reg_tri(u)!=region)continue;
+        if(!deposition_incircle(e) || ck_flip(e)!=1)continue;
+        if(!tri_flip(e,t,u))continue;
+        edg[e]->len=l_edge(e);
+        for(i=0;i<3;i++) {
+            int f=edg_ele(t,i),g=edg_ele(u,i);
+            deposition_push(sizes,f,region,limit);
+            deposition_push(sizes,g,region,limit);
+            if(f!=e)DEPOSITION_CHECK_EDGE(f);
+            if(g!=e)DEPOSITION_CHECK_EDGE(g);
+        }
+    }
+    free(work);
+#undef DEPOSITION_CHECK_EDGE
+}
+
+static int deposition_spacing(int region,double h)
+{
+    int i,j,k,t,e,point,a,b,splits=0;
+    double limit=2*h*h;
+    float c[MAXDIM],v[3][MAXDIM];
+    struct deposition_heap queue={0};
+    struct deposition_edge next;
+    if(mode!=TWOD)return 0;
+    for(;;) {
+      for(e=0;e<ned;e++)deposition_push(&queue,e,region,limit);
+      if(!queue.count)break;
+      while(queue.count) {
+        next=deposition_pop(&queue);e=next.edge;
+        if(!deposition_region_edge(e,region) ||
+           next.length2!=len_edg(e)*len_edg(e))continue;
+        for(j=0;j<MAXDIM;j++)c[j]=0;
+        for(j=0;j<2;j++)c[j]=0.5*((double)cordinate(pt_edg(e,0),j)+
+                                               cordinate(pt_edg(e,1),j));
+        /* Reject an unrepresentable split instead of silently violating h.
+         * Check both children on both material sides before any mutation. */
+        for(i=0;i<num_tri_edg(e);i++) {
+            t=tri_edg(e,i);
+            if(dead_tri(t) || !leaf(tri[t]))continue;
+            for(a=0;a<3;a++)if(vert_tri(t,a)==nd_edg(e,0))break;
+            for(b=0;b<3;b++)if(vert_tri(t,b)==nd_edg(e,1))break;
+            if(a==3 || b==3)panic("deposition spacing: inconsistent edge");
+            for(k=0;k<3;k++)memcpy(v[k],cord_arr(pt_nd(vert_tri(t,k))),sizeof(v[k]));
+            memcpy(v[a],c,sizeof(c));
+            if(orient2d_float_sign(v[0],v[1],v[2])<=0)goto unresolved;
+            memcpy(v[a],cord_arr(pt_nd(vert_tri(t,a))),sizeof(c));
+            memcpy(v[b],c,sizeof(c));
+            if(orient2d_float_sign(v[0],v[1],v[2])<=0)goto unresolved;
+        }
+        /* Preserve endpoints and prolong all fields on each material side. */
+        if(sp_edge_keep(e,c,&point,FALSE,nd_edg(e,0))<0)goto unresolved;
+        splits++;
+        for(i=0;i<num_nd(point);i++) {
+            int node=nd_pt(point,i);
+            for(j=0;j<num_edge_nd(node);j++)
+                deposition_push(&queue,edge_nd(node,j),region,limit);
+        }
+        deposition_legalize(point,region,&queue,limit);
+      }
+      /* Geometry rebuilding legalizes diagonals.  A legal flip can create
+       * a longer edge, so size and Delaunay constraints must be satisfied
+       * together, not checked on an intermediate triangulation. */
+      bd_connect("deposition interior spacing");UpdateSymbolic++;
+    }
+    free(queue.entry);
+    return 0;
+unresolved:
+    free(queue.entry);
+    fprintf(stderr,"ERROR: requested deposition spacing cannot be represented without invalid elements\n");
+    return -1;
+}
 
 /************************************************************************
  *									*
@@ -40,14 +247,14 @@
  ************************************************************************/
 user_deposit( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     register int mater, ndiv, i;
     double thick;
     struct line *p;
     struct line *op;
     int nump, numop;
-    int square;
+    int square = TRUE;
     int iskel;
     extern string_offset();
     char *sfile;
@@ -55,6 +262,8 @@ int param;
     double conc, space;
     double temp, pressure;
     int oldnn = nn;
+    double *construction=NULL;
+    int construction_count=0;
 
     sfile = NULL;
     if( InvalidMeshCheck()) return -1;
@@ -133,6 +342,21 @@ int param;
     else
         numop = gen_offset( nump, p, &op, thick, space);
 
+#ifdef SUPREM_DOMAIN_OFFSET
+    if(!sfile && mode==TWOD && getenv("SUPREM4_PROCESS_SURFACE") &&
+       !strcmp(getenv("SUPREM4_PROCESS_SURFACE"),"1") &&
+       getenv("SUPREM4_DEPOSITION_GEOMETRY") &&
+       !strcmp(getenv("SUPREM4_DEPOSITION_GEOMETRY"),"domain")) {
+        extern int suprem_nominal_offset(int,const double *,double,double,double **);
+        double *input=salloc(double,2*nump);
+        for(i=0;i<nump;i++){input[2*i]=p[i].x;input[2*i+1]=p[i].y;}
+        construction_count=suprem_nominal_offset(nump,input,thick,space,&construction);
+        free(input);
+        if(construction_count<2)panic("cannot construct nominal deposition surface");
+    }
+#endif
+    process_surface_clear();
+
     /*build a skeleton region and go at it*/
     iskel = build_skel( nump, p, numop, op, ndiv, r, (double)thick/ndiv, square );
 
@@ -145,7 +369,12 @@ int param;
     free_skel(iskel);
 
     /*clean up mesh*/
-    bd_connect( "after deposit" );
+    bd_connect_material( "after deposit" );
+    if(!sfile && deposition_spacing(r,space)<0)return -1;
+    if(construction) {
+        process_surface_record(mater,construction_count,construction);
+        free(construction);
+    }
 
     /*deposit new nodes with dopant*/
     if ( imp > 0 ) {

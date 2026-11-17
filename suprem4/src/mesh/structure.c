@@ -62,7 +62,7 @@
  ************************************************************************/
 structure( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     int ier;
     int lflip;

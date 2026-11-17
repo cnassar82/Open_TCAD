@@ -1,0 +1,26 @@
+{
+  "source": "decks/subcmos2014/results/astra_motion_limiter_pmos/pmos/first_rejected_motion.str",
+  "dt": 0.5452478147701432,
+  "initial_bad": 1,
+  "remaining_bad": 0,
+  "flips": 1,
+  "unresolved": [],
+  "plan": [
+    [
+      6398,
+      6394,
+      [
+        3396,
+        4027
+      ],
+      [
+        3387,
+        4028
+      ]
+    ]
+  ],
+  "alignment": [],
+  "input_sha256": "bfbaf9f85ac03e675523c271eea800014774537e04bf45ea16de95db39de2c41",
+  "passed_geometry": false,
+  "partition_error": "overlapping triangle interiors: 6394, 6388"
+}

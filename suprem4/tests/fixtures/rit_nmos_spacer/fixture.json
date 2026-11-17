@@ -1,0 +1,14 @@
+{
+  "origin": "decks/subcmos2014/results/implant_bounds/nmos/ldd.str",
+  "checkpoint": "ldd",
+  "sha256": "06f0e640fbe652c274905f3b22690ee032342b0e84b17fd1655a94fbddc1c38e",
+  "failure": "dry 0.5 um spacer oxide etch creates overlapping exposed oxide edges near x=4.57034 um; following file-defined photoresist deposition aborts with Region crosses itself",
+  "recipe": [
+    "deposit oxide thick=0.5 divisions=10 space=0.04",
+    "etch oxide dry thick=0.5",
+    "deposit photoresist file=resist_top.dat divisions=8"
+  ],
+  "captured_binary_sha256": "0cc3c062c5b59d4a103acdce222a620d5f2e0c5f92c3a1aaacfb5ebc668c6497",
+  "captured_build_manifest_sha256": "9d2814af581f23cbaf8343ab50222f417ee7c7f195c700e75f976354fa832134",
+  "source_result": "decks/subcmos2014/results/implant_bounds/nmos/result.json"
+}

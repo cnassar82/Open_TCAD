@@ -28,6 +28,31 @@
 #include "regrid.h"
 #include "refine.h"
 
+static int mesh_diag_enabled()
+{
+    char *v = (char *)getenv("SUPREM4_MESH_DIAG");
+    return(v && *v && *v != '0');
+}
+
+static void mesh_diag_line(name, n, p)
+char *name;
+int n;
+struct line *p;
+{
+    int i;
+    double dx, dy, len, minlen = MAXFLOAT;
+
+    if (!mesh_diag_enabled()) return;
+    for(i = 1; i < n; i++) {
+	dx = p[i].x - p[i-1].x;
+	dy = (mode == ONED)?0.0:(p[i].y - p[i-1].y);
+	len = sqrt(dx * dx + dy * dy);
+	if (len < minlen) minlen = len;
+    }
+    if (n < 2) minlen = 0.0;
+    fprintf(stderr, "[meshdiag] %s points=%d min_segment=%e\n", name, n, minlen);
+}
+
 /************************************************************************
  *									*
  *	find_surf( p ) - find and sort the surface points left to right *
@@ -166,6 +191,6 @@ struct line **pp;		/*the point numbers*/
     break;
  }
 
+    mesh_diag_line("find_surf", ns, p);
     return(ns);
 }
-

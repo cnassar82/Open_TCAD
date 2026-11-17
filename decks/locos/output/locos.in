@@ -1,0 +1,27 @@
+# Stress-dependent LOCOS, adapted from SUPREM-IV example 9 (sdep.s4).
+# Dimensions in microns; nitride covers the right half of the substrate.
+option quiet
+line x loc=-1 spac=0.15 tag=left
+line x loc=-0.3 spac=0.04
+line x loc=0 spac=0.025
+line x loc=0.3 spac=0.04
+line x loc=1 spac=0.15 tag=right
+line y loc=0 spac=0.02 tag=top
+line y loc=0.3 spac=0.06
+line y loc=1 spac=0.15 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize orient=100 boron conc=1e15
+structure outfile=initial.str
+deposit oxide thick=0.02 divisions=2
+deposit nitride thick=0.15 divisions=3
+etch nitride left p1.x=0
+structure outfile=masked.str
+oxide Vc=300 Vr=30 Vd=25 stress.dep=true
+method viscous oxide.rel=1e-2 grid.oxide=0.03
+diffuse time=90 temp=1000 weto2
+structure outfile=field_oxide.str
+etch nitride all
+structure outfile=locos.str
+quit

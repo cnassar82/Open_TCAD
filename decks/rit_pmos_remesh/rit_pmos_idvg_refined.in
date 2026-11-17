@@ -1,0 +1,34 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+
+vsource Type=VDC ID=VDRAIN Tdelay=0 Vconst=-0.1
+
+IMPORT TIFFile="pmos_contacts.tif"
+
+CONTACT  Type=OhmicContact ID=Source Res=0 Cap=0 Ind=0
+CONTACT  Type=GateContact  ID=Gate   WorkFunction=4.08 Res=0 Cap=0 Ind=0
+CONTACT  Type=OhmicContact ID=Drain  Res=0 Cap=0 Ind=0
+BOUNDARY Type=OhmicContact ID=Body   Res=0 Cap=0 Ind=0
+
+# Refine the silicon mesh where the signed-log doping gradient is largest.
+# This keeps the original contact-bearing TIF untouched; Genius interpolates
+# imported Na/Nd onto the refined mesh.
+REFINE.C Variable=Doping Region=region_0 Measure=signedlog error.fraction=0.15
+
+PMI Region=region_0 Type=Mobility Model=HP
+
+# Get a robust electrostatic initial condition on the refined mesh first.
+METHOD Type=Poisson NS=Basic LS=MUMPS MaxIt=50
+SOLVE
+
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=60
+
+# Ramp the drain to -0.1 V, then hold it there for the transfer sweep.
+SOLVE  Type=DCSWEEP VScan=Drain VStart=0.0 VStep=-0.02 VStop=-0.1 out.prefix=idvd_prebias_refined
+ATTACH Electrode=Drain VApp=VDRAIN
+
+# PMOS transfer curve at Vd=-0.1 V on the refined mesh.
+SOLVE Type=DCSWEEP VScan=Gate VStart=0.0 VStep=-0.1 VStop=-10.0 out.prefix=idvg_vd_m0p1_refined
+
+EXPORT VTKFile=pmos_idvg_vd_m0p1_refined.vtu CGNSFile=pmos_idvg_vd_m0p1_refined.cgns
+
+END

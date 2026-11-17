@@ -1,0 +1,68 @@
+{
+  "pdf": "rit_process/SubCmos2014_0p5um.pdf",
+  "target_page": 11,
+  "devices": {
+    "nmos": {
+      "execution": {
+        "returncode": 0,
+        "elapsed_seconds": 92.47823355533183,
+        "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+        "deck_sha256": "1b60dedb4abbd64dbc01bd81e42315cab16e81249c424ae1c092ecbc57d39848"
+      },
+      "converged_gate_bias_points": 67,
+      "drain_bias_V": 0.05,
+      "width_um": 1,
+      "max_terminal_kcl_error_A": 2.025601144536892e-15,
+      "threshold_target_V": 0.75,
+      "extracted_threshold_V": null,
+      "threshold_status": "Not meaningful: final gate dielectric missing",
+      "gate_oxide_before_contact_nm": 16.674084690642008,
+      "gate_oxide_target_nm": 15,
+      "pre_contact_oxide_error_percent": 11.160564604280054,
+      "final_gate_oxide": {
+        "passed": false,
+        "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.07308607156896463, silicon top=0.09029234564442248"
+      },
+      "field_oxide_probe_x_um": 2.5,
+      "field_oxide_pre_ILD_nm": 629.2797349623779,
+      "well_net_doping_probe_depth_um": 0.5,
+      "well_net_doping_cm3": -5.2069197298586584e+16,
+      "well_nominal_target_cm3": 1e+16,
+      "Id_at_Vg0_A": -2.77772333154501e-16,
+      "Id_at_max_gate_drive_A": -4.44958447785989e-16,
+      "max_abs_Id_A": 9.02505051144919e-16,
+      "electrically_validated": false
+    },
+    "pmos": {
+      "execution": {
+        "returncode": 0,
+        "elapsed_seconds": 91.27558983489871,
+        "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+        "deck_sha256": "43a0f4a4ea208150bf60c91049bb97ec5ca4d7dd204664e7c2ba8630a1063cf6"
+      },
+      "converged_gate_bias_points": 67,
+      "drain_bias_V": -0.05,
+      "width_um": 1,
+      "max_terminal_kcl_error_A": 1.170398639814053e-16,
+      "threshold_target_V": -0.75,
+      "extracted_threshold_V": null,
+      "threshold_status": "Not meaningful: final gate dielectric missing",
+      "gate_oxide_before_contact_nm": 16.969897842415012,
+      "gate_oxide_target_nm": 15,
+      "pre_contact_oxide_error_percent": 13.132652282766744,
+      "final_gate_oxide": {
+        "passed": false,
+        "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.22937494641706238, silicon top=0.2468923444339866"
+      },
+      "field_oxide_probe_x_um": 2.5,
+      "field_oxide_pre_ILD_nm": 625.8996309901337,
+      "well_net_doping_probe_depth_um": 0.5,
+      "well_net_doping_cm3": 5.9091138388517016e+16,
+      "well_nominal_target_cm3": 3e+16,
+      "Id_at_Vg0_A": -8.57133382676332e-07,
+      "Id_at_max_gate_drive_A": -8.58871584069254e-07,
+      "max_abs_Id_A": 8.58871584069254e-07,
+      "electrically_validated": false
+    }
+  }
+}

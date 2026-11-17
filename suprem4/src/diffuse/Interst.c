@@ -492,7 +492,7 @@ double *ar1, *ar2;
  ************************************************************************/
 interstitial( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     int mat, mat2 = -1;
     int imp = -1;

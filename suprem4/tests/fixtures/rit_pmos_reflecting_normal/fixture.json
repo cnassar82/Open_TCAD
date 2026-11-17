@@ -1,0 +1,21 @@
+{
+  "sha256": "93d60294f0985a0d9bd6bb17686794d613a55ea841dd964fbc9dcd65bc000c29",
+  "source": "decks/subcmos2014/results/astra_locos_mask_control/step_3.str",
+  "settings": [
+    "method fermi vertical grid.oxide=0.04"
+  ],
+  "command": "diffuse time=5 temp=825 dryo2",
+  "scope": "First pre-LOCOS native oxide creation must preserve reflecting side planes",
+  "reflecting_planes": [
+    [
+      0,
+      0.0
+    ],
+    [
+      0,
+      10.000000474974513
+    ]
+  ],
+  "known_failure": "Cancellation in local_normal produces nonzero lateral displacement on x=0 reflecting side",
+  "control": "native64_0o563h8b"
+}

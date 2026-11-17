@@ -17,6 +17,7 @@
  * imp_qeqv.c	5.1	7/3/91	12:08:40
  */
 
+#include <stdlib.h>
 #include <math.h>
 #define  abs(V) ((V) < 0.? -(V) : (V))
 
@@ -33,23 +34,20 @@ double	 dx ;
 struct imp_info	 *data ;
 {
 
-    double	 x , val, ov ;
-    double	 q = 0.0;
+    double x, end, next, val, ov, q=0;
 
-    /*integrate from x = 0 until we get the correct dose*/
-    ov = imp_vert(xst, data);
-    for (x = xst + dx; (x < xen - dx) && (x < data->maxz); x += dx) {
-	val = imp_vert( x, data );
-	q += 0.5 * (val + ov) * dx ;
-	ov = val;
+    if (!(dx>0) || !(data->area>0) || !isfinite(xst) || !isfinite(xen))
+        return NAN;
+    x=fmax(0.0,xst);
+    end=fmin(xen,data->maxz);
+    if(end<=x)return 0;
+    ov=imp_vert(x,data);
+    while(x<end) {
+        next=fmin(x+dx,end);
+        if(next<=x)return NAN;
+        val=imp_vert(next,data);
+        q+=0.5*(val+ov)*(next-x);
+        x=next; ov=val;
     }
-
-    /*add the excess for the last bit*/
-    if ( x > (xen - dx) ) {
-	val = imp_vert( xen, data );
-	q += 0.5 * (val + ov) * (xen - x);
-    }
-
-    q =  q  * 1e-4 ;
-    return ( q * qtot / data->area ) ;
+    return q*1e-4*qtot/data->area;
 }

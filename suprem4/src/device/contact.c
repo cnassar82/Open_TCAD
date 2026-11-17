@@ -30,7 +30,7 @@
  ************************************************************************/
 contact( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     char *str;
     int num = -1;

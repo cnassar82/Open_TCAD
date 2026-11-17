@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-15",
+  "status": "experimental_coarsener_withdrawn",
+  "build": {
+    "path": "suprem4/build/native64_6r5i3c40/src/suprem4",
+    "sha256": "3581ea9ca7768b40186af0add81fd61cad16c9d317efd60088cabb3981199fda",
+    "passed": true
+  },
+  "checks": [
+    {
+      "name": "exact binary32 orientation, 10003 rational-reference cases",
+      "passed": true
+    },
+    {
+      "name": "key reader first/nested/sibling/root records",
+      "passed": true,
+      "asan": true,
+      "ubsan_halt_on_error": true,
+      "leak_detection": false
+    },
+    {
+      "name": "live interface ownership",
+      "passed": true,
+      "asan": true,
+      "ubsan_halt_on_error": true,
+      "leak_detection": false
+    },
+    {
+      "name": "archived/restored source hashes",
+      "passed": true
+    },
+    {
+      "name": "validated launcher unchanged",
+      "passed": true
+    }
+  ],
+  "full_flow_passed": false,
+  "scope": "Withdrawal/build verification only. Old coarsener is still defective. No new full-flow or activation acceptance run."
+}

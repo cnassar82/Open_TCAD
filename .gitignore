@@ -25,5 +25,13 @@ Makefile.in
 *.vtu
 *.dat
 *.csv
+*.bin
+*.tif
+*.pyc
+__pycache__/
+tmp/
+
+# Compiled simulator binaries (build outputs live under build/)
+suprem4/src/suprem4
 
 ParaView-6.1.0-MPI-Linux-Python3.12-x86_64/

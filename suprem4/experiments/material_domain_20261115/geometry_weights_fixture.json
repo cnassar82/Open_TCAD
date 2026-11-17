@@ -1,0 +1,11 @@
+{
+  "source": "decks/subcmos2014/results/sol_domain_final_full_activation/pmos/step_failure.str",
+  "source_sha256": "b32ed6996cf788092b376a8503b9a27e403dc229d75329f6ab7e416ed1a6d4ee",
+  "triangle_ids_1_based": [
+    6448,
+    6099
+  ],
+  "tests": "suprem4/tests/geometry_weights.c",
+  "reason": "Squared-side subtraction loses acute-angle denominator in valid slender triangle; nonfinite control-volume weights then contaminate residual assembly.",
+  "diagnostic_trace": "decks/subcmos2014/results/sol_domain_residual_trace/pmos/suprem4.log"
+}

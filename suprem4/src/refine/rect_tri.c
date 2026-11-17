@@ -70,7 +70,7 @@ struct LLedge **lep1,**lep2;
 			    break;
 			}
 			else {
-			    if ( (eps1+eps3) < beps ) {
+			    if (skel_split_valid(t1,t2) && (eps1+eps3) < beps) {
 				bst1 = t1;
 				bst2 = t2;
 				beps = eps1+eps3;
@@ -109,9 +109,12 @@ struct LLedge *t1;
     struct sreg_str *r;
     int ret;
     int nbase;
+    int axis, first, next;
+    double direction;
+    float value[MAXDIM];
 
     n = (r1->len > r2->len)?r1->len:r2->len;
-    p = salloc(float, MAXDIM * n);
+    p = scalloc(float, MAXDIM * n);
 
     /*which region has the passed edge?*/
     fnd = FALSE;
@@ -130,19 +133,30 @@ struct LLedge *t1;
     /*compute the number of points to add*/
     nump = rect_cnt( r, p, ie );
 
+    /* Opposite-boundary traversal is not necessarily monotone in its
+     * projection onto this diagonal. Insert along the original edge, so
+     * each split lies in the remaining piece instead of doubling back. */
+    axis=fabs((double)cordinate(pt_edg(ie,1),0)-cordinate(pt_edg(ie,0),0)) >=
+         fabs((double)cordinate(pt_edg(ie,1),1)-cordinate(pt_edg(ie,0),1)) ? 0:1;
+    direction=cordinate(pt_edg(ie,1),axis)>=cordinate(pt_edg(ie,0),axis)?1:-1;
+    for(first=1;first<nump;first++) {
+        for(n=0;n<MAXDIM;n++)value[n]=p[first*MAXDIM+n];
+        for(next=first;next>0 &&
+            direction*(value[axis]-p[(next-1)*MAXDIM+axis])<0;next--)
+            for(n=0;n<MAXDIM;n++)p[next*MAXDIM+n]=p[(next-1)*MAXDIM+n];
+        for(n=0;n<MAXDIM;n++)p[next*MAXDIM+n]=value[n];
+    }
+
     /*if this infinite loops, big trouble*/
     for( bnd = r->bnd; bnd->edge != ie; bnd=bnd->next );
 
 #define min2(A,B) ((A)<(B))?(A):(B)
     if (nump != 0) {
-	if ( dist(cord_arr(pt_edg(ie,0)),p) <
-	     dist(cord_arr(pt_edg(ie,1)),p) )
-	    nbase = nd_edg(ie,1);
-	else
-	    nbase = nd_edg(ie,0);
+	nbase = nd_edg(ie,1);
 
 	for(n = 0; n < nump; n++) {
 	    ied = sp_edge(ie,&(p[n*MAXDIM]),&ip,FALSE);
+	    if (ied<0)continue;
 	    if ( (nd_edg(ie,0) != nbase) && (nd_edg(ie,1) != nbase) )
 		ie = ied;
 	}
@@ -218,45 +232,26 @@ float *q;
 
 rect_tri( r, rbn )
 int r;
+int rbn;
 {
-    struct LLedge *bp, *bn, *bpi2, *quadsplit();
-    float pi2 = PI / 2.0, pi = PI, bpang;
-    int f;
+    struct LLedge *bp, *quadsplit();
 
     while ( sreg[r]->len > 4 ) {
 
-	bpang = PI;
-	bpi2 = NULL;
-	bn = NULL;
-	for(f=1, bp=sreg[r]->bnd; f||(bp!=sreg[r]->bnd); f=0, bp=bp->next) {
-	    if ( (fabs(bp->ang - pi) > 1.0e-3) && bp->ang < bpang ) {
-		bn = bp;
-		bpang = bp->ang;
-	    }
-	    if ( fabs(bp->ang - pi2) < 1.0e-3 ) bpi2 = bp;
-	}
-
-	if (bn == NULL) panic("flat region");
-	if ( bpi2 != NULL ) {
-	    (void)sp_reg(bpi2->next, bpi2->prev, NULL);
-
-	    if ( sreg[nsreg-1]->len != 3 ) panic("how can this happen???");
-
-	    (void)cr_tri(rbn, nsreg-1);
-	    free_skel( nsreg-1 );
-	}
-	else {
-	    (void)sp_reg(bn->next, bn->prev, NULL);
-
-	    if ( sreg[nsreg-1]->len != 3 ) panic("how can this happen???");
-
-	    (void)cr_tri(rbn, nsreg-1);
-	    free_skel( nsreg-1 );
-	}
+        /* Angle-only clipping can remove the sole noncollinear vertex,
+         * leaving a flat remainder. Keep every boundary vertex and require
+         * an interior ear with no other vertex on or inside its triangle. */
+        bp = geometric_ear(sreg[r]);
+        if (!bp) panic("No interior ear in rectangular triangulation");
+        (void)sp_reg(bp->prev, bp->next, NULL);
+        if (sreg[nsreg-1]->len != 3) panic("Invalid rectangular ear split");
+        (void)cr_tri(rbn, nsreg-1);
+        free_skel(nsreg-1);
     }
 
     if ( sreg[r]->len != 4 ) panic("supposed to quit with quads!!");
     bp = quadsplit(sreg[r]);
+    if (!bp) panic("No interior diagonal in rectangular triangulation");
     (void)sp_reg(bp->prev, bp->next, NULL);
     (void)cr_tri(rbn, nsreg-1);
     free_skel(nsreg-1);

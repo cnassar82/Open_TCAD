@@ -42,7 +42,7 @@
  ************************************************************************/
 option( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
 
 #   define CHOSEN(x) (is_specified( param, x) && get_bool( param, x))

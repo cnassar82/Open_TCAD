@@ -184,7 +184,7 @@ struct bound_str *bval;
 	right_side( row1, sol, bval->rhs, f );
 	right_side( row0, sol, bval->rhs, -f );
     }
-    
+
     /*if either side is gas, disallow any update*/
     if ( mat0 == GAS ) {
 	clear_row(row0, sol);
@@ -325,7 +325,7 @@ double *noni;
  ************************************************************************/
 boron( par, param )
 char *par;
-int param;
+struct par_str *param;
 { 
     int mat;
     int mat2 = -1;

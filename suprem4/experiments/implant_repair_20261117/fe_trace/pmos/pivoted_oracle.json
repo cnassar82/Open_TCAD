@@ -1,0 +1,11 @@
+{
+  "scaled_normwise_backward_error": 7.406667148409404e-25,
+  "n": 134853,
+  "nnz": 2767761,
+  "all_matrix_finite": true,
+  "diagonal_min": 2.3503843260561204e-20,
+  "diagonal_max": 2.540702646462254e+22,
+  "pivoted_solution_finite": true,
+  "componentwise_backward_error": 0.022896936131646974,
+  "elapsed_seconds": 0.5487223733216524
+}

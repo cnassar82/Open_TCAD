@@ -1,0 +1,16 @@
+{
+  "sha256": "ab23110f629923816535a2749af715f18bdcc37596be7abfb1ae12eed9e928b4",
+  "source": "decks/subcmos2014/results/sol_pad_motion_capture/s1906.44",
+  "settings": [
+    "method fermi vertical grid.oxide=0.04"
+  ],
+  "command": "diffuse time=0.1 temp=1000 dryo2",
+  "scope": "Consume a silicon row at a straight side boundary during pad oxidation",
+  "known_failure": "Interior-only removal pins the redundant side-boundary point; rounded motion nearly stalls at triangle 0",
+  "input_partition_audit": {
+    "triangle_pairs_checked": 4546,
+    "boundary_pairs_checked": 350,
+    "triangles": 9090,
+    "boundary_edges": 350
+  }
+}

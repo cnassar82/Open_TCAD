@@ -1,0 +1,27 @@
+{
+  "status": "WITHDRAWN_NOT_ACCEPTED",
+  "baseline_snapshot": "suprem4/build/native64_b43fm60y/src",
+  "reason": "Captured activation replay passes independent geometry audit but fails exposed-point GAS-node invariant. No full-flow acceptance.",
+  "files": [
+    {
+      "path": "suprem4/src/dbase/kill_node.c",
+      "experiment_sha256": "5a35d85301fbcf159b647fc525fcb928959f23a1cc654f26d6c9ff93d857f5df",
+      "restored_sha256": "e9978fb690c04dc5becb844eb6c7f1c27419073c1f417ea05b824e24ac2a2a56"
+    },
+    {
+      "path": "suprem4/src/dbase/remove.c",
+      "experiment_sha256": "26359fbd18cf9dfebde9ac2a75289ed769328ee815b1aa70282e9652d902e0fc",
+      "restored_sha256": "84ab58a37f1dec8ee3de9910c044bf3df9041c0b5539b40c70c6038004fb0623"
+    },
+    {
+      "path": "suprem4/src/dbase/make_db.c",
+      "experiment_sha256": "0cdbeada5fba35fa3eab1e3079da0153cd77c7c0fb421d5283b154fddc777fd6",
+      "restored_sha256": "ff95a5c922bd90e330e5538d0b2614b4495a487681228a23f6949527d8dde71d"
+    },
+    {
+      "path": "suprem4/src/oxide/oxgrow.c",
+      "experiment_sha256": "451063837b8e4883fdf081010461ab3148bb7cd14c79080677ad8243e250b783",
+      "restored_sha256": "093cf91ea7ec00059293fe52d716e48ac98562ca859c7af53834790d0f063d2c"
+    }
+  ]
+}

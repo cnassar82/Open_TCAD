@@ -1,0 +1,38 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_rgomhyjr/src/suprem4",
+  "binary_sha256": "bdfcf480f3704f2b42469ce0af7832df35aa4149612717061d46bad5d1c99ccf",
+  "fixture_sha256": "54cf4926a1cd681918e0ac118a89a8f6b103e57c3e9a4d283d6aea4c563f0b8c",
+  "deck_sha256": "2080d3519e6769b59d4a219dfda0035799e18a70e7a94b3e6573a3677632147b",
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "errors": [],
+  "runtime_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_MASS_LUMPING": null,
+    "SUPREM4_TIME_INTEGRATOR": null,
+    "SUPREM4_POSITIVITY_STEP": null,
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_VERTICAL_CONSTRAINTS": null,
+    "SUPREM4_PROCESS_SURFACE": "1"
+  },
+  "build_manifest_sha256": "bb76b2157020f7f1136e92132355986a62a8230cd82aa1265025b24b95d473a4",
+  "returncode": 0,
+  "mesh": {
+    "triangles": 7100,
+    "area_by_region_um2": {
+      "1": 78.24940528645084,
+      "2": 0.010001168013605784
+    }
+  },
+  "partition": {
+    "triangle_pairs_checked": 3691,
+    "boundary_pairs_checked": 334,
+    "triangles": 7100,
+    "boundary_edges": 334
+  },
+  "passed": true
+}

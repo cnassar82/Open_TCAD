@@ -1,0 +1,11 @@
+{
+  "sha256": "41ef10a5039d84e49371c6fc9322e4d8baae178bab449ec5f557816ba01748d5",
+  "command": "deposit oxide thick=0.5 divisions=10 space=0.06",
+  "settings": [],
+  "source": "decks/subcmos2014/results/sol_stable_weights_full_activation/pmos/annealed.str",
+  "scope": "Post-activation ILD deposition, before contacts",
+  "known_failure": "Offset/skeleton boundary has a proper crossing before triangulation; 1305 vertices; turning sum -4*pi",
+  "candidate": "native64_m23qw5jt",
+  "diagnostic_boundary": "decks/subcmos2014/results/sol_stable_weights_ild_boundary/boundary.json",
+  "preserve_input_regions": true
+}

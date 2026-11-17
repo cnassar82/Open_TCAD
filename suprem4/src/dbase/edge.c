@@ -145,11 +145,20 @@ build_edg()
 		nb = neigh_fc(ie, i);
 		if ( nb >= 0 ) {
 		    if ( same_mat(nb, ie) && (ie < nb)) {
+			int nsidea, nsideb;
 			en = mk_edg(n1, n2);
 			set_edg_ele(ie, i, en);
 			add_ele_edg(en, ie);
-			set_edg_ele(nb, twhich(nb, ie), en);
-			add_ele_edg(en, nb);
+			/* use tnabor (physical points) instead of twhich (nb-list)
+			 * so we get a valid face index even when nb lists are
+			 * asymmetric due to mesh corruption */
+			if (tnabor(ie, nb, &nsidea, &nsideb)) {
+			    set_edg_ele(nb, nsideb, en);
+			    add_ele_edg(en, nb);
+			} else {
+			    fprintf(stderr, "[bedg] tnabor failed ie=%d nb=%d face=%d\n",
+				    ie, nb, i);
+			}
 		    }
 		    else if ( !same_mat(nb, ie) ) {
 			en = mk_edg(n1, n2);

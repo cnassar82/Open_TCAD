@@ -1,0 +1,10 @@
+# A single region with 51,200 triangles and over 32,767 edges.
+line x loc=0 spac=1 tag=left
+line x loc=160 spac=1 tag=right
+line y loc=0 spac=1 tag=surface
+line y loc=160 spac=1 tag=bottom
+region silicon xlo=left xhi=right ylo=surface yhi=bottom
+boundary exposed xlo=left xhi=right ylo=surface yhi=surface
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize boron conc=1e15
+structure outfile=large_mesh.str

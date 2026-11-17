@@ -41,7 +41,7 @@ fgtmom(elem, mattr, energy, rp, sigp, gam1, kurt, later)
 	FILE	*fp ;
 	char *file;
 
-	int	kmatt, kelem ;
+	int	kmatt, kelem, fields ;
 	double	ax, rx, sx, cx , kx, lx ;
 	double	a0, r0, s0, c0 , k0, l0 ;
 	double	fact1, fact2 ;
@@ -61,8 +61,12 @@ fgtmom(elem, mattr, energy, rp, sigp, gam1, kurt, later)
 	while (! found && fgets(line, 132, fp) ) {
 		if (line[0] == CMT_CHAR) continue ;	/* bag comment line */
 
-		sscanf(line , "%d %d %lf %lf %lf %lf %lf %lf" ,
+		fields = sscanf(line , "%d %d %lf %lf %lf %lf %lf %lf" ,
 			    &kmatt, &kelem, &ax, &rx, &sx, &cx, &kx, &lx);
+		if (fields < 7) continue;
+		/* Legacy BF2 tables provide vertical moments only.  Use an
+		 * isotropic straggle estimate rather than uninitialized lx. */
+		if (fields == 7) lx = sx;
 
   		/* If this the material and element we want. */
 		if (kmatt == mattr  &&  kelem == elem) {
@@ -77,6 +81,7 @@ fgtmom(elem, mattr, energy, rp, sigp, gam1, kurt, later)
 					goto done ;
 					}
 				already = T ;
+				a0=ax; r0=rx; s0=sx; c0=cx; k0=kx; l0=lx;
 				}
 
 			/* Found energy or overshot */

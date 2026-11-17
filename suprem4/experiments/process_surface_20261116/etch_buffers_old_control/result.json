@@ -1,0 +1,14 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_h9nj1yiz/src/suprem4",
+  "binary_sha256": "c0f00e1ca91b86639c70ab80ce94a14dd19ca1d154916f8f252e04855681269c",
+  "polygon_sizes": [
+    501,
+    1003
+  ],
+  "errors": [
+    "simulator error",
+    "[Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/process_surface_20261116/etch_buffers_old_control/after.str'"
+  ],
+  "returncode": -6,
+  "passed": false
+}

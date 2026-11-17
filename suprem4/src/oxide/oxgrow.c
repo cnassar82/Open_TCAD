@@ -40,21 +40,29 @@ oxgrow (temp, ornt, oxhow, dt )
     struct tms before, after;
 
     times(&before);
+    mesh_embedding_trace("oxide entry");
 
     /* Compute the velocity vector using whatever oxide growth model */
     oxide_vel (temp, ornt, oxhow, *dt);
+    mesh_embedding_trace("oxide velocities");
 
     /* Check for boundary loops */
     /* Before grid_add to clean up boundary before decorating with new nodes*/
     if(DetectLoop())
 	UpdateSymbolic++;
+    mesh_embedding_trace("DetectLoop");
 
     /* Now drop in any new nodes. Velocities, concentrations as old ones */
     if (grid_add(*dt))
 	UpdateSymbolic++;
+    mesh_embedding_trace("grid_add");
 
     /* Make a pointwise velocity list: do this AFTER np has been bumped */
     point_vel( );
+
+    /* A nonlinear vertical map must sample neighboring constraints
+     * consistently before testing volume-element motion. */
+    if(oxide_model==O_VERTICAL)vertical_constraint_refine(*dt);
 
     /*cut the time step back */
     back_pedal( dt );

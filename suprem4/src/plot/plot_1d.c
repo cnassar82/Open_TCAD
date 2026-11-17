@@ -36,7 +36,7 @@
  ************************************************************************/
 plot_1d( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     int boundary;
     int line_type;

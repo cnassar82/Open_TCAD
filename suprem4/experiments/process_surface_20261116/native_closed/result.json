@@ -1,0 +1,14 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_uu2_2yx9/src/suprem4",
+  "binary_sha256": "a77c709eb7df07b0d624fa9823e353d909623c7ca0b777ded196570ccb3919fb",
+  "errors": [
+    "uncoated silicon edge"
+  ],
+  "partition": {
+    "triangle_pairs_checked": 100,
+    "boundary_pairs_checked": 40,
+    "triangles": 200,
+    "boundary_edges": 40
+  },
+  "passed": false
+}

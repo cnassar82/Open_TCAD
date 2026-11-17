@@ -1,0 +1,5 @@
+option quiet
+structure infile=deposited.str
+etch oxide dry thick=0.51
+structure outfile=etched.str
+quit

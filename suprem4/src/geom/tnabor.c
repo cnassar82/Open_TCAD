@@ -16,12 +16,17 @@ static char sccsid[]="tnabor.c Version 5.1  Last modified 7/3/91 08:34:07";
 #include <constant.h>
 #include <geom.h>
 #include <regrid.h>
+#include <stdio.h>
 
 int tnabor (ie, in, ke, kn)
     int ie, in, *ke, *kn;
 {
     register int pe0, pe1, pe2, pn0, pn1, pn2;
-    int ic, a[2][2];
+    /* All nine vertex pairs are compared before validating the count.
+     * Duplicate/degenerate triangles must reach the diagnostic below
+     * without writing past this buffer first. */
+    int ic, a[9][2];
+    char message[256];
 
     switch( mode ) {
     case TWOD :
@@ -46,8 +51,14 @@ int tnabor (ie, in, ke, kn)
 	
 	if (ic < 2)  
 	    return(FALSE);
-	else if (ic > 2)
-	    panic ("bad call to tnabor");	/*NOTREACHED*/
+	else if (ic > 2) {
+	    snprintf(message, sizeof(message),
+		"tnabor: triangles %d (region %d, points %d,%d,%d) and "
+		"%d (region %d, points %d,%d,%d) have %d vertex matches",
+		ie, tri[ie]->regnum, pe0, pe1, pe2,
+		in, tri[in]->regnum, pn0, pn1, pn2, ic);
+	    panic(message);	/*NOTREACHED*/
+	}
 	else {
 	    *ke = 3 - a[0][0] - a[1][0];
 	    *kn = 3 - a[0][1] - a[1][1];

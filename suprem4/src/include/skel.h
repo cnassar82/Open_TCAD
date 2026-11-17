@@ -70,6 +70,9 @@ struct  sreg_str  	{
 #define mat_skl(A)	sreg[A]->mat
 #define len_skl(A)	sreg[A]->len
 
+extern struct LLedge *geometric_ear(struct sreg_str *);
+extern int skel_split_valid(struct LLedge *, struct LLedge *);
+
 
 /***************************************************
  *                                                 *
@@ -113,6 +116,8 @@ int lil();
 
 double dmin();
 double dmax();
+/* Split a clipping edge while preserving the retained endpoint node. */
+int sp_edge_keep();
 double dabs();
 
 #endif

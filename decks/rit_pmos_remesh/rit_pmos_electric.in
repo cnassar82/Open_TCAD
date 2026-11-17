@@ -1,0 +1,18 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+
+IMPORT SupremFile=pmos.str
+
+# Imported aluminum regions from SUPREM:
+#   region_8  source metal, x ~= 0..50 um, contact near x=25 um
+#   region_9  gate metal,   x ~= 60..80 um
+#   region_10 drain metal,  x ~= 90..150 um, contact near x=115 um
+CONTACT Type=OhmicContact ID=region_8  Res=0 Cap=0 Ind=0
+CONTACT Type=GateContact  ID=region_9  WorkFunction=5.25 Res=0 Cap=0 Ind=0
+CONTACT Type=OhmicContact ID=region_10 Res=0 Cap=0 Ind=0
+
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=30
+SOLVE Type=EQUILIBRIUM
+
+EXPORT VTKFile=pmos_equilibrium.vtu
+
+END

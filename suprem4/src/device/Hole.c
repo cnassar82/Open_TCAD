@@ -117,7 +117,7 @@ double *dqdp, *dqdh;
  ************************************************************************/
 hole( par, param )
 char *par;
-int param;
+struct par_str *param;
 { 
     int mat, mat2 = -1;
 

@@ -1,0 +1,14 @@
+{
+  "sha256": "bc09f4cd86a80fad3eab413de14893ff9a6a058d486054cdcc4331c8324c9111",
+  "source": "decks/subcmos2014/results/sol_side_boundary_threshold_control/pmos/locos.str",
+  "settings": [
+    "method fermi vertical grid.oxide=0.04",
+    "oxide Vc=300 Vr=30 Vd=25 stress.dep=true",
+    "method viscous oxide.rel=1e-2 grid.oxide=0.04",
+    "method fermi vertical grid.oxide=0.04"
+  ],
+  "command": "diffuse time=12 temp=800 nitrogen\ndiffuse time=15 temp=800 nitrogen continue\ndiffuse time=5 temp=825 dryo2",
+  "scope": "First oxidizing Kooi segment from fresh PMOS LOCOS checkpoint",
+  "known_failure": "back_pedal asserts on a positive stored-coordinate triangle because float subtraction makes its determinant zero",
+  "control": "native64_n0paar46"
+}

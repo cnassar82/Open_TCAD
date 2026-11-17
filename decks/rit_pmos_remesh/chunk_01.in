@@ -1,0 +1,36 @@
+structure infile=/home/chris/Open_TCAD/decks/rit_pmos_remesh/remeshed_00.str
+
+# Boron diffusion + segregation tuning to match Silvaco.
+# `Dip.0` is the B+ pair diffusion pre-exponential and is the dominant
+# diffusion knob in p-type silicon (modelrc default 0.76 gives junction depth
+# 2.135 um at x=35 after the 4000A oxide grow; Silvaco gives 1.892 um).
+# A 1-D sweep showed Dip.0=0.48 lands junction = 1.890 um (-0.12 % error).
+# A 2-D Seg.0 x Trn.0 sweep at fixed Dip.0=0.48 showed Seg.0=100, Trn.0=1e-5
+# also matches Silvaco's Si-side dose (1.00e13 vs 9.75e12, +2.7 %).
+# Placed AFTER the `# remesh` marker so it lands in the chunk that contains
+# the implant + diffusion steps; if put before the marker, the chunk split
+# in bin/remesh would put it in the pre-remesh chunk and it'd be ignored.
+boron silicon Dip.0=0.48
+boron silicon /oxide Seg.0=100
+boron silicon /oxide Trn.0=1e-5
+
+#------------------------------------------------
+#Implant Boron
+implant boron dose=2e15 energy=75 pearson
+structure outfile=diffusion_implant.str
+#------------------------------------------------
+#4000A Oxide Growth
+
+method fermi
+diffuse time=5 temp=1100 dryo2 
+diffuse time=20 temp=1100 weto2 continue
+diffuse time=5 temp=1100 nitrogen continue
+structure outfile=4000_ox.str
+
+# Refine oxide again now that the 4000A oxide has grown — keeps the oxide
+# mesh dense enough that the next thermal step (700A wet O2 at 1000 C below)
+# can converge with the sharper boron gradient produced by Dip.0=0.48.
+# Without this, SUPREM's grid mutation hits sliver triangles during the
+# 1000 C diffuse and segfaults.
+
+structure outfile=/home/chris/Open_TCAD/decks/rit_pmos_remesh/state_01.str

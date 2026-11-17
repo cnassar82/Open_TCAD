@@ -44,10 +44,12 @@ EXTERN int verbose;
 #define strequ(a,b) (!strcmp(a,b))
 
 extern void panic();
+#include "alloc_size.h"
+#include "sparse.h"
 EXTERN char *MallocResult;
-#define salloc(O,N)  ((O *)malloc((unsigned)((N)*sizeof(O))))
-#define scalloc(O,N) ((O *)calloc((unsigned)(N),(unsigned)(sizeof(O))))
-#define sralloc(O,N,P) ((O *)realloc((void *)(P), (unsigned)((N)*sizeof(O))))
+#define salloc(O,N)  ((O *)malloc(suprem_array_bytes((size_t)(N), sizeof(O))))
+#define scalloc(O,N) ((O *)calloc(1, suprem_array_bytes((size_t)(N), sizeof(O))))
+#define sralloc(O,N,P) ((O *)realloc((void *)(P), suprem_array_bytes((size_t)(N), sizeof(O))))
 
 #define sfree(P) free((char *)P)
 
@@ -58,10 +60,12 @@ EXTERN char *MallocResult;
  ***************************************************/
 extern int    mod();
 
-extern int get_bool();
-extern int get_int();
-extern float get_float();
-extern char *get_string();
+struct par_str;
+extern int get_bool(struct par_str *, char *);
+extern int get_int(struct par_str *, char *);
+extern float get_float(struct par_str *, char *);
+extern char *get_string(struct par_str *, char *);
+extern int is_specified(struct par_str *, char *);
 #define Fetch( V, S ) if (is_specified(param,S)) V=get_float(param,S)
 #define Listed( S ) ( get_bool(param,S) && is_specified(param,S) )
 

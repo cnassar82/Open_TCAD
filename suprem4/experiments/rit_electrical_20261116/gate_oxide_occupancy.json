@@ -1,0 +1,172 @@
+{
+  "nmos": {
+    "gate": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.016674068548394802
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01667409341421215
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.016674084690639746
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.01667407714795814
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.016674068548394802
+        }
+      ]
+    },
+    "spacers": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.016674068548394802
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01667409341421215
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.016674084690639746
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.01667407714795814
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.016674068548394802
+        }
+      ]
+    },
+    "annealed": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.017206274075457856
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01670362054642968
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.016674534892151663
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.0167028900348178
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.01719307876698989
+        }
+      ]
+    },
+    "contacts": {
+      "passed": false,
+      "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.07308607156896463, silicon top=0.09029234564442248"
+    },
+    "metal1": {
+      "passed": false,
+      "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.07308607156896463, silicon top=0.09029234564442248"
+    }
+  },
+  "pmos": {
+    "gate": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.01697067019909551
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01696959971921902
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.01696989784241318
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.016970930637751153
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.016969667087646023
+        }
+      ]
+    },
+    "spacers": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.01697067019909551
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01696959971921902
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.01696989784241318
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.016970930637751153
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.016969667087646023
+        }
+      ]
+    },
+    "annealed": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.01751739801692423
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01700038797123493
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.01697009793290391
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.017001217552643222
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.017504852614758426
+        }
+      ]
+    },
+    "contacts": {
+      "passed": false,
+      "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.22937494641706238, silicon top=0.2468923444339866"
+    },
+    "metal1": {
+      "passed": false,
+      "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.22937494641706238, silicon top=0.2468923444339866"
+    }
+  }
+}

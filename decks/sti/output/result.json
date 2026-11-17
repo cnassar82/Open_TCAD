@@ -1,0 +1,88 @@
+{
+  "case": "sti",
+  "variant": "baseline",
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+  "spacing_scale": 1,
+  "mask_shift_um": 0,
+  "returncode": 0,
+  "elapsed_seconds": 0.46210131817497313,
+  "log": "/tmp/suprem4_isolation_6x8tbdbq/sti_baseline/suprem4.log",
+  "checkpoints": {
+    "initial.str": {
+      "triangles": 1900,
+      "area_by_region_um2": {
+        "1": 1.9999999999999987
+      }
+    },
+    "trench.str": {
+      "triangles": 1180,
+      "area_by_region_um2": {
+        "1": 1.7899999999999994
+      }
+    },
+    "liner.str": {
+      "triangles": 1262,
+      "area_by_region_um2": {
+        "1": 1.76951075406457,
+        "2": 0.047482351017470004
+      }
+    },
+    "filled.str": {
+      "triangles": 2587,
+      "area_by_region_um2": {
+        "1": 1.76951075406457,
+        "2": 0.047482351017470004,
+        "3": 0.979787166255078
+      }
+    },
+    "sti.str": {
+      "triangles": 1460,
+      "area_by_region_um2": {
+        "1": 1.76951075406457,
+        "2": 0.19678391288720007,
+        "3": 0.03370533304823001
+      }
+    }
+  },
+  "errors": [],
+  "geometry": {
+    "points": 798,
+    "nodes": 798,
+    "triangles": 1460,
+    "regions": 3,
+    "bbox": [
+      -1.0,
+      1.0,
+      0.0,
+      1.0
+    ],
+    "min_edge": 0.004982777542856994,
+    "min_area": 2.635641498000013e-05,
+    "missing_tri_vertices": 0,
+    "materials": {
+      "3": {
+        "area": 1.76951075406457,
+        "bbox": [
+          -1.0,
+          1.0,
+          0.00643712,
+          1.0
+        ],
+        "triangles": 1174
+      },
+      "1": {
+        "area": 0.2304892459354299,
+        "bbox": [
+          -1.0,
+          1.0,
+          0.0,
+          0.357551
+        ],
+        "triangles": 286
+      }
+    },
+    "expected_trench_silicon_area_um2": 1.79,
+    "total_area_um2": 2.0
+  },
+  "passed": true
+}

@@ -57,6 +57,7 @@ extern arsenic(), boron(), regrid(), coeffox();
 extern phosphorus(), rregion(), redge(), rline();
 extern initialize(), structure();
 extern user_deposit(), user_etch();
+extern user_remesh();
 extern gold(), draw_lab();
 extern stress_analysis();
 extern c_mater(), cesium();
@@ -90,7 +91,7 @@ struct command_table command[NUMCMD] = {
     "isilicon", silicon, 0,		"tin", tin, 0,
     "germanium", germanium, 0,	        "zinc", zinc, 0,
     "carbon", carbon, 0,		"generic", generic, 0,
-    "", NULL, 45,			"", NULL, 46,
+    "remesh", user_remesh, 0,		"", NULL, 46,
     "", NULL, 47,			"", NULL, 48,
     "", NULL, 49};
 
@@ -203,7 +204,7 @@ char **argv;
  ************************************************************************/
 mode_cmd( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
 #   define CHOSEN(x) (is_specified( param, x) && get_bool( param, x))
 
@@ -217,4 +218,3 @@ int param;
 
     return(0);
 }
-

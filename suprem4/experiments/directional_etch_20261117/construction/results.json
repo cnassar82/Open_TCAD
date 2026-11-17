@@ -1,0 +1,737 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_ec3ihno0/src/suprem4",
+  "binary_sha256": "a2d39df3c5b1131f4d357c43607a1fa449308a78af61bc97f0948c7031d31707",
+  "runtime_options": {
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide"
+  },
+  "results": [
+    {
+      "y_um": 0.0,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 24.000000533647828
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 12,
+      "etch_um": 0.49,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 432,
+        "boundary_pairs_checked": 82,
+        "triangles": 724,
+        "boundary_edges": 82
+      },
+      "mesh": {
+        "triangles": 724,
+        "area_by_region_um2": {
+          "1": 24.000000533647828,
+          "2": 0.1199998962573539
+        }
+      },
+      "oxide_area_um2": 0.1199998962573539,
+      "expected_area_um2": 0.11999988555908203,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 12,
+      "etch_um": 0.49999,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 662,
+        "boundary_pairs_checked": 102,
+        "triangles": 744,
+        "boundary_edges": 102
+      },
+      "mesh": {
+        "triangles": 744,
+        "area_by_region_um2": {
+          "1": 24.000000533647828,
+          "2": 0.00012016296529004914
+        }
+      },
+      "oxide_area_um2": 0.00012016296529004914,
+      "expected_area_um2": 0.0001201629638671875,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 12,
+      "etch_um": 0.51,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 24.000000533647828
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 100,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 2800,
+        "boundary_pairs_checked": 428,
+        "triangles": 5600,
+        "boundary_edges": 428
+      },
+      "mesh": {
+        "triangles": 5600,
+        "area_by_region_um2": {
+          "1": 199.99999047722665
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 100,
+      "etch_um": 0.49,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 8772,
+        "boundary_pairs_checked": 268,
+        "triangles": 5838,
+        "boundary_edges": 268
+      },
+      "mesh": {
+        "triangles": 5838,
+        "area_by_region_um2": {
+          "1": 199.99999047722665,
+          "2": 0.9999990656288161
+        }
+      },
+      "oxide_area_um2": 0.9999990656288161,
+      "expected_area_um2": 0.9999990463256836,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 100,
+      "etch_um": 0.49999,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 4431,
+        "boundary_pairs_checked": 289,
+        "triangles": 5859,
+        "boundary_edges": 289
+      },
+      "mesh": {
+        "triangles": 5859,
+        "area_by_region_um2": {
+          "1": 199.99999047722665,
+          "2": 0.0010013579741396921
+        }
+      },
+      "oxide_area_um2": 0.0010013579741396921,
+      "expected_area_um2": 0.0010013580322265625,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 100,
+      "etch_um": 0.51,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 2800,
+        "boundary_pairs_checked": 428,
+        "triangles": 5600,
+        "boundary_edges": 428
+      },
+      "mesh": {
+        "triangles": 5600,
+        "area_by_region_um2": {
+          "1": 199.99999047722665
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999223975387
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 12,
+      "etch_um": 0.49,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 426,
+        "boundary_pairs_checked": 82,
+        "triangles": 724,
+        "boundary_edges": 82
+      },
+      "mesh": {
+        "triangles": 724,
+        "area_by_region_um2": {
+          "1": 23.999999223975387,
+          "2": 0.11999993718461734
+        }
+      },
+      "oxide_area_um2": 0.11999993718461734,
+      "expected_area_um2": 0.11999988555908203,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 12,
+      "etch_um": 0.49999,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 636,
+        "boundary_pairs_checked": 102,
+        "triangles": 744,
+        "boundary_edges": 102
+      },
+      "mesh": {
+        "triangles": 744,
+        "area_by_region_um2": {
+          "1": 23.999999223975387,
+          "2": 0.00012016244570564892
+        }
+      },
+      "oxide_area_um2": 0.00012016244570564892,
+      "expected_area_um2": 0.0001201629638671875,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 12,
+      "etch_um": 0.51,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999223975387
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 100,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 2800,
+        "boundary_pairs_checked": 428,
+        "triangles": 5600,
+        "boundary_edges": 428
+      },
+      "mesh": {
+        "triangles": 5600,
+        "area_by_region_um2": {
+          "1": 199.99997956329315
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 100,
+      "etch_um": 0.49,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 13178,
+        "boundary_pairs_checked": 268,
+        "triangles": 5838,
+        "boundary_edges": 268
+      },
+      "mesh": {
+        "triangles": 5838,
+        "area_by_region_um2": {
+          "1": 199.99997956329315,
+          "2": 0.9999994066893223
+        }
+      },
+      "oxide_area_um2": 0.9999994066893223,
+      "expected_area_um2": 0.9999990463256836,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 100,
+      "etch_um": 0.49999,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 6393,
+        "boundary_pairs_checked": 289,
+        "triangles": 5859,
+        "boundary_edges": 289
+      },
+      "mesh": {
+        "triangles": 5859,
+        "area_by_region_um2": {
+          "1": 199.99997956329315,
+          "2": 0.001001353644269995
+        }
+      },
+      "oxide_area_um2": 0.001001353644269995,
+      "expected_area_um2": 0.0010013580322265625,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 100,
+      "etch_um": 0.51,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 2800,
+        "boundary_pairs_checked": 428,
+        "triangles": 5600,
+        "boundary_edges": 428
+      },
+      "mesh": {
+        "triangles": 5600,
+        "area_by_region_um2": {
+          "1": 199.99997956329315
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999660532914
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 12,
+      "etch_um": 0.49,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 429,
+        "boundary_pairs_checked": 82,
+        "triangles": 724,
+        "boundary_edges": 82
+      },
+      "mesh": {
+        "triangles": 724,
+        "area_by_region_um2": {
+          "1": 23.999999660532914,
+          "2": 0.12000004632398684
+        }
+      },
+      "oxide_area_um2": 0.12000004632398684,
+      "expected_area_um2": 0.11999988555908203,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 12,
+      "etch_um": 0.49999,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 649,
+        "boundary_pairs_checked": 102,
+        "triangles": 744,
+        "boundary_edges": 102
+      },
+      "mesh": {
+        "triangles": 744,
+        "area_by_region_um2": {
+          "1": 23.999999660532914,
+          "2": 0.00012005330633625233
+        }
+      },
+      "oxide_area_um2": 0.00012005330633625233,
+      "expected_area_um2": 0.0001201629638671875,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 12,
+      "etch_um": 0.51,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999660532914
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 100,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 2800,
+        "boundary_pairs_checked": 428,
+        "triangles": 5600,
+        "boundary_edges": 428
+      },
+      "mesh": {
+        "triangles": 5600,
+        "area_by_region_um2": {
+          "1": 199.99998320127156
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 100,
+      "etch_um": 0.49,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 13940,
+        "boundary_pairs_checked": 268,
+        "triangles": 5838,
+        "boundary_edges": 268
+      },
+      "mesh": {
+        "triangles": 5838,
+        "area_by_region_um2": {
+          "1": 199.99998320127156,
+          "2": 1.0000003161840108
+        }
+      },
+      "oxide_area_um2": 1.0000003161840108,
+      "expected_area_um2": 0.9999990463256836,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 100,
+      "etch_um": 0.49999,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 6745,
+        "boundary_pairs_checked": 289,
+        "triangles": 5859,
+        "boundary_edges": 289
+      },
+      "mesh": {
+        "triangles": 5859,
+        "area_by_region_um2": {
+          "1": 199.99998320127156,
+          "2": 0.0010004441495885513
+        }
+      },
+      "oxide_area_um2": 0.0010004441495885513,
+      "expected_area_um2": 0.0010013580322265625,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 100,
+      "etch_um": 0.51,
+      "restart": true,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 2800,
+        "boundary_pairs_checked": 428,
+        "triangles": 5600,
+        "boundary_edges": 428
+      },
+      "mesh": {
+        "triangles": 5600,
+        "area_by_region_um2": {
+          "1": 199.99998320127156
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.0,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": false,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 24.000000533647828
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": 0.1,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": false,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999223975387
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": false,
+      "stale_control": false,
+      "errors": [],
+      "used_construction": true,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999660532914
+        }
+      },
+      "oxide_area_um2": 0,
+      "expected_area_um2": 0.0,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "y_um": -0.427,
+      "width_um": 12,
+      "etch_um": 0.5,
+      "restart": true,
+      "stale_control": true,
+      "errors": [],
+      "used_construction": false,
+      "partition": {
+        "triangle_pairs_checked": 652,
+        "boundary_pairs_checked": 102,
+        "triangles": 744,
+        "boundary_edges": 102
+      },
+      "mesh": {
+        "triangles": 744,
+        "area_by_region_um2": {
+          "1": 23.999999660532872,
+          "2": 1.3096724327591163e-06
+        }
+      },
+      "oxide_area_um2": 1.3096724327591163e-06,
+      "silicon_boron_relative_error": 0.0,
+      "passed": true
+    },
+    {
+      "case": "sloped_control",
+      "errors": [],
+      "partition": {
+        "triangle_pairs_checked": 1107,
+        "boundary_pairs_checked": 112,
+        "triangles": 754,
+        "boundary_edges": 112
+      },
+      "thickness_um": 0.0024937893685477164,
+      "expected_thickness_um": 0.002493781056044475,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

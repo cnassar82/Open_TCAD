@@ -1,0 +1,85 @@
+{
+  "status": "experimental_incomplete",
+  "candidate": "/home/chris/Open_TCAD/suprem4/build/native64_4vwld4yj/src/suprem4",
+  "installed_launcher_promoted": false,
+  "full_flows_accepted": false,
+  "focused_checks": {
+    "assembly_boundary_sanitizers": "passed",
+    "implant_tables_sanitizers": "passed",
+    "etch_corner_refinement_junction_sanitizers": "passed",
+    "native_oxide_bare_wedge_gap": "passed",
+    "structure_roundtrip": "passed",
+    "failed_implant_preservation": "passed"
+  },
+  "local_geometry_perturbations": {
+    "strip": {
+      "passed": 9,
+      "total": 9,
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/local_strip/results.json"
+    },
+    "pmos_spacer": {
+      "passed": 9,
+      "total": 9,
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/local_pmos_spacer/results.json"
+    },
+    "nmos_spacer": {
+      "passed": 9,
+      "total": 9,
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/local_nmos_spacer/results.json"
+    }
+  },
+  "gate_oxide_runs": {
+    "nmos": {
+      "passed": true,
+      "through": "gate_oxide",
+      "returncode": 0,
+      "accepted_checkpoints": 8,
+      "errors": [],
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/gate_oxide_check/nmos/result.json"
+    },
+    "pmos": {
+      "passed": true,
+      "through": "gate_oxide",
+      "returncode": 0,
+      "accepted_checkpoints": 8,
+      "errors": [],
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/gate_oxide_check/pmos/result.json"
+    }
+  },
+  "later_runs": {
+    "nmos": {
+      "passed": false,
+      "through": "source_drain",
+      "returncode": 0,
+      "accepted_checkpoints": 12,
+      "errors": [
+        "source_drain: wrong body polarity: {'boron_cm3': 2.8608934306597077e+19, 'phosphorus_cm3': 1.312934098248681e+20, 'net_donor_cm3': 1.0268447551827103e+20}"
+      ],
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/dopant_check/nmos/result.json"
+    },
+    "pmos": {
+      "passed": false,
+      "through": "source_drain",
+      "returncode": -6,
+      "accepted_checkpoints": 11,
+      "errors": [
+        "simulator reported a command or mesh error",
+        "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/dopant_check/pmos/spacers.str'",
+        "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/decks/subcmos2014/results/dopant_check/pmos/source_drain.str'"
+      ],
+      "report": "/home/chris/Open_TCAD/decks/subcmos2014/results/dopant_check/pmos/result.json"
+    }
+  },
+  "other_regressions": {
+    "locos_baseline": "passed",
+    "rounded_sti_baseline": "passed",
+    "older_rit_pmos_gate_etch_replay": "failed: error in chop"
+  },
+  "limitations": [
+    "No completed, accepted first-metal structures.",
+    "Full viscous model has nonlinear convergence failures.",
+    "Default later thin oxides use an uncalibrated vertical-growth approximation.",
+    "Later photoresist uses an assumed flat spin-coat surface.",
+    "Local origin/thickness perturbations do not establish full-flow mesh convergence."
+  ]
+}

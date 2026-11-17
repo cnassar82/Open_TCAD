@@ -1,0 +1,9 @@
+{
+  "source": "decks/subcmos2014/results/astra_motion_limiter_pmos/pmos/first_rejected_motion.str",
+  "sha256": "bfbaf9f85ac03e675523c271eea800014774537e04bf45ea16de95db39de2c41",
+  "scope": "Vertical map sampling mismatch across thin oxide/poly and gas/oxide boundaries",
+  "settings": [
+    "method fermi vertical grid.oxide=0.04"
+  ],
+  "command": "diffuse time=0.1 temp=825 dryo2 continue"
+}

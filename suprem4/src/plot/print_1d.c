@@ -37,7 +37,7 @@
  ************************************************************************/
 print_1d(par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     float x, xmin, xmax, ymin, ymax;
     float y;

@@ -63,10 +63,16 @@ int vs;		/*storage location of V defects*/
     for(r = 0; r < nreg; r++) {
 	mat = mat_reg(r);
 	if (setprs(ion, mat, energy, &(Idat[r])) < 0) {
-	    fprintf(stderr, "setprs failed: ion %d, mat %d, energy %g\n",
-			    ion, mat, energy) ;
-	    fprintf(stderr, "Couldn't find ion and energy in tables\n");
-	    return;
+	    fprintf(stderr, "ERROR: implant aborted -- no Pearson moments for "
+			    "ion=%d in material=%d at energy=%g keV.\n"
+			    "       Check sup4gs.imp (or $IMPFILE / $SUP4IMPDATA "
+			    "override) for the missing ion/material entry.\n"
+			    "       The shipped tables use SUPREM-IV material codes.\n",
+			    ion, mat, energy);
+	    fprintf(stdout, "ERROR: implant aborted -- no Pearson moments for "
+			    "ion=%d material=%d at %g keV. See stderr.\n",
+			    ion, mat, energy);
+	    return -1;
 	}
 
 	/* implant damage set up */
@@ -129,11 +135,17 @@ int vs;		/*storage location of V defects*/
 	      They go straight down in this material, but go laterally
 	      in their own....*/
 	    for(rx = 0; rx < nreg; rx++) {
+		/* Each stack interval has its own stopping distribution and
+		 * equivalent-depth bias.  Applying the first interval to every
+		 * node can conserve a transmitted sheet dose while giving the
+		 * substrate the overlayer's incorrect profile shape. */
+		if(mat_reg(rx)!=mat)continue;
 		for(j = 0; j < num_nd_reg(rx); j++) {
 		    i = nd_reg(rx, j);
 
 		    if (node_done[i]) continue;
 		    l[0] = pt[ nd[i]->pt ]->cord[id];
+		    if(l[0]<cur->top[rm] || l[0]>cur->bot[rm])continue;
 		    l[0] -= bias;
 
 		    l[1] = pt[ nd[i]->pt ]->cord[il];
@@ -179,6 +191,6 @@ int vs;		/*storage location of V defects*/
     free_surf( &surf );
     free(node_done);
 
-    return;	/* all ok */
+    return 0;	/* all ok */
 }
 

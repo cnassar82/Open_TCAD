@@ -1,0 +1,12 @@
+option quiet
+mode one.dim
+line x loc=0 spac=0.002 tag=top
+line x loc=1 spac=0.01 tag=bottom
+region silicon xlo=top xhi=bottom
+boundary exposed xlo=top xhi=top
+boundary backside xlo=bottom xhi=bottom
+init boron conc=1e15 orient=100
+deposit oxide thick=0.025 divisions=25
+implant phosphorus dose=1e13 energy=50 gauss
+structure outfile=after.str
+quit

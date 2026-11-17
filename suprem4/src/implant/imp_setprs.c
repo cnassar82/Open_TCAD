@@ -24,7 +24,7 @@
 /* MAP Suprem-IV numbers to those of Suprem-III (which is how they are
  * stored in the implant range data file.
  */
-#define S3_BF2  5
+#define S3_BF2  6
 
 /* "setprs" : get Pearson constants for given ion/matterial/energy */
 int
@@ -66,7 +66,10 @@ setprs(ion, mat, energy, cvals)
 		return -1 ;
 	}
 
-	/*map the material numbers*/
+	/* The shipped tables were converted to SUPREM-IV material IDs
+	 * in 1992 (file modification #4); the older header still lists
+	 * SUPREM-III oxide=5.  The actual oxide data use SiO2=1.
+	 */
 	switch(mat) {
 	case Si:
 	case SiO2:

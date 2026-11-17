@@ -1,0 +1,85 @@
+{
+  "annealed": {
+    "passed": true,
+    "probes": [
+      {
+        "x_um": 5.599999974947423,
+        "oxide_thickness_um": 0.017206274075457856
+      },
+      {
+        "x_um": 5.74999998207204,
+        "oxide_thickness_um": 0.01670362054642968
+      },
+      {
+        "x_um": 5.999999993946403,
+        "oxide_thickness_um": 0.016674534892151663
+      },
+      {
+        "x_um": 6.250000005820766,
+        "oxide_thickness_um": 0.0167028900348178
+      },
+      {
+        "x_um": 6.400000012945384,
+        "oxide_thickness_um": 0.01719307876698989
+      }
+    ]
+  },
+  "after_ild": {
+    "passed": true,
+    "probes": [
+      {
+        "x_um": 5.599999974947423,
+        "oxide_thickness_um": 0.017206274075457856
+      },
+      {
+        "x_um": 5.74999998207204,
+        "oxide_thickness_um": 0.01670362054642968
+      },
+      {
+        "x_um": 5.999999993946403,
+        "oxide_thickness_um": 0.016674534892151663
+      },
+      {
+        "x_um": 6.250000005820766,
+        "oxide_thickness_um": 0.0167028900348178
+      },
+      {
+        "x_um": 6.400000012945384,
+        "oxide_thickness_um": 0.01719307876698989
+      }
+    ]
+  },
+  "before_contact_etch": {
+    "passed": true,
+    "probes": [
+      {
+        "x_um": 5.599999974947423,
+        "oxide_thickness_um": 0.017206274075457856
+      },
+      {
+        "x_um": 5.74999998207204,
+        "oxide_thickness_um": 0.01670362054642968
+      },
+      {
+        "x_um": 5.999999993946403,
+        "oxide_thickness_um": 0.016674534892151663
+      },
+      {
+        "x_um": 6.250000005820766,
+        "oxide_thickness_um": 0.0167028900348178
+      },
+      {
+        "x_um": 6.400000012945384,
+        "oxide_thickness_um": 0.01719307876698989
+      }
+    ]
+  },
+  "after_contact_etch": {
+    "passed": false,
+    "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.07308607156896463, silicon top=0.09029234564442248"
+  },
+  "after_resist_strip": {
+    "passed": false,
+    "error": "missing oxide material in gate gap at x=5.599999974947423 um: poly bottom=0.07308607156896463, silicon top=0.09029234564442248"
+  }
+}

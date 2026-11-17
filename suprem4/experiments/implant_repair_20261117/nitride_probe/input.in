@@ -1,0 +1,5 @@
+option quiet
+structure infile=/home/chris/Open_TCAD/decks/subcmos2014/results/interior_spacing_fresh_20261117/nmos/pad.str
+deposit nitride thick=0.15 divisions=5
+structure outfile=after.str
+quit

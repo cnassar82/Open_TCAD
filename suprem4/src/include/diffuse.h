@@ -54,6 +54,7 @@ EXTERN double ABE[MAXIMP];
 #define TR  1
 #define BDF 2
 #define SS  3
+#define BE  4
 
 struct call_str {
     int type;

@@ -1,0 +1,97 @@
+{
+  "case": "full_4x",
+  "nominal_initial_density": 4,
+  "spacing_scale": 0.5,
+  "refine_layers": true,
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e0r_18r5/src/suprem4",
+  "directory": "/tmp/suprem4_locos_refinement_e586tv18/full_4x",
+  "timeout_seconds": 600.0,
+  "timed_out": false,
+  "checkpoints": {
+    "initial.str": {
+      "triangles": 4320,
+      "area_by_region_um2": {
+        "1": 2.000000000000004
+      },
+      "points": 2263
+    },
+    "masked.str": {
+      "triangles": 4902,
+      "area_by_region_um2": {
+        "1": 2.000000000000004,
+        "2": 0.03999999999999997,
+        "3": 0.1499999999999993
+      },
+      "points": 2564
+    },
+    "field_oxide.str": {
+      "triangles": 5785,
+      "area_by_region_um2": {
+        "1": 1.737576368985868,
+        "2": 0.6161416375007652,
+        "3": 0.15060788233039998
+      },
+      "points": 3013
+    },
+    "locos.str": {
+      "triangles": 5353,
+      "area_by_region_um2": {
+        "1": 1.737576368985868,
+        "2": 0.6161416375007652
+      },
+      "points": 2791
+    }
+  },
+  "errors": [],
+  "elapsed_seconds": 565.5071013690904,
+  "returncode": 0,
+  "last_logged_step_start_seconds": 5375.37,
+  "geometry": {
+    "points": 2791,
+    "nodes": 2791,
+    "triangles": 5353,
+    "regions": 2,
+    "bbox": [
+      -1.0,
+      1.0,
+      -0.30553,
+      1.0
+    ],
+    "min_edge": 0.0020606849443813493,
+    "min_area": 6.756609499999954e-06,
+    "missing_tri_vertices": 0,
+    "materials": {
+      "3": {
+        "area": 1.737576368985868,
+        "bbox": [
+          -1.0,
+          1.0,
+          4.23291e-05,
+          1.0
+        ],
+        "triangles": 3089
+      },
+      "1": {
+        "area": 0.6161416375007652,
+        "bbox": [
+          -1.0,
+          1.0,
+          -0.30553,
+          0.23779
+        ],
+        "triangles": 2264
+      }
+    },
+    "silicon_surface_y_um": {
+      "field": 0.23661869011299436,
+      "under_mask": 0.0006728251317228206,
+      "near_mask_edge": 0.14445075085223671
+    }
+  },
+  "passed": true,
+  "expected_process_seconds": 5400,
+  "last_logged_step_end_seconds": 5400.0,
+  "measured_initial_density_ratio": 4.041071428571429,
+  "oxide_area_change_percent": 0.6781926257114046,
+  "final_sha256": "71eec67507dcbb6d8b1ed1091ada2edd7e6c92239ec9f4e1329f52d028a9b145"
+}

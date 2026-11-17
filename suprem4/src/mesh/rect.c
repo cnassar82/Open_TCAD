@@ -102,7 +102,7 @@ rect_boot()
  *----------------------------------------------------------------------*/
 rline (par, param)
     char *par;
-    int param;
+    struct par_str *param;
 {
     int i, j, dim, nu;
     double lloc, spa;
@@ -452,7 +452,7 @@ squares(new_mr)
 
 rregion(par, param)
     char *par;
-    int param;
+    struct par_str *param;
 {
     int mater;
 
@@ -493,7 +493,7 @@ rregion(par, param)
  *----------------------------------------------------------------------*/
 redge(par, param)
     char *par;
-    int param;
+    struct par_str *param;
 {
     /* There is a new edge */
     nuj++;
@@ -516,7 +516,7 @@ redge(par, param)
  *----------------------------------------------------------------------*/
 char *names[6] = {"xlo", "xhi", "ylo", "yhi", "zlo", "zhi"};
 read_bound (param, where, what)
-    int param;		/* Magic cookie for the parser */
+    struct par_str *param;		/* Magic cookie for the parser */
     int where[MAXBNDS];	/* Where to stuff this good info */
     int what;		/* 1 for regions, 0 for edges */
 {
@@ -544,7 +544,7 @@ read_bound (param, where, what)
  * Look up a name in the user tags field.
  *----------------------------------------------------------------------*/
 tag_look( param, name, dim)
-    int param;		/* Magic cookie for the parser */
+    struct par_str *param;		/* Magic cookie for the parser */
     char *name;		/* Name of desired parameter */
     int dim;		/* Which tag dimension to look up */
 {

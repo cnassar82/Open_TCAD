@@ -1,0 +1,37 @@
+[
+  {
+    "oxide_um": 0,
+    "expected_retained_fraction": 1,
+    "actual_Si_sheet_cm2": 9999895922697.027,
+    "expected_Si_sheet_cm2": 10000000000000.0,
+    "max_relative_profile_error": 1.5752707418492662e-06
+  },
+  {
+    "oxide_um": 0.025,
+    "expected_retained_fraction": 0.9456555043556129,
+    "actual_Si_sheet_cm2": 9455982220707.025,
+    "expected_Si_sheet_cm2": 9456555043556.129,
+    "max_relative_profile_error": 5.9979855402625404e-05
+  },
+  {
+    "oxide_um": 0.05,
+    "expected_retained_fraction": 0.7004553138047769,
+    "actual_Si_sheet_cm2": 7004215137653.161,
+    "expected_Si_sheet_cm2": 7004553138047.769,
+    "max_relative_profile_error": 2.20557770772567e-05
+  },
+  {
+    "oxide_um": 0.1,
+    "expected_retained_fraction": 0.056844681683860414,
+    "actual_Si_sheet_cm2": 569325281126.41,
+    "expected_Si_sheet_cm2": 568446816838.6041,
+    "max_relative_profile_error": 6.983007167327138e-05
+  },
+  {
+    "oxide_um": 0.15,
+    "expected_retained_fraction": 0.0001149166528072431,
+    "actual_Si_sheet_cm2": 1156601156.1578085,
+    "expected_Si_sheet_cm2": 1149166528.072431,
+    "max_relative_profile_error": 0.00021029176893594403
+  }
+]

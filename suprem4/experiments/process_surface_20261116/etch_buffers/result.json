@@ -1,0 +1,25 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_jbar3ce0/src/suprem4",
+  "binary_sha256": "27b638b545484dc8e2217c53d147529946f35b9722ee865e5ccdcd9c629b1d8b",
+  "polygon_sizes": [
+    501,
+    1003
+  ],
+  "errors": [],
+  "returncode": 0,
+  "partition": {
+    "triangle_pairs_checked": 360,
+    "boundary_pairs_checked": 78,
+    "triangles": 720,
+    "boundary_edges": 78
+  },
+  "mesh": {
+    "triangles": 720,
+    "area_by_region_um2": {
+      "1": 24.000000533647828,
+      "2": 0.11999974619072105
+    }
+  },
+  "oxide_area_um2": 0.11999974619072105,
+  "passed": true
+}

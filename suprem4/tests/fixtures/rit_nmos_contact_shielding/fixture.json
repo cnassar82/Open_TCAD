@@ -1,0 +1,9 @@
+{
+  "sha256": "6288b1c44c279363cfaf75ec2a92086a16d37e702d43a1bacc4d68939aead33b",
+  "source": "/home/chris/Open_TCAD/suprem4/experiments/rit_electrical_20261116/contact_bracket/before_contact_etch.str",
+  "command": "etch oxide dry thick=1.5",
+  "known_failure": "Dry etch reaches buried gate oxide beneath non-etched poly; leaves a void in the gate stack",
+  "required_invariant": "The complete oxide band between gate poly and silicon survives at all gate probes; opened contact windows must still reach their intended conductor",
+  "not_a_fix": "Do not reduce depth until this case passes, fill holes afterward, or delete oxide by component/area threshold",
+  "require_gate_oxide": true
+}

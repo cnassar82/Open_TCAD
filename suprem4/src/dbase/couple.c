@@ -78,6 +78,10 @@ double *area;
 	    t = tri_nd(n1,j);
 
 	    for(s = 0; s < nedg; s++) {
+		/* A face contributes only to its own vertices. The opposite
+		 * face of an incident triangle is not incident to this node. */
+		if (mode == TWOD && tri[t]->nd[s] == n1) continue;
+		if (mode == ONED && tri[t]->nd[s] == n1) continue;
 		if ( tri[t]->nb[s] < 0 ) {
 		    if ((tri[t]->nb[s] == BC_OFFSET + 2) && (m2 == GAS))
 			bval[i].cpl += tri[t]->d[s];

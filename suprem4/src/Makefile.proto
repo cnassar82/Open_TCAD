@@ -128,13 +128,13 @@ DBASESRCS = dbase/alloc.c dbase/check.c dbase/clktri.c dbase/couple.c \
 	dbase/dimen.c dbase/dispose.c dbase/edge.c dbase/element.c \
 	dbase/flip.c dbase/geom.c dbase/geometry.c dbase/grid_loop.c \
 	dbase/grid_upd.c dbase/kill_node.c dbase/list.c dbase/locate.c \
-	dbase/make_db.c dbase/neigh.c dbase/new_layer.c dbase/node.c \
+	dbase/make_db.c dbase/material_domain.c dbase/material_domain_db.c dbase/mesh_patch.c dbase/mesh_patch_remove.c dbase/mesh_trial.c dbase/vertical_constraints.c dbase/neigh.c dbase/new_layer.c dbase/node.c \
 	dbase/point.c dbase/region.c dbase/remove.c
 DBASEOBJS = dbase/alloc.o dbase/check.o dbase/clktri.o dbase/couple.o \
 	dbase/dimen.o dbase/dispose.o dbase/edge.o dbase/element.o \
 	dbase/flip.o dbase/geom.o dbase/geometry.o dbase/grid_loop.o \
 	dbase/grid_upd.o dbase/kill_node.o dbase/list.o dbase/locate.o \
-	dbase/make_db.o dbase/neigh.o dbase/new_layer.o dbase/node.o \
+	dbase/make_db.o dbase/material_domain.o dbase/material_domain_db.o dbase/mesh_patch.o dbase/mesh_patch_remove.o dbase/mesh_trial.o dbase/vertical_constraints.o dbase/neigh.o dbase/new_layer.o dbase/node.o \
 	dbase/point.o dbase/region.o dbase/remove.o
 
 DEVICESRCS = device/Electron.c device/Hole.c device/Psi.c \
@@ -232,13 +232,13 @@ PLOTOBJS = plot/contour.o plot/do_1d.o plot/intersect.o plot/label.o \
 
 REFINESRCS = refine/bfill.c refine/dbase.c refine/deloop.c \
 	refine/deposit.c refine/etch.c refine/grid.c refine/hinit.c \
-	refine/interp.c refine/offset.c refine/rate.c refine/rect_tri.c \
+	refine/interp.c refine/process_surface.c refine/offset.c refine/rate.c refine/rect_tri.c \
 	refine/skel.c refine/sp_edge.c refine/string_etch.c \
 	refine/string_off.c refine/surface.c refine/triang.c \
 	refine/tridata.c refine/triheur.c
 REFINEOBJS = refine/bfill.o refine/dbase.o refine/deloop.o \
 	refine/deposit.o refine/etch.o refine/grid.o refine/hinit.o \
-	refine/interp.o refine/offset.o refine/rate.o refine/rect_tri.o \
+	refine/interp.o refine/process_surface.o refine/offset.o refine/rate.o refine/rect_tri.o \
 	refine/skel.o refine/sp_edge.o refine/string_etch.o \
 	refine/string_off.o refine/surface.o refine/triang.o \
 	refine/tridata.o refine/triheur.o
@@ -435,3 +435,13 @@ always:
 
 #----------------------------------------------------------------------
 # DO NOT DELETE THIS LINE -- make depend may depend on it.
+
+# Moving-mesh trial checkpoint interface.
+dbase/mesh_trial.o diffuse/time.o: include/mesh_trial.h
+
+# Shared allocation widths and sparse callback interfaces.
+$(OBJS): include/alloc_size.h include/sparse.h
+
+dbase/mesh_patch.o dbase/mesh_patch_remove.o dbase/remove.o: include/mesh_patch.h
+
+dbase/material_domain.o dbase/material_domain_db.o diffuse/diffuse.o: include/material_domain.h

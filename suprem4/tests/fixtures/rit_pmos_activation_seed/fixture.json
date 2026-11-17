@@ -1,0 +1,10 @@
+{
+  "sha256": "054e0c83f97c055d03712217b8f1a0bc9612042738873bf38d0b7fc279b5aaa0",
+  "command": "diffuse time=0.000001 temp=825 dryo2",
+  "settings": [
+    "method fermi vertical grid.oxide=0.04"
+  ],
+  "source": "decks/subcmos2014/results/pmos_native_seed_replay/input.str",
+  "scope": "Coarsening after first tiny activation step, not full thermal budget",
+  "known_failure": "original boundary-point removal constructs a self-crossing cavity after partial GAS-node deletion"
+}

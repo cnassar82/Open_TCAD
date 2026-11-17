@@ -1,0 +1,42 @@
+[
+  {
+    "device": "nmos",
+    "spacing_um": 0.04,
+    "returncode": 0,
+    "deck_sha256": "51e0bd9a8ba61b48d37deb0ce3d8a613ae785aed60a872b97eb4843aa0ee92c0",
+    "center_poly_P_sheet_cm2": 1327393982074493.5,
+    "center_poly_peak_P_cm3": 9.916853518157293e+19,
+    "vertices": 7618,
+    "triangles": 14697
+  },
+  {
+    "device": "nmos",
+    "spacing_um": 0.02,
+    "returncode": 0,
+    "deck_sha256": "2867502ffbca57c63494f91e15b55d31a55c7a7a9765c83f52ee0ea7c174c9f5",
+    "center_poly_P_sheet_cm2": 1327393982074493.5,
+    "center_poly_peak_P_cm3": 9.916853518157293e+19,
+    "vertices": 7779,
+    "triangles": 14993
+  },
+  {
+    "device": "nmos",
+    "spacing_um": 0.01,
+    "returncode": 0,
+    "deck_sha256": "d6824b775563c5ae820bc36514897824183cfd16001f14c66fecee623b487969",
+    "center_poly_P_sheet_cm2": 1137567076491002.0,
+    "center_poly_peak_P_cm3": 9.917432315857897e+19,
+    "vertices": 8180,
+    "triangles": 15653
+  },
+  {
+    "device": "pmos",
+    "spacing_um": 0.02,
+    "returncode": 0,
+    "deck_sha256": "13c19f18a7098b6f895b396ae27a6b85ce36cee84a6ec1545cfb619906455c79",
+    "center_poly_P_sheet_cm2": 1360038214285169.5,
+    "center_poly_peak_P_cm3": 9.915657467140581e+19,
+    "vertices": 7301,
+    "triangles": 14025
+  }
+]

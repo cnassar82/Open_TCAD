@@ -1,0 +1,7 @@
+{
+  "old_source_sha256": "e6be85aba3b3ba96a2f43f4f6c1c37b7c09c9bcf550688293f8fb7a66760da38",
+  "new_source_sha256": "d1614a9629ef757157256756526c15cb6b89f8dd393a004dffe58c7a58f70b55",
+  "test_source_sha256": "1444b00451d357478379183757c700f1f8b5fc027f33c518aba0256c666f71a8",
+  "old_result": "fails component-count assertion in new overlap endpoint regression",
+  "new_result": "passes complete corner/shared-cut suite"
+}

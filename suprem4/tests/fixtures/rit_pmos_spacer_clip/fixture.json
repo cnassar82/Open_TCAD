@@ -1,0 +1,9 @@
+{
+  "sha256": "22c42dd08419bf3651a29fa235770ec90fda203afe24650169e2475801212673",
+  "source": "decks/subcmos2014/results/sol_back_pedal_double_continue/pmos/ldd.str",
+  "settings": [],
+  "command": "deposit oxide thick=0.5 divisions=10 space=0.04\netch oxide dry thick=0.5",
+  "scope": "Fresh PMOS spacer deposition and clipping after repaired Kooi step",
+  "known_failure": "Ambiguous clipped boundary connectivity: two retained arcs map to one predecessor at left edge",
+  "candidate": "native64_6jztdvdl"
+}

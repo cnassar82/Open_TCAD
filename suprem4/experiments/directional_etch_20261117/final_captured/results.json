@@ -1,0 +1,37 @@
+[
+  {
+    "case": "nmos_locos_strip",
+    "returncode": 0,
+    "output": "PASS nmos_locos_strip: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/nmos_locos_strip\n"
+  },
+  {
+    "case": "pmos_spacer_clip",
+    "returncode": 0,
+    "output": "PASS pmos_spacer_clip: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/pmos_spacer_clip\n"
+  },
+  {
+    "case": "pmos_spacer_flat",
+    "returncode": 0,
+    "output": "PASS pmos_spacer_flat: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/pmos_spacer_flat\n"
+  },
+  {
+    "case": "nmos_domain_spacer",
+    "returncode": 0,
+    "output": "PASS nmos_domain_spacer: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/nmos_domain_spacer\n"
+  },
+  {
+    "case": "nmos_construction_spacer",
+    "returncode": 0,
+    "output": "PASS nmos_construction_spacer: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/nmos_construction_spacer\n"
+  },
+  {
+    "case": "pmos_ild_boundary",
+    "returncode": 0,
+    "output": "PASS pmos_ild_boundary: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/pmos_ild_boundary\n"
+  },
+  {
+    "case": "pad_side_boundary",
+    "returncode": 0,
+    "output": "PASS pad_side_boundary: /home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/pad_side_boundary\n"
+  }
+]

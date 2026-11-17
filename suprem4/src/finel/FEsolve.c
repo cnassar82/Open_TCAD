@@ -21,6 +21,19 @@ static char sccsid[]="FEsolve.c 3.6 9/9/88 23:46:05";
 #define EXTERN
 #include "FEgeom.h"
 #include "FEmath.h"
+#ifdef SUPREM_FE_UMFPACK
+#include "pivoted_solver.h"
+static double FEscalednorm(struct suprem_pivoted *p,double *rhs)
+{
+    double sum=0,value;int k;
+    for(k=0;k<p->n;k++) {
+        value=rhs[k]*p->row_scale[k];
+        if(!isfinite(value))return HUGE_VAL;
+        sum+=value*value;
+    }
+    return sqrt(sum);
+}
+#endif
 
 
 #define neq (ia[0]-1)
@@ -91,7 +104,8 @@ FEsolve( int verbose)
 
     /* Solve the initial linear problem */
     noderiv = 0;     a[0] = 0;
-    (void)FEnewton( ia, aoff, a, il, loff, l, rhs);
+    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0)
+        panic("initial finite element solve failed");
     if (FEnonloop == 1) goto done;
 
     /*
@@ -244,8 +258,7 @@ FEstep( ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, lami, lamf)
 	    VECTOR2 FEnd[i]->sol[j] = solo[ k];
 	    if( dl < min_dl) {
 		fprintf( stderr, "Newton convergence failed. Giving up...\n");
-		lambda=1;
-		break;
+                panic("finite element continuation failed");
 	    }
 	    continue;
 	}
@@ -357,6 +370,12 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
     int        nGrow;		/* number of consecutive Newton increases */
     static int tkDroppedThisLoop;
     double tk=1;
+#ifdef SUPREM_FE_UMFPACK
+    struct suprem_pivoted pivoted={0};
+    double *scales=salloc(double,neq);
+    int linear_status;
+    VECTOR2 scales[k]=FEabe[j];
+#endif
 
 
     sol0 = salloc( double, neq);
@@ -374,16 +393,54 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
 	/* Get a new matrix? */
 	if (!noderiv) {
 	    FEassmb( ia, aoff, a, rhs);
+            if(getenv("SUPREM4_FE_TRACE")) {
+                FILE *trace=fopen("FE_matrix.bin","wb");
+                int header[3];header[0]=neq;header[1]=aoff;header[2]=ia[neq];
+                if(trace) {
+                    fwrite(header,sizeof(int),3,trace);
+                    fwrite(ia,sizeof(int),ia[neq],trace);
+                    fwrite(a,sizeof(double),ia[neq]+aoff,trace);
+                    fwrite(rhs,sizeof(double),neq,trace);fclose(trace);
+                }
+                for(k=0;k<ia[neq]+aoff;k++)if(!isfinite(a[k])) {
+                    fprintf(stderr,"FE nonfinite assembly entry %d at lambda=%g\n",k,lambda);
+                    panic("nonfinite finite element matrix");
+                }
+            }
+#ifndef SUPREM_FE_UMFPACK
 	    numfac( neq, (int *) 0, 1, ia, aoff, a, il, loff, l);
+            if(getenv("SUPREM4_FE_TRACE"))for(k=0;k<il[neq]+loff;k++)
+                if(!isfinite(l[k])) {
+                    fprintf(stderr,"FE nonfinite factor entry %d at lambda=%g\n",k,lambda);
+                    panic("nonfinite finite element factorization");
+                }
+#endif
 	}
 
 	/* Get an update, keep old solution */
+#ifdef SUPREM_FE_UMFPACK
+        if(!noderiv || !pivoted.numeric) {
+            linear_status=suprem_pivoted_factor(&pivoted,neq,ia,aoff,a,scales);
+            if(linear_status!=UMFPACK_OK) {
+                fprintf(stderr,"FE pivoted factorization failed: status=%d lambda=%g\n",linear_status,lambda);
+                converge=-1;break;
+            }
+        }
+        onorm=FEscalednorm(&pivoted,rhs);
+        linear_status=suprem_pivoted_solve(&pivoted,rhs);
+        if(linear_status!=UMFPACK_OK) {
+            fprintf(stderr,"FE pivoted solve failed: status=%d lambda=%g\n",linear_status,lambda);
+            converge=-1;break;
+        }
+#else
 	onorm = FErhsnorm( a, rhs);
 	numbac( neq, il, loff, l, rhs);
+#endif
 
 	VECTOR2 sol0[ k] = FEnd[i]->sol[j];
 	VECTOR updv[k] = rhs[k];
 	upd = FEupdnorm( updv);
+        if(!isfinite(upd)) {converge=-1;break;}
 
 	/* Use upd, not cutback upd, to decide on convergence */
 	/* Don't break because haven't added that last little update yet */
@@ -407,7 +464,11 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
 		noderiv = TmpND;
 
 		/* Calculate new norm of rhs */
+#ifdef SUPREM_FE_UMFPACK
+                norm=FEscalednorm(&pivoted,rhs);
+#else
 		norm = FErhsnorm( a, rhs);
+#endif
 	    }
 
 	    if (FEverbose)
@@ -460,6 +521,9 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
     free( sol0);
     free( updv);
     free( nupd);
+#ifdef SUPREM_FE_UMFPACK
+    suprem_pivoted_free(&pivoted);free(scales);
+#endif
     return( converge);
 }
 
@@ -492,6 +556,7 @@ double FEupdnorm( delta)
     VECTOR2 if (FEnd[ i]->fixity[j] != 1) {
 	    sol = FEnd[ i]->sol[j]; if (sol < 0) sol = -sol;
 	    upd = delta[ k] / (FEabe[j]+sol); if (upd < 0) upd = -upd;
+        if(!isfinite(upd))return HUGE_VAL;
 	    if( upd > profile)
 		printf("%d %d %f\n",i,j,upd);
 	    if( upd > norm)
@@ -711,14 +776,14 @@ build_ia(pia)
 
 FEconnect(me, taken, num)
      int me;
-     short *taken;
+     int *taken;
      int *num;
 {
     int i, avail;
     avail = *num;
 
     *num = full_ia[ me+1] - full_ia[ me];
-    if (*num >= avail) return(-1);
+    if (*num > avail) return(-1);
 
     for (i = 0; i < *num; i++)
 	taken[i] = full_ia[ full_ia[ me] + i];

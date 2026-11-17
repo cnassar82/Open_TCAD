@@ -56,8 +56,8 @@
 
 /*a structure to hold connectivity*/
 struct list_str {
-    short num;		/*the number in the list*/
-    short all;		/*the amount allocated*/
+    int num;		/*the number in the list; regions can exceed 32767*/
+    int all;		/*the amount allocated*/
     int *list;		/*the number in the list*/
 };
 
@@ -148,6 +148,7 @@ EXTERN struct edg_str **edg;
 EXTERN struct reg_str *reg[MAXREG];
 
 extern float area_tri();
+extern int orient2d_float_sign(float *, float *, float *);
 
 /*should be in the geom stuff*/
 EXTERN int nreg;	/*the number of regions*/

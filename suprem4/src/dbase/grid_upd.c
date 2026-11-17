@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 08:20:54 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include "global.h"
 #include "constant.h"
@@ -24,6 +25,7 @@
 #include "material.h"
 #include "impurity.h"
 #include "regrid.h"
+#include "skel.h"
 #include "matrix.h"		/* For the old, new areas */
 #define assert(x) if (!(x)) panic("assertion failed")
 
@@ -46,6 +48,221 @@ extern float oxide_grid;
 #define nbrtri(t,i) tri[t]->nb[i]
 #define point(n)    nd[n]->pt
 #define sameRegion(a,b) ((a==b) || (a>=0)&&(b>=0)&&(reg_tri(a)==reg_tri(b)))
+
+static int preox_remesh_enabled()
+{
+    char *v = (char *)getenv("SUPREM4_PREOX_REMESH");
+    return(v && (*v == '1' || *v == 'y' || *v == 'Y'));
+}
+
+static double preox_remesh_min_dt()
+{
+    char *v = (char *)getenv("SUPREM4_PREOX_REMESH_DT");
+    if (v && *v) return(atof(v));
+    return(50.0);
+}
+
+static int preox_remesh_diag()
+{
+    char *v = (char *)getenv("SUPREM4_MESH_DIAG");
+    return(v && *v && *v != '0');
+}
+
+static double remesh_tri_area(t)
+int t;
+{
+    int n0, n1, n2, p0, p1, p2;
+    double x0, y0, x1, y1, x2, y2, a;
+
+    n0 = vert_tri(t,0); n1 = vert_tri(t,1); n2 = vert_tri(t,2);
+    p0 = pt_nd(n0); p1 = pt_nd(n1); p2 = pt_nd(n2);
+    x0 = pt[p0]->cord[0]; y0 = pt[p0]->cord[1];
+    x1 = pt[p1]->cord[0]; y1 = pt[p1]->cord[1];
+    x2 = pt[p2]->cord[0]; y2 = pt[p2]->cord[1];
+    a = 0.5 * ((x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0));
+    return((a < 0.0) ? -a : a);
+}
+
+static double remesh_region_area(r)
+int r;
+{
+    int i, t;
+    double area = 0.0;
+
+    for (i = 0; i < num_tri_reg(r); i++) {
+	t = tri_reg(r, i);
+	if (!dead_tri(t)) area += remesh_tri_area(t);
+    }
+    return(area);
+}
+
+static double remesh_tri_quality(t)
+int t;
+{
+    int n0, n1, n2, p0, p1, p2;
+    double x0, y0, x1, y1, x2, y2;
+    double l01, l12, l20, area, denom;
+
+    n0 = vert_tri(t,0); n1 = vert_tri(t,1); n2 = vert_tri(t,2);
+    p0 = pt_nd(n0); p1 = pt_nd(n1); p2 = pt_nd(n2);
+    x0 = pt[p0]->cord[0]; y0 = pt[p0]->cord[1];
+    x1 = pt[p1]->cord[0]; y1 = pt[p1]->cord[1];
+    x2 = pt[p2]->cord[0]; y2 = pt[p2]->cord[1];
+
+    l01 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+    l12 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+    l20 = (x0 - x2) * (x0 - x2) + (y0 - y2) * (y0 - y2);
+    denom = l01 + l12 + l20;
+    if (denom <= 0.0) return(0.0);
+
+    area = remesh_tri_area(t);
+    return(4.0 * sqrt(3.0) * area / denom);
+}
+
+static int remesh_candidate_ok(oldr, newr)
+int oldr, newr;
+{
+    int i, t;
+    double old_area, new_area, rel, q, minq = 1.0;
+
+    old_area = remesh_region_area(oldr);
+    new_area = remesh_region_area(newr);
+    rel = fabs(old_area - new_area) / ((old_area > 1.0e-30) ? old_area : 1.0);
+    if (rel > 1.0e-6) {
+	if (preox_remesh_diag())
+	    fprintf(stderr, "[remesh] reject region %d area old=%e new=%e rel=%e\n",
+		    oldr, old_area, new_area, rel);
+	return(FALSE);
+    }
+
+    for (i = 0; i < num_tri_reg(newr); i++) {
+	t = tri_reg(newr, i);
+	if (dead_tri(t)) continue;
+	if (remesh_tri_area(t) <= 1.0e-30) {
+	    if (preox_remesh_diag())
+		fprintf(stderr, "[remesh] reject region %d flat candidate tri=%d\n",
+			oldr, t);
+	    return(FALSE);
+	}
+	q = remesh_tri_quality(t);
+	if (q < minq) minq = q;
+    }
+
+    if (minq < 1.0e-4) {
+	if (preox_remesh_diag())
+	    fprintf(stderr, "[remesh] reject region %d min_quality=%e\n",
+		    oldr, minq);
+	return(FALSE);
+    }
+    return(TRUE);
+}
+
+static void remesh_discard_region(r)
+int r;
+{
+    while(r >= 0 && r < nreg && reg[r] != NULL && num_tri_reg(r) > 0)
+	rem_ele(tri_reg(r,0), FALSE);
+    if (r >= 0 && r < nreg && reg[r] != NULL) fing_reg(r);
+}
+
+static int remesh_region_preserve(r)
+int r;
+{
+    int sr, rn, old_tri;
+
+    if (mode != TWOD) return(FALSE);
+    if (r < 0 || r >= nreg || reg[r] == NULL) return(FALSE);
+    if (mat_reg(r) == GAS || num_tri_reg(r) == 0) return(FALSE);
+    if (reg[r]->sreg < 0) return(FALSE);
+
+    old_tri = num_tri_reg(r);
+    sr = dupl(reg[r]->sreg);
+    hinit(sr, MAXFLOAT);
+    ck_clock(sr, TRUE);
+
+    rn = mk_reg(mat_reg(r));
+    reg[rn]->thick = reg[r]->thick;
+
+    /*
+     * Preserve the material boundary exactly: do not split boundary edges
+     * during this remesh.  The new region gets a fresh interior
+     * triangulation, then solution values are interpolated from the old one.
+    */
+    grid(sr, rn, FALSE, TRUE);
+    if (!remesh_candidate_ok(r, rn)) {
+	remesh_discard_region(rn);
+	return(FALSE);
+    }
+    interp(rn, r);
+
+    remesh_discard_region(r);
+
+    if (preox_remesh_diag())
+	fprintf(stderr, "[preox-remesh] region %d mat=%d old_tri=%d new_region=%d\n",
+		r, mat_reg(rn), old_tri, rn);
+
+    return(TRUE);
+}
+
+static int pre_oxide_remesh()
+{
+    int r, nr, changed = FALSE;
+    int todo[MAXREG], ntodo = 0;
+
+    if (!preox_remesh_enabled()) return(FALSE);
+    if (mode != TWOD) return(FALSE);
+
+    nr = nreg;
+    for (r = 0; r < nr && ntodo < MAXREG; r++) {
+	if (reg[r] == NULL) continue;
+	if (mat_reg(r) != GAS && num_tri_reg(r) > 0)
+	    todo[ntodo++] = r;
+    }
+
+    for (r = 0; r < ntodo; r++)
+	changed |= remesh_region_preserve(todo[r]);
+
+    if (changed || ntodo > 0) {
+	bd_connect("pre-oxidation remesh");
+	UpdateSymbolic++;
+    }
+    return(changed);
+}
+
+user_remesh(par, param)
+char *par;
+struct par_str *param;
+{
+    int r, nr, changed = FALSE;
+    int do_si, do_ox, do_all;
+    int todo[MAXREG], ntodo = 0;
+
+    do_si = is_specified(param, "silicon") && get_bool(param, "silicon");
+    do_ox = is_specified(param, "oxide") && get_bool(param, "oxide");
+    do_all = is_specified(param, "all") && get_bool(param, "all");
+
+    nr = nreg;
+    for (r = 0; r < nr && ntodo < MAXREG; r++) {
+	if (reg[r] == NULL || num_tri_reg(r) == 0) continue;
+	if (do_all ||
+	    (do_si && mat_reg(r) == Si) ||
+	    (do_ox && mat_reg(r) == SiO2))
+	    todo[ntodo++] = r;
+    }
+
+    for (r = 0; r < ntodo; r++)
+	changed |= remesh_region_preserve(todo[r]);
+
+    if (changed || ntodo > 0) {
+	bd_connect("manual remesh");
+	UpdateSymbolic++;
+    }
+    else {
+	fprintf(stderr, "remesh: no matching regions were remeshed\n");
+    }
+
+    return(0);
+}
 
 
 /*-----------------GRID_ADD---------------------------------------------
@@ -101,12 +318,17 @@ back_pedal( dt )
 	    p2 = point( vertex(ie,2));
 	
 	    /*compute difference terms*/
-	    p[X]=xcord(p1)-xcord(p0); 	  p[Y]=ycord(p1)-ycord(p0);
-	    q[X]=xcord(p2)-xcord(p0);	  q[Y]=ycord(p2)-ycord(p0);
-	    dp[X] = *dt*(xvel(p1) - xvel(p0)); 
-	    dp[Y] = *dt*(yvel(p1) - yvel(p0));
-	    dq[X] = *dt*(xvel(p2) - xvel(p0));
-	    dq[Y] = *dt*(yvel(p2) - yvel(p0));
+	    /* Subtract stored float coordinates in double.  A positive, very
+	     * thin stored triangle can otherwise acquire a zero determinant here
+	     * even though its exact stored-coordinate orientation is positive. */
+	    p[X]=(double)xcord(p1)-(double)xcord(p0);
+	    p[Y]=(double)ycord(p1)-(double)ycord(p0);
+	    q[X]=(double)xcord(p2)-(double)xcord(p0);
+	    q[Y]=(double)ycord(p2)-(double)ycord(p0);
+	    dp[X] = *dt*((double)xvel(p1) - (double)xvel(p0));
+	    dp[Y] = *dt*((double)yvel(p1) - (double)yvel(p0));
+	    dq[X] = *dt*((double)xvel(p2) - (double)xvel(p0));
+	    dq[Y] = *dt*((double)yvel(p2) - (double)yvel(p0));
 	
 	    /* Compute cross product terms */
 	    pxq   = cross(  p,  q);
@@ -160,8 +382,8 @@ back_pedal( dt )
 	    p1 = point(vertex(ie,1));
 	
 	    /*compute difference terms*/
-	    pxq = xcord(p0)-xcord(p1);
-	    dp[X] = *dt * (xvel(p0) - xvel(p1)); 
+	    pxq = (double)xcord(p0)-(double)xcord(p1);
+	    dp[X] = *dt * ((double)xvel(p0) - (double)xvel(p1));
 	
 	    /* current area better be positive */
 	    assert(pxq > 0);
@@ -218,19 +440,51 @@ back_pedal( dt )
  * This routine kills the nodes marked by ChooseKillNodes.
  * Then it cleans up the data structure as necessary.
  *----------------------------------------------------------------------*/
+static void audit_removal_ownership(const char *phase, int operation, int target)
+{
+    int p, j, n, gas;
+    static int first_reported = FALSE;
+    if (!getenv("SUPREM4_REMOVAL_AUDIT") || first_reported) return;
+    for (p = 0; p < np; p++) {
+        if (dead_pt(p)) continue;
+        gas = 0;
+        for (j = 0; j < num_nd(p); j++) {
+            n = nd_pt(p,j);
+            if (!dead_nd(n) && mat_nd(n) == GAS) gas++;
+        }
+        if ((is_surf(p) || is_back(p)) && gas == 0) {
+            fprintf(stderr, "[ownership-audit] first missing GAS after %s operation=%d target=%d point=%d x=%a y=%a surface=%d back=%d nodes=%d\n",
+                    phase, operation, target, p, (double)xcord(p), (double)ycord(p),
+                    is_surf(p), is_back(p), num_nd(p));
+            first_reported = TRUE;
+            return;
+        }
+    }
+}
+
 grid_sub(dt)
 double dt;
 {
     int ie, ip;
-    int test = FALSE;
+    int test = FALSE, operation = 0;
+
+    audit_removal_ownership("grid_sub_entry", operation, -1);
+    mesh_embedding_trace("grid_sub entry");
+    if (dt >= preox_remesh_min_dt())
+	pre_oxide_remesh();
 
     if( test = CknMcLen( dt, oxide_Ltol, oxide_Ltol, 5.0e-8))
 	(void)CknMcLen( dt, oxide_Etol, oxide_Etol, 5.0e-8);
 
     if ( test ) {
 	for(ie = 0; ie < ned; ie++)
-	    if ( ask( edg[ie], KILL_LATER) ) {rem_edg( ie ); test = TRUE;}
+	    if ( ask( edg[ie], KILL_LATER) ) {
+                rem_edg( ie ); test = TRUE;
+                mesh_embedding_trace("rem_edg");
+                audit_removal_ownership("rem_edg", ++operation, ie);
+            }
 
+        if(getenv("SUPREM4_MESH_PATCH_REMOVAL"))mesh_patch_removal_report();
 	bd_connect("after removing silicon nodes");
 	UpdateSymbolic++;
     }
@@ -240,8 +494,17 @@ double dt;
 
     if ( test ) {
 	for(ip = 0; ip < np; ip++)
-	    if ( ask( pt[ip], KILL_LATER) ) {rem_pt( ip ); test = TRUE;}
+	    if ( ask( pt[ip], KILL_LATER) ) {
+                if (getenv("SUPREM4_REMOVAL_TRACE_POINT") &&
+                    atoi(getenv("SUPREM4_REMOVAL_TRACE_POINT")) == ip)
+                    fprintf(stderr, "[removal-trace] caller=grid_sub point_pass point=%d operation=%d\n",
+                            ip, operation+1);
+                rem_pt( ip ); test = TRUE;
+                mesh_embedding_trace("rem_pt");
+                audit_removal_ownership("rem_pt", ++operation, ip);
+            }
 
+        if(getenv("SUPREM4_MESH_PATCH_REMOVAL"))mesh_patch_removal_report();
 	bd_connect("after removing silicon nodes");
 	UpdateSymbolic++;
     }
@@ -425,4 +688,3 @@ float BadObtuse( x,y, x1,y1, x2,y2)
 
     return( bad);
 }
-

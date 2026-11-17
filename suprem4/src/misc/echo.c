@@ -25,7 +25,7 @@
  ************************************************************************/
 echo( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     char tmp[512];
     char *err;
@@ -107,7 +107,7 @@ uPause()
  ************************************************************************/
 user_print( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     char *argv[50];
     char tmp[512];

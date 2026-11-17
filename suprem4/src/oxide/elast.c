@@ -285,7 +285,7 @@ elem_stiff( ie)
  *----------------------------------------------------------------------*/
 get_elasconn( ind, taken, num)
      int ind;			/* which node */
-     short *taken;		/* the list of connected nodes */
+     int *taken;		/* the list of connected nodes */
      int *num;			/* the number of neighbors found, initially max. */
 {
     int avail;

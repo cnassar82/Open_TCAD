@@ -1,0 +1,35 @@
+--- baseline/dbase/remove.c
++++ experiment/dbase/remove.c
+@@ -270,16 +270,24 @@
+ 	for(i = 0; i < num_nd(ip); i++) loc[i] = nd_pt(ip,i);
+ 	maxn = num_nd(ip);
+ 
++        /* Coarsening is optional. Both material cavities must admit the
++         * same point removal before either side is changed. */
++        for(i=0;i<maxn;i++)
++            if(num_tri_nd(loc[i]) && !node_removal_valid(loc[i])) {
++                clr(pt[ip],KILL_LATER);
++                return;
++            }
++
+ 	/*for each node at this point*/
+ 	for(i = 0; i < maxn; i++)  {
+ 	    if (num_tri_nd(loc[i]) == 0 )
+ 		rem_1nd(loc[i]);
+ 	    else
+-		kill_node(loc[i]);
+-	}
+-
+-    }
+-}
+-
+-
+-
++		kill_node_prevalidated(loc[i]);
++	}
++
++    }
++}
++
++
++

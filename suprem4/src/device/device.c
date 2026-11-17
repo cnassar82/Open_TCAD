@@ -153,7 +153,7 @@ device_init( )
  ************************************************************************/
 device( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     double *area;
     int tfl, tfm;

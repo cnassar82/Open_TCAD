@@ -78,6 +78,9 @@ double scale;
 			for( it = 0; it < num_tri_nd(nx1); it++ ) {
 			    t = tri_nd(nx1, it);
 			    for(s = 0; s < 3; s++) {
+				/* Only interface faces touching nx1 contribute to
+				 * this node's swept boundary measure. */
+				if (tri[t]->nd[s] == nx1) continue;
 
 				/*only want interfaces with SiO2*/
 				nbr = tri[t]->nb[s];
@@ -90,29 +93,21 @@ double scale;
 				head = nd[ hdnd ]->pt;
 				tail = nd[ tlnd ]->pt;
 
-				/*at old time...*/
-				pt[head]->cord[0] -= new[xsol][hdnd] * dt;
-				pt[head]->cord[1] -= new[ysol][hdnd] * dt;
-				pt[tail]->cord[0] -= new[xsol][tlnd] * dt;
-				pt[tail]->cord[1] -= new[ysol][tlnd] * dt;
-				oldln[0] += pt[tail]->cord[1]-pt[head]->cord[1];
-				oldln[1] += pt[head]->cord[0]-pt[tail]->cord[0];
-
-				/*at mid time...*/
-				pt[head]->cord[0] += scale*new[xsol][hdnd]*dt;
-				pt[head]->cord[1] += scale*new[ysol][hdnd]*dt;
-				pt[tail]->cord[0] += scale*new[xsol][tlnd]*dt;
-				pt[tail]->cord[1] += scale*new[ysol][tlnd]*dt;
-				midln[0] += pt[tail]->cord[1]-pt[head]->cord[1];
-				midln[1] += pt[head]->cord[0]-pt[tail]->cord[0];
-
-				/*at mid time...*/
-				pt[head]->cord[0] += sci*new[xsol][hdnd]*dt;
-				pt[head]->cord[1] += sci*new[ysol][hdnd]*dt;
-				pt[tail]->cord[0] += sci*new[xsol][tlnd]*dt;
-				pt[tail]->cord[1] += sci*new[ysol][tlnd]*dt;
-				newln[0] += pt[tail]->cord[1]-pt[head]->cord[1];
-				newln[1] += pt[head]->cord[0]-pt[tail]->cord[0];
+                                /* Evaluate interface vectors without moving the mesh.
+                                 * Float subtract/add round trips change coordinates and
+                                 * may be repeated for both endpoints of this edge. */
+                                {
+                                    double dx = (double)pt[head]->cord[0] - pt[tail]->cord[0];
+                                    double dy = (double)pt[tail]->cord[1] - pt[head]->cord[1];
+                                    double dvx = new[xsol][hdnd] - new[xsol][tlnd];
+                                    double dvy = new[ysol][tlnd] - new[ysol][hdnd];
+                                    oldln[0] += dy - dt*dvy;
+                                    oldln[1] += dx - dt*dvx;
+                                    midln[0] += dy - sci*dt*dvy;
+                                    midln[1] += dx - sci*dt*dvx;
+                                    newln[0] += dy;
+                                    newln[1] += dx;
+                                }
 			    }
 			}
 

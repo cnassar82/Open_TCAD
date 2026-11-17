@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
@@ -50,6 +51,16 @@
  * Insinuates oxide under nitride if nitride on bare silicon.
  * Restores all geometry when done.
  *----------------------------------------------------------------------*/
+static int native_covered(int node, int silicon)
+{
+    int i, material;
+    for (i=0;i<num_nd(pt_nd(node));i++) {
+        material=mat_nd(nd_pt(pt_nd(node),i));
+        if (material!=silicon && material!=GAS) return TRUE;
+    }
+    return FALSE;
+}
+
 NativeOxide(thick)
     double thick;		/* That's me */
 {
@@ -62,6 +73,8 @@ NativeOxide(thick)
     int g;
     int tn;
     int bo, to;
+    int join_existing, first_join, last_join;
+    int closed_run, run_edges, run_vertex;
     int bsp, tsp;
     int b[3];
     b[1] = b[2] = b[0] = BC_OFFSET;
@@ -88,6 +101,7 @@ NativeOxide(thick)
 	break;
 
     case TWOD:
+restart_native_scan:
 	for(ir = 0; ir < nreg; ir++) {
 	    if ( (mat_reg(ir) != Si) && (mat_reg(ir) != Poly) ) continue;
 	    sr = reg[ir]->sreg;
@@ -100,26 +114,66 @@ NativeOxide(thick)
 		fprintf(stderr, "[DIAG] NativeOxide: ESURF edge at y=%.3f um (region %d)\n",
 		        cordinate(pt_nd(nF(beg)), 1) * 1e4, ir);
 
-		/*find the end*/
-		for(ende = beg; ask(edg[ende->edge], ESURF); ende = ende->next);
+                /* A skeleton's list head is arbitrary. Start at the actual
+                 * beginning of the exposed run, even when it wraps the head.
+                 * Otherwise its initial edges are silently left uncoated. */
+                bp=beg;
+                while(ask(edg[beg->prev->edge],ESURF)) {
+                    beg=beg->prev;
+                    if(beg==bp)break;
+                }
+                closed_run=ask(edg[beg->prev->edge],ESURF);
+                run_edges=0;ende=beg;
+                do {
+                    run_edges++;ende=ende->next;
+                } while(ende!=beg && ask(edg[ende->edge],ESURF));
 
+		first_join = !closed_run && node_mat(nB(beg),SiO2) >= 0;
+		last_join = !closed_run && node_mat(nB(ende),SiO2) >= 0;
+		/* A one-edge bare gap with oxide at both ends needs an interior
+		 * seed vertex. Tapering both endpoints alone would add no oxide
+		 * and leave the same exposed edge to be processed forever. */
+		if (first_join && last_join && beg->next == ende) {
+		    float midpoint[MAXDIM];
+		    int point, k;
+		    for(k=0;k<mode;k++)
+		        midpoint[k]=.5*((double)cordinate(pt_nd(nB(beg)),k)+
+		                               cordinate(pt_nd(nF(beg)),k));
+		    (void)sp_gredg(beg->edge,midpoint,&point);
+		    /* Splitting leaves face-neighbor data dirty. Rebuild before
+		     * computing the new vertex's interface normal. */
+		    bd_connect("native oxide gap subdivision");
+		    goto restart_native_scan;
+		}
 		r = mk_reg(SiO2);
 
 		/*for every edge...*/
-		for(bp = beg->prev; bp != ende; bp = bp->next) {
+		for(bp = beg->prev,run_vertex=0;
+                    run_vertex<run_edges+(closed_run ? 0:1);
+                    bp=bp->next,run_vertex++) {
 		    tn = nF(bp);
 		    
-		    /*make the oxide node here, if needed*/
-		    if( (to = node_mat( tn, SiO2)) < 0)
+		    /* At a run endpoint, join the existing oxide without moving
+		     * it. Offsetting a thin residual oxide wedge by the full seed
+		     * thickness inverts its adjacent triangles. Taper the new
+		     * strip to this shared interface vertex instead. */
+                    if(getenv("SUPREM4_MESH_DIAG"))fprintf(stderr,"[native-seed] node=%d point=%d x=%.17g y=%.17g begin=%d end=%d joins=%d,%d oxide=%d\n",tn,pt_nd(tn),(double)cordinate(pt_nd(tn),0),(double)cordinate(pt_nd(tn),1),nB(beg),nB(ende),first_join,last_join,node_mat(tn,SiO2));
+		    to = node_mat(tn,SiO2);
+		    join_existing = (first_join && tn == nB(beg)) ||
+		                    (last_join && tn == nB(ende));
+		    if( to < 0)
 			to = mk_nd( pt_nd(tn), SiO2);
 
-		    (void)local_normal( tn, -2, Normal);
-		    Normal[X] *= thick;
-		    Normal[Y] *= thick;
-		    tsp = SplitNode( to, Normal, mat_reg(ir));
+		    if (join_existing) tsp = to;
+		    else {
+		        (void)local_normal( tn, -2, Normal);
+		        Normal[X] *= thick;
+		        Normal[Y] *= thick;
+		        tsp = SplitNode( to, Normal, mat_reg(ir));
+		    }
 
 		    /*make the connection to the prior node*/
-		    if ( (tn != nB(beg)) || (num_nd(pt_nd((nB(bp)))) > 1) ) {
+		    if ( !join_existing && (closed_run || (tn != nB(beg)) || native_covered(nB(bp),mat_reg(ir))) ) {
 			if ( (bsp = node_mat( nB(bp), SiO2 )) < 0 )
 			    bsp = mk_nd( pt_nd(nB(bp)), SiO2);
 			v[0] = to; v[1] = tsp; v[2] = bsp;
@@ -127,7 +181,7 @@ NativeOxide(thick)
 			(void)mk_ele( 3, v, 3, b, r, FALSE);
 		    }
 
-		    if ((tn!=nB(ende)) || (num_nd(pt_nd((nF(bp->next))))>1)) {
+		    if (!join_existing && (closed_run || (tn!=nB(ende)) || native_covered(nF(bp->next),mat_reg(ir)))) {
 			if ( (bsp = node_mat( nF(bp->next), SiO2 )) < 0 )
 			    bsp = mk_nd( pt_nd(nF(bp->next)), SiO2);
 			v[0] = to; v[1] = tsp; v[2] = bsp;
@@ -207,7 +261,10 @@ new_layer(Msil, Mox, oxide_grid, dt )
 	    }
 	}
 
-	if ( (fig * len_edg(eperp) >= oxide_grid) &&
+	/* All adjacent oxide edges can point along the velocity at a mask
+	 * corner. Then no edge opposes the motion, fig remains zero, and
+	 * there is no layer-spacing candidate to split. */
+	if ( (eperp >= 0) && (fig * len_edg(eperp) >= oxide_grid) &&
 	     (dt * magv > 20.0e-8) ) {
 	    /*split this edge*/
 	    if ( nd_edg(eperp,0) == io )
@@ -566,12 +623,19 @@ local_normal (n, matl, ln)
 	    }
 	}
 
-	/*Now subtract out the component perpendicular to the reflection axis*/
+	/* Project onto the reflecting boundary's tangent directly.  Subtracting
+	 * the normal projection from ln loses the zero normal component through
+	 * cancellation, and subsequent SplitNode calls turn that residual into
+	 * spurious geometry outside an exactly axis-aligned boundary. */
 	if( is_refl) {
+	    double tx = -(double)refl[Y], ty = (double)refl[X];
+	    double scale;
 	    cosf = 1;
-	    tmp = dot(ln, refl) / dot( refl, refl);
-	    ln[X] -= tmp*refl[X];
-	    ln[Y] -= tmp*refl[Y];
+	    scale = tx*tx + ty*ty;
+	    if (scale == 0.0) return(1);
+	    scale = ((double)ln[X]*tx + (double)ln[Y]*ty) / scale;
+	    ln[X] = scale*tx;
+	    ln[Y] = scale*ty;
 	}
 
 	/* Normalize */

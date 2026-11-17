@@ -1,0 +1,10 @@
+--- baseline/dbase/make_db.c
++++ experiment/dbase/make_db.c
+@@ -151,6 +151,7 @@
+     }
+ 
+     /*build geometry*/
++    if(getenv("SUPREM4_OXIDE_STAGE_SNAPSHOTS"))ig2_write("mesh_before_geometry.str",0,1.0);
+     geom( when );
+     geom_dirty = FALSE;
+ 

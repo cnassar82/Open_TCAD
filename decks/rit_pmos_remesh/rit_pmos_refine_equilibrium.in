@@ -1,0 +1,23 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+
+IMPORT TIFFile="pmos_contacts.tif"
+
+CONTACT  Type=OhmicContact ID=Source Res=0 Cap=0 Ind=0
+CONTACT  Type=GateContact  ID=Gate   WorkFunction=5.25 Res=0 Cap=0 Ind=0
+CONTACT  Type=OhmicContact ID=Drain  Res=0 Cap=0 Ind=0
+BOUNDARY Type=OhmicContact ID=Body   Res=0 Cap=0 Ind=0
+
+# Refine the silicon mesh where the signed-log doping gradient is largest.
+# This leaves pmos_contacts.tif untouched and interpolates imported Na/Nd
+# onto the refined mesh inside Genius.
+REFINE.C Variable=Doping Region=region_0 Measure=signedlog error.fraction=0.15
+
+METHOD Type=Poisson NS=Basic LS=MUMPS MaxIt=50
+SOLVE
+
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIt=60
+SOLVE Type=EQUILIBRIUM
+
+EXPORT VTKFile=pmos_refined_equilibrium.vtu CGNSFile=pmos_refined_equilibrium.cgns
+
+END

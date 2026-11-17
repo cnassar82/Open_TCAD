@@ -1,0 +1,102 @@
+{
+  "source": "PMOS activation captured at entry to kill_node(in=5102), before grid()",
+  "fixture_sha256": "054e0c83f97c055d03712217b8f1a0bc9612042738873bf38d0b7fc279b5aaa0",
+  "binary_sha256": "e1782895f07224a83a84086d6b8ae8447dd740f707d0ace87feb7abf8341824f",
+  "center": {
+    "id": 3796,
+    "node": 5102,
+    "material": 1,
+    "region": 14
+  },
+  "points": {
+    "3567": [
+      "0x1.8ebd9ap-12",
+      "0x1.8235bp-16"
+    ],
+    "3566": [
+      "0x1.8cd44ap-12",
+      "0x1.823116p-16"
+    ],
+    "3793": [
+      "0x1.8abdd8p-12",
+      "0x1.822c04p-16"
+    ],
+    "3797": [
+      "0x1.917454p-12",
+      "0x1.823c46p-16"
+    ],
+    "3796": [
+      "0x1.8ec57ep-12",
+      "0x1.8235b8p-16"
+    ]
+  },
+  "old_triangles": [
+    {
+      "id": 8070,
+      "vertices": [
+        3796,
+        3797,
+        3567
+      ],
+      "region": 14
+    },
+    {
+      "id": 13153,
+      "vertices": [
+        3567,
+        3566,
+        3796
+      ],
+      "region": 14
+    },
+    {
+      "id": 13154,
+      "vertices": [
+        3796,
+        3566,
+        3793
+      ],
+      "region": 14
+    }
+  ],
+  "legacy_angle_order": [
+    3567,
+    3566,
+    3793,
+    3797
+  ],
+  "expected": "Boundary point 3796 must be retained under exact-domain preservation; closing its star crosses edge 3567-3566.",
+  "call": {
+    "path": "grid_sub CknMcLen -> rem_edg(12550) -> rem_pt(3796) -> kill_node(5102) -> grid() -> triang.ck_clock panic",
+    "edge_id": 12550,
+    "removed_point": 3796,
+    "survivor_point": 3567,
+    "selection": "edge-collapse pass chose rem_pt branch"
+  },
+  "entry_ownership": {
+    "point": 3796,
+    "surface": true,
+    "back": false,
+    "nodes": [
+      {
+        "id": 5101,
+        "material": 0,
+        "triangles": 0,
+        "live": true
+      },
+      {
+        "id": 5102,
+        "material": 1,
+        "triangles": 3,
+        "live": true
+      }
+    ]
+  },
+  "rem_pt_order": [
+    5101,
+    5102
+  ],
+  "first_intermediate_violation": "rem_1nd(5101) removes the GAS node while surface flag persists; kill_node(5102) then builds a crossing boundary proposal and panics before completing the physical-point removal.",
+  "live_triangle_geometry_before_kill_node": "PASS: 12,737 triangles, 30,473 candidate pairs; diagnostic live-triangle export, boundary-code audit excluded because adjacency is stale mid-operation.",
+  "failed_control": "python3 suprem4/tests/test_removal_patch_fixture.py --legacy-control (expected exit 1)"
+}

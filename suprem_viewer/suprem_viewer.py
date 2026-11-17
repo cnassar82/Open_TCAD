@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-View SUPREM-IV.GS .str and VTK .vtu structure files directly.
+View SUPREM-IV.GS .str, FLOOXS .str, and VTK .vtu structure files directly.
 
 The parser handles the Stanford/SUPREM convention where c/t/r records are
 one-based, while n solution records are zero-based. VTU support covers
 GENIUS-style compressed appended-data unstructured grids with scalar point
-and cell fields.
+and cell fields. FLOOXS .str support handles its c/f3/r/n records, converts
+centimeters to microns, and swaps the first two coordinates so lateral
+position is horizontal and depth is vertical.
 """
 
 from __future__ import annotations
@@ -195,6 +197,110 @@ def read_suprem(path: str | Path) -> SupremStructure:
         solution_ids=solution_ids,
         solution_names=solution_names,
         solutions=solutions,
+    )
+
+
+def _looks_like_flooxs_str(path: Path) -> bool:
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            parts = raw.split()
+            if not parts:
+                continue
+            if parts[0] in {"f3", "se", "sf", "sv"}:
+                return True
+            if parts[0] == "c" and len(parts) >= 4:
+                try:
+                    int(parts[1])
+                except ValueError:
+                    return True
+            if parts[0] == "s" and len(parts) >= 2:
+                try:
+                    int(parts[1])
+                except ValueError:
+                    return True
+    return False
+
+
+def read_flooxs(path: str | Path) -> SupremStructure:
+    path = Path(path)
+    points: list[tuple[float, float]] = []
+    triangles: list[tuple[int, int, int]] = []
+    triangle_regions: list[int] = []
+    regions: dict[int, Region] = {}
+    solution_names: list[str] = []
+    field_values: dict[str, np.ndarray] = {}
+    current_region: int | None = None
+
+    pending_values: dict[int, list[float]] = {}
+
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            parts = raw.split()
+            if not parts:
+                continue
+            tag = parts[0]
+            if tag == "c":
+                if len(parts) < 3:
+                    continue
+                # FLOOXS writes x=depth, y=lateral in cm. Display as
+                # horizontal lateral y and vertical depth x, both in microns.
+                depth_um = float(parts[1]) * 1.0e4
+                lateral_um = float(parts[2]) * 1.0e4
+                points.append((lateral_um, depth_um))
+            elif tag == "s":
+                solution_names = parts[1:]
+            elif tag == "r":
+                if len(parts) < 3:
+                    continue
+                current_region = int(parts[1])
+                material = parts[2]
+                regions[current_region] = Region(
+                    current_region, current_region, material
+                )
+            elif tag == "n" and solution_names:
+                node = int(parts[1])
+                values = [float(value) for value in parts[2 : 2 + len(solution_names)]]
+                if len(values) == len(solution_names):
+                    pending_values[node] = values
+            elif tag == "f3":
+                if current_region is None:
+                    continue
+                tri = tuple(int(value) for value in parts[1:4])
+                if len(tri) == 3:
+                    triangles.append(tri)
+                    triangle_regions.append(current_region)
+
+    if not points:
+        raise ValueError(f"{path} has no FLOOXS coordinate records")
+    if not triangles:
+        raise ValueError(f"{path} has no FLOOXS f3 triangle records")
+
+    point_array = np.array(points, dtype=float)
+    triangle_array = np.array(triangles, dtype=int)
+    max_node = int(np.max(triangle_array))
+    if max_node >= len(point_array):
+        raise ValueError(
+            f"{path} references point {max_node}, but only {len(point_array)} points exist"
+        )
+
+    if solution_names:
+        for field_i, name in enumerate(solution_names):
+            values = np.full(len(point_array), np.nan, dtype=float)
+            for node, row in pending_values.items():
+                if 0 <= node < len(values):
+                    values[node] = row[field_i]
+            field_values[name] = values
+
+    return SupremStructure(
+        path=path,
+        points=point_array,
+        triangles=triangle_array,
+        triangle_regions=np.array(triangle_regions, dtype=int),
+        regions=regions,
+        solution_ids=list(range(len(solution_names))),
+        solution_names=solution_names,
+        solutions={},
+        point_fields=field_values,
     )
 
 
@@ -405,6 +511,8 @@ def read_structure(path: str | Path) -> SupremStructure:
     suffix = Path(path).suffix.lower()
     if suffix == ".vtu":
         return read_vtu(path)
+    if _looks_like_flooxs_str(Path(path)):
+        return read_flooxs(path)
     return read_suprem(path)
 
 
@@ -538,13 +646,26 @@ def scalar_values(structure: SupremStructure, field: str) -> np.ndarray:
 
 
 def transform_values(
-    values: np.ndarray, field: str, log10: bool
+    values: np.ndarray, field: str, log10: bool, abs_first: bool = False
 ) -> tuple[np.ndarray, str]:
+    """Apply optional abs() and log10() to a scalar field.
+
+    NetDoping (and abs_first) are always treated as unsigned magnitudes under
+    log10 — log10 of NetDoping is `log10(max(|x|, 1))` regardless of abs.
+    """
     title_field = field
-    if field != "Material" and log10:
-        if field == "NetDoping":
-            values = np.sign(values) * np.log10(np.maximum(np.abs(values), 1.0))
-            title_field = f"sign*log10(abs({field}))"
+    if field == "Material":
+        return values, title_field
+    if abs_first:
+        values = np.abs(values)
+        title_field = f"abs({field})"
+    if log10:
+        # For NetDoping (and anything where the user already asked for abs),
+        # take the magnitude before log10 so the result is always non-negative.
+        use_abs = abs_first or field == "NetDoping"
+        if use_abs:
+            values = np.log10(np.maximum(np.abs(values), 1.0))
+            title_field = f"log10(abs({field}))" if not abs_first else f"log10({title_field})"
         else:
             values = np.log10(np.maximum(values, 1.0))
             title_field = f"log10({field})"
@@ -560,6 +681,7 @@ def sample_line_profile(
     x1: float,
     y1: float,
     samples: int,
+    abs_first: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str]:
     if field == "Material":
         raise ValueError("line profiles are for scalar fields, not Material")
@@ -568,10 +690,12 @@ def sample_line_profile(
 
     point_fields = structure.point_fields or {}
     if field in point_fields:
-        point_values, title_field = transform_values(point_fields[field].astype(float), field, log10)
+        point_values, title_field = transform_values(
+            point_fields[field].astype(float), field, log10, abs_first
+        )
     else:
         face_values = scalar_values(structure, field)
-        face_values, title_field = transform_values(face_values, field, log10)
+        face_values, title_field = transform_values(face_values, field, log10, abs_first)
         point_values = face_to_point_values(structure, face_values)
 
     xs = np.linspace(x0, x1, samples)
@@ -638,11 +762,12 @@ def plot_line_profile(
     samples: int,
     output: str | None = None,
     show: bool = True,
+    abs_first: bool = False,
 ):
     import matplotlib.pyplot as plt
 
     distances, values, _, _, title_field = sample_line_profile(
-        structure, field, log10, x0, y0, x1, y1, samples
+        structure, field, log10, x0, y0, x1, y1, samples, abs_first=abs_first
     )
     finite = np.isfinite(values)
     if not np.any(finite):
@@ -783,6 +908,8 @@ def plot_structure(
     y_stretch: float = 1.0,
     output: str | None = None,
     show: bool = True,
+    junction: bool = False,
+    abs_first: bool = False,
 ):
     import matplotlib.pyplot as plt
     import matplotlib.tri as mtri
@@ -791,7 +918,7 @@ def plot_structure(
         structure.points[:, 0], structure.points[:, 1], structure.triangles
     )
     values = scalar_values(structure, field)
-    values, title_field = transform_values(values, field, log10)
+    values, title_field = transform_values(values, field, log10, abs_first)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.set_title(f"{structure.path.name}: {title_field}")
@@ -843,6 +970,9 @@ def plot_structure(
     if mesh and field != "Material":
         ax.triplot(triangulation, color="black", linewidth=0.1, alpha=0.4)
 
+    if junction:
+        overlay_junction(ax, structure, triangulation)
+
     fig.tight_layout()
     if output:
         fig.savefig(output, dpi=180)
@@ -850,6 +980,63 @@ def plot_structure(
         plt.show()
     else:
         plt.close(fig)
+
+
+def overlay_junction(ax, structure: SupremStructure, triangulation) -> bool:
+    """Overlay the NetDoping=0 metallurgical junction in silicon only.
+
+    The junction is a silicon concept; mask out every non-silicon triangle so
+    the contour doesn't trace the silicon-oxide interface or appear in oxide /
+    aluminum where NetDoping has no physical meaning.
+
+    Returns True if a contour was drawn (i.e. silicon NetDoping spans both signs).
+    """
+    import matplotlib.tri as mtri
+
+    face_values = scalar_values(structure, "NetDoping")
+    # Per-triangle silicon flag (material id 3 — see MATERIALS dict).
+    is_silicon = np.zeros(len(structure.triangles), dtype=bool)
+    for tri_i, region_id in enumerate(structure.triangle_regions):
+        region = structure.regions.get(int(region_id))
+        if region is not None and region.material_id == 3:
+            is_silicon[tri_i] = True
+    if not is_silicon.any():
+        return False
+
+    # Build point values from silicon triangles ONLY so interface nodes don't
+    # inherit values from adjacent oxide/aluminum.
+    sums = np.zeros(len(structure.points), dtype=float)
+    counts = np.zeros(len(structure.points), dtype=float)
+    for tri, value, silicon in zip(structure.triangles, face_values, is_silicon):
+        if not silicon or not np.isfinite(value):
+            continue
+        for node in tri:
+            sums[node] += value
+            counts[node] += 1.0
+    point_values = np.full(len(structure.points), np.nan, dtype=float)
+    valid = counts > 0
+    point_values[valid] = sums[valid] / counts[valid]
+
+    finite = point_values[np.isfinite(point_values)]
+    if finite.size == 0 or finite.min() >= 0 or finite.max() <= 0:
+        return False
+
+    nan_mask = np.any(np.isnan(point_values[structure.triangles]), axis=1)
+    combined_mask = nan_mask | (~is_silicon)
+    masked_tri = mtri.Triangulation(
+        structure.points[:, 0], structure.points[:, 1], structure.triangles
+    )
+    masked_tri.set_mask(combined_mask)
+
+    safe_values = np.where(np.isnan(point_values), 0.0, point_values)
+    ax.tricontour(
+        masked_tri,
+        safe_values,
+        levels=[0.0],
+        colors="black",
+        linewidths=1.8,
+    )
+    return True
 
 
 def face_to_point_values(structure: SupremStructure, face_values: np.ndarray) -> np.ndarray:
@@ -872,6 +1059,7 @@ def launch_gui(
     initial_vmin: float | None = None,
     initial_vmax: float | None = None,
     initial_y_stretch: float = 1.0,
+    initial_mesh: bool = False,
 ):
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
@@ -897,7 +1085,9 @@ def launch_gui(
 
     field_var = tk.StringVar(value="Material")
     log_var = tk.BooleanVar(value=False)
-    mesh_var = tk.BooleanVar(value=False)
+    abs_var = tk.BooleanVar(value=False)
+    mesh_var = tk.BooleanVar(value=initial_mesh)
+    junction_var = tk.BooleanVar(value=False)
     auto_scale_var = tk.BooleanVar(
         value=initial_vmin is None and initial_vmax is None
     )
@@ -932,7 +1122,9 @@ def launch_gui(
     )
     field_box.pack(side=tk.LEFT, padx=(4, 10))
     ttk.Checkbutton(controls, text="log10", variable=log_var).pack(side=tk.LEFT)
+    ttk.Checkbutton(controls, text="abs", variable=abs_var).pack(side=tk.LEFT)
     ttk.Checkbutton(controls, text="mesh", variable=mesh_var).pack(side=tk.LEFT)
+    ttk.Checkbutton(controls, text="junction", variable=junction_var).pack(side=tk.LEFT)
     ttk.Checkbutton(controls, text="auto scale", variable=auto_scale_var).pack(
         side=tk.LEFT, padx=(10, 4)
     )
@@ -1001,14 +1193,9 @@ def launch_gui(
         ax = fig.add_subplot(111)
         field = field_var.get()
         values = scalar_values(structure, field)
-        title_field = field
-        if field != "Material" and log_var.get():
-            if field == "NetDoping":
-                values = np.sign(values) * np.log10(np.maximum(np.abs(values), 1.0))
-                title_field = f"sign*log10(abs({field}))"
-            else:
-                values = np.log10(np.maximum(values, 1.0))
-                title_field = f"log10({field})"
+        values, title_field = transform_values(
+            values, field, log_var.get(), abs_first=abs_var.get()
+        )
 
         vmin = None
         vmax = None
@@ -1067,6 +1254,8 @@ def launch_gui(
             )
         if mesh_var.get() and field != "Material":
             ax.triplot(triangulation, color="black", linewidth=0.1, alpha=0.4)
+        if junction_var.get():
+            overlay_junction(ax, structure, triangulation)
         try:
             x0, y0, x1, y1, _ = read_line_inputs()
             ax.plot([x0, x1], [y0, y1], color="red", linewidth=1.4, linestyle="--")
@@ -1131,7 +1320,8 @@ def launch_gui(
         try:
             x0, y0, x1, y1, samples = read_line_inputs()
             distances, values, xs, ys, title_field = sample_line_profile(
-                structure, field, log_var.get(), x0, y0, x1, y1, samples
+                structure, field, log_var.get(), x0, y0, x1, y1, samples,
+                abs_first=abs_var.get(),
             )
         except ValueError as exc:
             status.set(str(exc))
@@ -1300,7 +1490,9 @@ def launch_gui(
 
     field_box.bind("<<ComboboxSelected>>", redraw)
     log_var.trace_add("write", redraw)
+    abs_var.trace_add("write", redraw)
     mesh_var.trace_add("write", redraw)
+    junction_var.trace_add("write", redraw)
     auto_scale_var.trace_add("write", redraw)
     redraw()
     root.mainloop()
@@ -1311,7 +1503,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("structure", help="SUPREM .str or VTK .vtu structure file")
     parser.add_argument("--field", default="Material", help="field to plot")
     parser.add_argument("--log10", action="store_true", help="plot log10(field)")
+    parser.add_argument("--abs", action="store_true", dest="abs_first",
+                        help="take absolute value of the field before log10; useful for "
+                             "NetDoping where you want magnitude only, not the sign flip "
+                             "across the junction")
     parser.add_argument("--mesh", action="store_true", help="overlay mesh edges")
+    parser.add_argument("--junction", action="store_true",
+                        help="overlay the metallurgical junction (NetDoping=0 contour) as a black line")
     parser.add_argument("--contours", type=int, default=0, help="number of contour levels")
     parser.add_argument("--vmin", type=float, help="minimum scalar color scale value")
     parser.add_argument("--vmax", type=float, help="maximum scalar color scale value")
@@ -1367,6 +1565,7 @@ def main(argv: list[str]) -> int:
             initial_vmin=args.vmin,
             initial_vmax=args.vmax,
             initial_y_stretch=args.y_stretch,
+            initial_mesh=args.mesh,
         )
         return 0
 
@@ -1397,6 +1596,7 @@ def main(argv: list[str]) -> int:
                 x1,
                 y1,
                 args.line_samples,
+                abs_first=args.abs_first,
             )
             save_line_profile_csv(args.line_csv, distances, xs, ys, values, title_field)
         if args.line_save or not args.line_csv:
@@ -1411,6 +1611,7 @@ def main(argv: list[str]) -> int:
                 args.line_samples,
                 output=args.line_save,
                 show=args.line_save is None,
+                abs_first=args.abs_first,
             )
         return 0
 
@@ -1425,6 +1626,8 @@ def main(argv: list[str]) -> int:
         y_stretch=args.y_stretch,
         output=args.save,
         show=args.save is None,
+        junction=args.junction,
+        abs_first=args.abs_first,
     )
     return 0
 

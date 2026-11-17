@@ -1,0 +1,83 @@
+def build(bld):
+
+  materials = [('Ag',       'Ag'),
+               ('Air',      'Air'),
+               ('Al',       'Al'),
+               ('AlGaAs',   'AlGaAs'),
+               ('AlGaN',    'AlGaN'),
+               ('AlN',      'AlN'),
+               ('Au',       'Au'),
+               ('B4C',      'B4C'),
+               ('W',        'W'),
+               ('Ti',       'Ti'),
+               ('CIGS',     'CIGS'),
+               ('CdS',      'CdS'),
+               ('Cu',       'Cu'),
+               ('Diamond',  'Diamond'),
+               ('Ni',       'Ni'),
+               ('SRO',      'SRO'),
+               ('Elec',     'Elec'),
+               ('ETFE',     'ETFE'),
+               ('GaAs',     'GaAs'),
+               ('GaAsSb',   'GaAsSb'),
+               ('GaN',      'GaN'),
+               ('GaP',      'GaP'),
+               ('Ge',       'Ge'),
+               ('HfO2',     'HfO2'),
+               ('HgCdTe',   'HgCdTe'),
+               ('InAs',     'InAs'),
+               ('InGaAs',   'InGaAs'),
+               ('InAlAs',   'InAlAs'),
+               ('InN',      'InN'),
+               ('InP',      'InP'),
+               ('InSb',     'InSb'),
+               ('ITO',      'ITO'),
+               ('LiF',      'LiF'),
+               ('Nitride',  'Nitride'),
+               ('NPolySi',  'NPolySi'),
+               ('Mylar',    'Mylar'),
+               ('ORPS',     'ORPS'),
+               ('PML',      'PML'),
+               ('PolySi',   'PolySi'),
+               ('PPolySi',  'PPolySi'),
+               ('Kapton',   'Kapton'),
+               ('Epoxy',    'Epoxy'),
+               ('3C-SiC',   'SiC3C'),
+               ('4H-SiC',   'SiC4H'),
+               ('6H-SiC',   'SiC6H'),
+               ('SiGe',     'SiGe'),
+               ('SiO2',     'SiO2'),
+               ('PZT',      'PZT'),
+               ('Pt',       'Pt'),
+               ('S-SiO2',   'SiO2S'),
+               ('Si',       'Si'),
+               ('TiSi2',    'TiSi2'),
+               ('Teflon',   'Teflon'),
+               ('Vacuum',   'Vacuum'),
+               ('ZnO',      'ZnO'),
+               ('GenericSemiconductor', 'GenericSemiconductor'),
+               ('GenericMetal',      'GenericMetal'),
+               ('GenericInsulator',  'GenericInsulator'),]
+
+  common_src = ['adolc_init.cc', 'PMI.cc']
+  if bld.env.PLATFORM == 'Windows': common_src.append('../parser/parser_parameter.cc')
+  if bld.env.PLATFORM == 'AIX': common_src.append('../parser/parser_parameter.cc')
+
+  bld.objects( source = common_src,
+               includes = bld.genius_includes,
+               features = 'cxx',
+               use       = 'opt',
+               target = 'material_common',
+             )
+
+  for dir,name in materials:
+    fout = bld.path.find_or_declare(bld.env.cxxshlib_PATTERN  % ('lib%s' % name))
+
+    bld.shlib( source = bld.path.ant_glob('%s/*.cc' % dir),
+               includes  = bld.genius_includes,
+               features  = 'cxx',
+               use       = 'opt material_common',
+               target    = fout,
+               install_path = '${PREFIX}/lib',
+             )
+

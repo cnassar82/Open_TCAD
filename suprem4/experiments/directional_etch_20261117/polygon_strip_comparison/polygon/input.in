@@ -1,0 +1,8 @@
+option quiet
+structure infile=/home/chris/Open_TCAD/decks/subcmos2014/results/astra_surface_overlap_fresh/nmos/threshold.str
+etch oxide dry thick=0.1
+structure outfile=after.str
+method fermi vertical grid.oxide=0.04
+diffuse time=12 temp=800 nitrogen
+structure outfile=after_diffuse.str
+quit

@@ -17,6 +17,8 @@
 /*   Last Modification : 7/3/91 15:40:53 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "global.h"
 #include "constant.h"
@@ -41,64 +43,56 @@ float c[MAXDIM];	/*place to split*/
 int *ip;		/* New point*/
 int mv;
 {
-    double l1, l2;
+    return sp_edge_keep(ie, c, ip, mv, -1);
+}
 
-    if ( ask( edg[ie], REGS ) ) mv = FALSE;
-    
+/* Boolean crossings must preserve both endpoints. Moving even the IN
+ * endpoint can move an ON junction shared by another retained arc, after
+ * its clipping position has already been recorded. That creates a cut
+ * which doubles back through the junction. Other callers keep the
+ * original snapping policy.
+ */
+int sp_edge_keep(ie,c,ip,mv,keep)
+int ie, *ip, mv, keep;
+float c[MAXDIM];
+{
+    double l1, l2, fraction;
+    int endpoint = -1, ix;
+
+    if (keep >= 0) {
+        for (endpoint = 0; endpoint < 2; endpoint++) {
+            for (ix = 0; ix < mode; ix++)
+                if (cordinate(pt_edg(ie,endpoint),ix) != c[ix]) break;
+            if (ix == mode) {
+                *ip = pt_edg(ie,endpoint);
+                return endpoint - 2;
+            }
+        }
+        return sp_gredg(ie,c,ip);
+    }
+
+    if (ask(edg[ie], REGS)) mv = FALSE;
     l1 = len_edg(ie);
     l2 = dist(cord_arr(pt_edg(ie,0)), c);
+    fraction = (num_nd(pt_edg(ie,0)) > 2 ||
+                num_nd(pt_edg(ie,1)) > 2) ? 0.05 : 0.25;
 
-    /*if either is a triple point, don't move them*/
-    if ( (num_nd(pt_edg(ie,0)) > 2) || (num_nd(pt_edg(ie,1)) > 2 ) ) {
-	if (mv && (l2 / l1 > 0.95)) {
-	    move_edge( ie, 1, c );
-	    *ip = pt_edg(ie,1);
-	    return(-1);
-	}
-	else if ( mv && (l2 / l1 < 0.05) ) {
-	    move_edge( ie, 0, c );
-	    *ip = pt_edg(ie,0);
-	    return(-2);
-	}
-	else if ( l2 < MIN_GRID_SPACE ) {
-	    move_edge( ie, 0, c );
-	    *ip = pt_edg(ie,0);
-	    return(-2);
-	}
-	else if ( (l1-l2) < MIN_GRID_SPACE ) {
-	    move_edge( ie, 1, c );
-	    *ip = pt_edg(ie,1);
-	    return(-1);
-	}
-	else
-	    return(sp_gredg(ie,c,ip));
+    if (mv && l2 / l1 > 1.0 - fraction) endpoint = 1;
+    else if (mv && l2 / l1 < fraction) endpoint = 0;
+    else if (l2 < MIN_GRID_SPACE) endpoint = 0;
+    else if (l1-l2 < MIN_GRID_SPACE) endpoint = 1;
+
+    if (endpoint >= 0) {
+        if (nd_edg(ie,endpoint) == keep) {
+            for (ix = 0; ix < mode; ix++)
+                if (cordinate(pt_edg(ie,endpoint),ix) != c[ix])
+                    return sp_gredg(ie,c,ip);
+        }
+        if (mv) move_edge(ie,endpoint,c);
+        *ip = pt_edg(ie,endpoint);
+        return endpoint - 2;
     }
-    else {
-	if (mv && (l2 / l1 > 0.75)) {
-	    move_edge( ie, 1, c );
-	    *ip = pt_edg(ie,1);
-	    return(-1);
-	}
-	else if ( mv && (l2 / l1 < 0.25) ) {
-	    move_edge( ie, 0, c );
-	    *ip = pt_edg(ie,0);
-	    return(-2);
-	}
-	else if ( l2 < MIN_GRID_SPACE ) {
-	    move_edge( ie, 0, c );
-	    *ip = pt_edg(ie,0);
-	    return(-2);
-	}
-	else if ( (l1-l2) < MIN_GRID_SPACE ) {
-	    move_edge( ie, 1, c );
-	    *ip = pt_edg(ie,1);
-	    return(-1);
-	}
-	else {
-	    /*create the new point and edge*/
-	    return(sp_gredg(ie,c,ip));
-	}
-    }
+    return sp_gredg(ie,c,ip);
 }
 
 
@@ -110,6 +104,26 @@ int *p;		/* New point*/
 {
     int ip, in;
     int eoth, en1;
+
+    if (mode==TWOD && getenv("SUPREM4_SPLIT_DIAG")) {
+        int ti,t,j,a,b;
+        float v[3][MAXDIM];
+        for(ti=0;ti<num_tri_edg(ie);ti++) {
+            t=tri_edg(ie,ti);
+            if(dead_tri(t) || !leaf(tri[t]))continue;
+            for(a=0;a<3;a++)if(vert_tri(t,a)==nd_edg(ie,0))break;
+            for(b=0;b<3;b++)if(vert_tri(t,b)==nd_edg(ie,1))break;
+            if(a==3 || b==3)continue;
+            for(j=0;j<3;j++)memcpy(v[j],cord_arr(pt_nd(vert_tri(t,j))),sizeof(v[j]));
+            memcpy(v[a],c,sizeof(v[a]));
+            if(orient2d_float_sign(v[0],v[1],v[2])<=0)
+                fprintf(stderr,"[split-diag] invalid child edge=%d triangle=%d replace=%d c=(%.17g,%.17g)\n",ie,t,a,c[0],c[1]);
+            for(j=0;j<3;j++)memcpy(v[j],cord_arr(pt_nd(vert_tri(t,j))),sizeof(v[j]));
+            memcpy(v[b],c,sizeof(v[b]));
+            if(orient2d_float_sign(v[0],v[1],v[2])<=0)
+                fprintf(stderr,"[split-diag] invalid child edge=%d triangle=%d replace=%d c=(%.17g,%.17g)\n",ie,t,b,c[0],c[1]);
+        }
+    }
 
     eoth = insert_pt_edg( ie, c, p );
     ip = *p;

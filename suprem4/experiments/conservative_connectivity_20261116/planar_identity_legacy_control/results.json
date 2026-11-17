@@ -1,0 +1,70 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_n6whaa5l/src/suprem4",
+  "binary_sha256": "218f9c2bb327026034233b5d609f1ec821aa3583dca547a7c6a9cb1b228c9864",
+  "results": [
+    {
+      "case": "zero",
+      "errors": [],
+      "deck_sha256": "96e00d0c5bb0b9c3b4a2e71b5048f6ad851673cb99ed2f81d3fd3fe7e74749a4",
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 24.000000533647828
+        }
+      },
+      "residual_oxide_area_um2": 0,
+      "passed": true
+    },
+    {
+      "case": "shift_down",
+      "errors": [],
+      "deck_sha256": "63572434f99d8515f1c86e2c403ed24e4e8054a3c965bb3573d3269d54b4a7f8",
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 336,
+        "boundary_pairs_checked": 76,
+        "triangles": 672,
+        "boundary_edges": 76
+      },
+      "mesh": {
+        "triangles": 672,
+        "area_by_region_um2": {
+          "1": 23.999999223975387
+        }
+      },
+      "residual_oxide_area_um2": 0,
+      "passed": true
+    },
+    {
+      "case": "shift_up",
+      "errors": [
+        "equal-depth planar construction leaves a finite oxide film"
+      ],
+      "deck_sha256": "96a4a70bb9737c56163557a2a5a4db65006949e195b727bc44ac329891d38fe5",
+      "returncode": 0,
+      "partition": {
+        "triangle_pairs_checked": 360,
+        "boundary_pairs_checked": 78,
+        "triangles": 720,
+        "boundary_edges": 78
+      },
+      "mesh": {
+        "triangles": 720,
+        "area_by_region_um2": {
+          "1": 23.999999660532914,
+          "2": 4.365574775863721e-07
+        }
+      },
+      "residual_oxide_area_um2": 4.365574775863721e-07,
+      "passed": false
+    }
+  ],
+  "passed": false
+}

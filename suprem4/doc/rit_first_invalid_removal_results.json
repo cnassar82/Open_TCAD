@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-15",
+  "status": "diagnosis_and_standalone_reference_only",
+  "first_failing_operation": "grid_sub CknMcLen -> rem_edg(12550) -> rem_pt(3796) -> kill_node(5102)",
+  "reproducer": "tests/fixtures/rit_pmos_first_bad_removal/patch.json",
+  "trace": "decks/subcmos2014/results/sol_activation_causal_final",
+  "baseline": "decks/subcmos2014/results/sol_activation_baseline_01",
+  "rejected_preflight": "decks/subcmos2014/results/sol_activation_boundary_preflight",
+  "build": {
+    "path": "suprem4/build/native64_eyutfiqh/src/suprem4",
+    "sha256": "ff7372b1a9ed4dfa5f7b3f405634bf622d308a2706ba5adca1ab3d7ecac6e9ae"
+  },
+  "checks": {
+    "reduced_fixture": true,
+    "standalone_oracle": true,
+    "exact_orientation": true,
+    "partition_audit": true,
+    "key_reader_asan_ubsan_leaks_disabled": true,
+    "live_interface_asan_ubsan_leaks_disabled": true,
+    "ordinary_build": true,
+    "activation_replay": false
+  },
+  "release_ready": false,
+  "notes": "Diagnostic code is opt-in. Full-engine leak detection was unavailable in sandbox; a focused first attempt failed with LeakSanitizer fatal error, rerun with detect_leaks=0 passed."
+}

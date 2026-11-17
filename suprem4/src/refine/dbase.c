@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 15:40:35 */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "global.h"
 #include "constant.h"
@@ -63,6 +64,9 @@ int ir;		/*skeleton region we are using*/
     nv[0] = nB(bnd->prev);
     nv[1] = nB(bnd);
     nv[2] = nB(bnd->next);
+    if (getenv("SUPREM4_SPLIT_DIAG") &&
+        orient2d_float_sign(cord_arr(pt_nd(nv[0])),cord_arr(pt_nd(nv[1])),cord_arr(pt_nd(nv[2])))<=0)
+        fprintf(stderr,"[triang-diag] nonpositive triangle region=%d skeleton=%d nodes=%d,%d,%d\n",rn,ir,nv[0],nv[1],nv[2]);
 
     /*check for the edges*/
     nb[0] = nb[1] = nb[2] = BC_OFFSET;

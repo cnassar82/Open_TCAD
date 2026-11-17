@@ -23,6 +23,7 @@
 #include "dbaccess.h"
 #include "material.h"
 #include "impurity.h"
+#include "mesh_patch.h"
 
 /************************************************************************
  *									*
@@ -148,6 +149,30 @@ int r;
  * Original:	MEL	8/90						*
  *									*
  ************************************************************************/
+static unsigned long patch_committed, patch_pinned;
+static int patch_enabled(void)
+{
+    const char *value=getenv("SUPREM4_MESH_PATCH_REMOVAL");
+    return value && value[0]=='1' && value[1]=='\0';
+}
+static int patch_remove(int point)
+{
+    const char *reason;
+    int status=mesh_patch_remove_point(point,&reason);
+    if(status==MESH_PATCH_OK)patch_committed++;
+    else if(status==MESH_PATCH_PINNED)patch_pinned++;
+    else {
+        fprintf(stderr,"[mesh-patch] point=%d rejected invalid preparation: %s\n",point,reason);
+        panic(status==MESH_PATCH_NOMEM ? "Out of memory" : "Invalid mesh patch input");
+    }
+    return status;
+}
+void mesh_patch_removal_report(void)
+{
+    if(patch_enabled())
+        fprintf(stderr,"[mesh-patch] committed=%lu pinned=%lu\n",patch_committed,patch_pinned);
+}
+
 rem_edg( ie )
 int ie;
 {
@@ -155,7 +180,22 @@ int ie;
     int p1, p2, n1, n2;
     int newnd[20], l;
     double v1, v2;
-    
+
+    if(mode==TWOD && patch_enabled()) {
+        int first,second,status;
+        if(ie<0 || ie>=ned || dead_edg(ie))return;
+        n1=nd_edg(ie,0);n2=nd_edg(ie,1);
+        if(n1<0 || n1>=nn || n2<0 || n2>=nn || dead_nd(n1) || dead_nd(n2))return;
+        p1=pt_nd(n1);p2=pt_nd(n2);
+        if(dead_pt(p1) || dead_pt(p2))return;
+        /* Constraints decide admissibility before velocity preference. Each
+         * candidate is re-read from current incidence, not the stale edge star. */
+        first=p1;second=p2;
+        if(mag(pt[p2]->vel)<mag(pt[p1]->vel)){first=p2;second=p1;}
+        status=patch_remove(first);
+        if(status==MESH_PATCH_PINNED)patch_remove(second);
+        return;
+    }
     /*compute the magnitude of the point velocities*/
     v1 = mag( pt[(pt_edg(ie,0))]->vel );
     v2 = mag( pt[(pt_edg(ie,1))]->vel );
@@ -171,6 +211,7 @@ int ie;
 
     /*if either end is dead...*/
     if ( dead_pt(p1) || dead_pt(p2) ) return;
+    if ( dead_nd(n1) || dead_nd(n2) ) return;
 
     /*figure out if joined node will be a triple*/
     for(l = i = 0; i < num_nd(p1); i++) {
@@ -182,7 +223,6 @@ int ie;
 
     /*just remove the point, unless material goes away....*/
     if ( l + num_nd(p2) > 2 ) {
-	if ( dead_nd(n1) || dead_nd(n2) ) return;
 	for(i = 0; i < num_ele_edg(ie); i++)
 	    if (dead_tri(ele_edg(ie,i))) return;
 
@@ -195,6 +235,10 @@ int ie;
 	rem_edg_end(ie, nr);
     }
     else {
+        if (getenv("SUPREM4_REMOVAL_TRACE_POINT") &&
+            atoi(getenv("SUPREM4_REMOVAL_TRACE_POINT")) == p1)
+            fprintf(stderr, "[removal-trace] caller=rem_edg edge=%d removed_endpoint=%d survivor=%d velocity_removed=%a velocity_survivor=%a\n",
+                    ie, p1, p2, v1, v2);
 	rem_pt(p1);
     }
 }
@@ -262,13 +306,24 @@ int ip;
     int loc[MAXMAT], maxn;
 
     if ( dead_pt(ip) ) return;
-
+    if(mode==TWOD && patch_enabled()) {
+        patch_remove(ip);
+        return;
+    }
     if ( num_nd(ip) > 2 )
 	panic("can't remove triple point");
     else {
 	/*find the nodes at this point*/
 	for(i = 0; i < num_nd(ip); i++) loc[i] = nd_pt(ip,i);
 	maxn = num_nd(ip);
+        if (getenv("SUPREM4_REMOVAL_TRACE_POINT") &&
+            atoi(getenv("SUPREM4_REMOVAL_TRACE_POINT")) == ip) {
+            fprintf(stderr, "[rem-pt-trace] point=%d surface=%d back=%d maxn=%d\n",
+                    ip, is_surf(ip), is_back(ip), maxn);
+            for(i=0;i<maxn;i++)
+                fprintf(stderr, "[rem-pt-trace] step=%d node=%d material=%d triangles=%d\n",
+                        i, loc[i], mat_nd(loc[i]), num_tri_nd(loc[i]));
+        }
 
 	/*for each node at this point*/
 	for(i = 0; i < maxn; i++)  {

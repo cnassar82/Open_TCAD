@@ -1,0 +1,104 @@
+{
+  "nmos": {
+    "gate_length_um": 1.0000000474974513,
+    "poly_midpoint": {
+      "boron_cm3": 14294526960252.191,
+      "phosphorus_cm3": 5.682698320835989e+19,
+      "net_donor_cm3": 5.682696891383293e+19
+    },
+    "gate_dielectric_um": 0.016674534892119938,
+    "gate_oxide_material_probes": [
+      {
+        "x_um": 5.599999974947423,
+        "oxide_thickness_um": 0.017206274075457856
+      },
+      {
+        "x_um": 5.74999998207204,
+        "oxide_thickness_um": 0.01670362054642968
+      },
+      {
+        "x_um": 5.999999993946403,
+        "oxide_thickness_um": 0.016674534892151663
+      },
+      {
+        "x_um": 6.250000005820766,
+        "oxide_thickness_um": 0.0167028900348178
+      },
+      {
+        "x_um": 6.400000012945384,
+        "oxide_thickness_um": 0.01719307876698989
+      }
+    ],
+    "source_50nm_below_surface": {
+      "boron_cm3": 7.53201422135035e+16,
+      "phosphorus_cm3": 8.521944295101176e+19,
+      "net_donor_cm3": 8.514412280879827e+19
+    },
+    "drain_50nm_below_surface": {
+      "boron_cm3": 7.251539421648059e+16,
+      "phosphorus_cm3": 8.369423704948033e+19,
+      "net_donor_cm3": 8.362172165526385e+19
+    },
+    "body_50nm_below_surface": {
+      "boron_cm3": 3.2442895021888496e+19,
+      "phosphorus_cm3": 1.1656327833728288e+17,
+      "net_donor_cm3": -3.2326331743551214e+19
+    },
+    "metal_islands": 4,
+    "body_contact_gap_um": 0.0,
+    "source_contact_gap_um": 0.0,
+    "gate_contact_gap_um": 0.0,
+    "drain_contact_gap_um": 0.0
+  },
+  "pmos": {
+    "gate_length_um": 1.0000000474974513,
+    "poly_midpoint": {
+      "boron_cm3": 3.6230028639842824e+19,
+      "phosphorus_cm3": 5.9492117168508125e+19,
+      "net_donor_cm3": 2.32620885286653e+19
+    },
+    "gate_dielectric_um": 0.01697009793287127,
+    "gate_oxide_material_probes": [
+      {
+        "x_um": 5.599999974947423,
+        "oxide_thickness_um": 0.01751739801692423
+      },
+      {
+        "x_um": 5.74999998207204,
+        "oxide_thickness_um": 0.01700038797123493
+      },
+      {
+        "x_um": 5.999999993946403,
+        "oxide_thickness_um": 0.01697009793290391
+      },
+      {
+        "x_um": 6.250000005820766,
+        "oxide_thickness_um": 0.017001217552643222
+      },
+      {
+        "x_um": 6.400000012945384,
+        "oxide_thickness_um": 0.017504852614758426
+      }
+    ],
+    "source_50nm_below_surface": {
+      "boron_cm3": 2.8334234233528828e+19,
+      "phosphorus_cm3": 1.2540387077084483e+17,
+      "net_donor_cm3": -2.8208830362757984e+19
+    },
+    "drain_50nm_below_surface": {
+      "boron_cm3": 2.802089804468286e+19,
+      "phosphorus_cm3": 1.2664849512570234e+17,
+      "net_donor_cm3": -2.7894249549557158e+19
+    },
+    "body_50nm_below_surface": {
+      "boron_cm3": 1.7812386107449056e+17,
+      "phosphorus_cm3": 1.1886178261507688e+20,
+      "net_donor_cm3": 1.1868365875400239e+20
+    },
+    "metal_islands": 4,
+    "body_contact_gap_um": 0.0,
+    "source_contact_gap_um": 0.0,
+    "gate_contact_gap_um": 0.0,
+    "drain_contact_gap_um": 0.0
+  }
+}

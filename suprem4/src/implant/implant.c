@@ -38,7 +38,7 @@
  *  Original:	MEL	1/85						*
  *									*
  ************************************************************************/
-int implant( char * par, int param )
+int implant( char * par, struct par_str *param )
 {
     register int i, j;
     int imp, impa, ion, sol;
@@ -61,7 +61,7 @@ int implant( char * par, int param )
     /*get the model type for this implant*/
     if ( get_bool( param, "pearson" ) )
         imp_model = PEARS;
-    else if ( get_bool( param, "gaussian" ) )
+    else if ( get_bool( param, "gauss" ) )
 	imp_model = GAUSS;
 
     /*check for override of the model values*/
@@ -101,7 +101,8 @@ int implant( char * par, int param )
     }
 
     times(&before);
-    do_implant( ion, ang, dose, energy, damage, sol, isol, vsol );
+    if (do_implant( ion, ang, dose, energy, damage, sol, isol, vsol ) < 0)
+	return -1;
     times(&after);
     print_time("Implantation calculation", &before, &after);
 
@@ -151,7 +152,7 @@ int implant( char * par, int param )
  *  Mod 1:	SEH	02/92  Add GaAs elements			*
  *									*
  ************************************************************************/
-int imp_select( int param, int *imp, int *ion )
+int imp_select( struct par_str *param, int *imp, int *ion )
 {
     int	 i, gaas, si;
 

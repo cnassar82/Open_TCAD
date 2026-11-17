@@ -224,7 +224,17 @@ struct call_str *cs;
     double gam, igam;
     double t1, t2, t3;
 
-    if ( cs->type == TR ) {
+    if ( cs->type == BE ) {
+        cpl = 1.0 / cs->new_del;
+        for (i=0; i<nn; i++) {
+            a[sol][sol][i] += cpl * cs->nco[i];
+            rhs[sol][i] = newb[sol][i] - cpl *
+                (cs->nco[i]*cs->new[sol][i] - cs->oco[i]*cs->old[sol][i]);
+            rhsnm[sol] += rhs[sol][i]*rhs[sol][i];
+            if (a[sol][sol][i] == 0.0) a[sol][sol][i] = 1.0;
+        }
+    }
+    else if ( cs->type == TR ) {
 	cpl = 2.0 / cs->new_del;
 
 	/*trapazoidal rule setup*/

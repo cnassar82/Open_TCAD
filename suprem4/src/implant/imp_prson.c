@@ -37,6 +37,7 @@
  */
 
 /* system intinsics : get decls for sqrt(), log(), atan2() */
+#include <stdlib.h>
 #include <math.h>
 #define	 abs(A)	((A) >= 0.0? (A) : -(A))
 #define	 min2(A,B)	((A) >= (B)? (B) : (A))

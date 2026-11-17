@@ -24,6 +24,66 @@
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
+#include "conservative_transfer.h"
+#include "mesh_trial.h"
+
+static double flip_area(int a,int b,int c)
+{
+    float *p=cord_arr(pt_nd(a)),*q=cord_arr(pt_nd(b)),*r=cord_arr(pt_nd(c));
+    return .5*(((double)q[0]-p[0])*((double)r[1]-p[1])-
+               ((double)q[1]-p[1])*((double)r[0]-p[0]));
+}
+
+/* A diagonal swap changes P1 integration weights even with fixed vertices.
+ * Prepare a bounded conservative transfer before changing connectivity.
+ * Include each affected node's entire support, not just this quadrilateral:
+ * its single concentration also contributes to unchanged neighboring cells.
+ */
+static int flip_fields(int *nodes,int tp,int tq,double out[4][MAXIMP])
+{
+    double oldw[4]={0},neww[4],values[4],fraction[4][MAXIMP];
+    /* Edge endpoint order is arbitrary; sclk_tri orders committed children. */
+    double a=fabs(flip_area(nodes[0],nodes[1],nodes[2]))/3;
+    double b=fabs(flip_area(nodes[0],nodes[2],nodes[3]))/3;
+    int i,j,k,t,parent,stream,material=mat_nd(nodes[0]);
+    if(!(a>0 && b>0))return 0;
+    for(i=0;i<4;i++) {
+        if(mat_nd(nodes[i])!=material)return 0;
+        neww[i]=0;
+        for(k=0;k<num_tri_nd(nodes[i]);k++) {
+            t=tri_nd(nodes[i],k);
+            if(dead_tri(t) || !leaf(tri[t]))continue;
+            oldw[i]+=flip_area(vert_tri(t,0),vert_tri(t,1),vert_tri(t,2))/3;
+            if(t!=tp && t!=tq)neww[i]+=flip_area(vert_tri(t,0),vert_tri(t,1),vert_tri(t,2))/3;
+        }
+        neww[i]+=i==0 || i==2 ? a+b:i==1 ? a:b;
+        for(j=0;j<n_imp;j++) {
+            out[i][j]=sol_nd(nodes[i],j);
+            if(!isfinite(out[i][j]))return 0;
+        }
+    }
+    for(j=0;j<n_imp;j++) {
+        parent=conserved_parent(soltoimp[j]);
+        if(parent<0)continue;
+        stream=imptosol[parent];if(stream<0)return 0;
+        for(i=0;i<4;i++) {
+            double total=out[i][stream],active=out[i][j];
+            if(total<0 || active<0 || active>total)return 0;
+            fraction[i][j]=total>0?active/total:0;
+        }
+    }
+    for(j=0;j<n_imp;j++)if(conserved_density(soltoimp[j],material)) {
+        for(i=0;i<4;i++)values[i]=out[i][j];
+        if(!conserved_transfer(4,oldw,neww,values))return 0;
+        for(i=0;i<4;i++)out[i][j]=values[i];
+    }
+    for(j=0;j<n_imp;j++) {
+        parent=conserved_parent(soltoimp[j]);if(parent<0)continue;
+        stream=imptosol[parent];
+        for(i=0;i<4;i++)out[i][j]=fraction[i][j]*out[i][stream];
+    }
+    return 1;
+}
 
 
 /*-----------------FLIP-------------------------------------------------
@@ -72,7 +132,7 @@ int flip()
 	    if ( gimme_ehed(it) < 0 ) {
 		if ((yes = ck_flip(it)) != 1) continue;
 
-		tri_flip( it, tri_edg(it,0), tri_edg(it,1) );
+		if(!tri_flip( it, tri_edg(it,0), tri_edg(it,1) ))continue;
 		flips++;
 		all_done = FALSE;
 
@@ -104,6 +164,7 @@ int it, tp, tq;
 {
     int i, n1, n2, jp, jq, tr;
     int sp[4], sn[6], se[6], fixme;
+    double fields[4][MAXIMP];
 
     /*...Find which points are unique. */
     jp = twhich (tp, tq);
@@ -114,6 +175,12 @@ int it, tp, tq;
     sp[1] = nd_edg(it,0);
     sp[2] = vert_tri(tq, jq);
     sp[3] = nd_edg(it,1);
+
+    /* In an implicit moving-mesh solve, old/mid/new concentrations and
+     * their respective integration weights carry the inventory. nd[].sol
+     * remains the committed input until that solve succeeds. Rezone its
+     * fields only outside that time-integration transaction. */
+    if(n_imp && !mesh_trial_active() && !flip_fields(sp,tp,tq,fields))return 0;
 
     /*change the edge in question*/
     sub_edge_nd(nd_edg(it,0), it );
@@ -175,8 +242,11 @@ int it, tp, tq;
     do_geom(tp);
     sclk_tri(tq);
     do_geom(tq);
-
-
+    for(i=0;i<4;i++) {
+        int j;
+        if(!mesh_trial_active())for(j=0;j<n_imp;j++)nd[sp[i]]->sol[j]=fields[i][j];
+    }
+    return 1;
 }
 
 
@@ -189,8 +259,7 @@ int we;
 {
     int t1, t2, ix1, ix2;
     int n1, n2, n3, n4, p1, p2, p3, p4;
-    double xsym, ysym, sgn1, sgn2, sgn;
-    double slope, cut_p;
+    int s1, s2, s3, s4;
 
     t1  = tri_edg(we,0);
     t2  = tri_edg(we,1);
@@ -207,30 +276,16 @@ int we;
     p3 = pt_nd(n3);
     p4 = pt_nd(n4);
 
-    if (xcord(p1) == xcord(p2)) {
-       xsym = xcord(p1);
-       sgn1 = xcord(p3) - xsym;
-       sgn2 = xcord(p4) - xsym;
-       sgn  = sgn1 * sgn2;
-    }
-    else if (ycord(p1) == ycord(p2)) {
-       ysym = ycord(p1);
-       sgn1 = ycord(p3) - ysym;
-       sgn2 = ycord(p4) - ysym;
-       sgn  = sgn1 * sgn2;
-    }
-    else {
-       slope = (ycord(p1) - ycord(p2))/(xcord(p1) - xcord(p2));
-       cut_p = xcord(p1) * ycord(p2) - xcord(p2) * ycord(p1);
-       cut_p /= (xcord(p1) - xcord(p2));
-
-       sgn1 = ycord(p3) - (slope * xcord(p3) + cut_p);
-       sgn2 = ycord(p4) - (slope * xcord(p4) + cut_p);
-       sgn  = sgn1 * sgn2;
-    }
-
-    if (sgn < 0) return(1);
-    else return(0);
+    /* Both diagonals must cross strictly in the stored coordinates.
+     * Slope/intercept arithmetic loses the side of a near-collinear point:
+     * even its products were evaluated as floats before promotion. A false
+     * refusal leaves an avoidable sliver; a false acceptance changes domain.
+     * Use the exact predicate, including horizontal/vertical diagonals. */
+    s1 = orient2d_float_sign(pt[p1]->cord, pt[p2]->cord, pt[p3]->cord);
+    s2 = orient2d_float_sign(pt[p1]->cord, pt[p2]->cord, pt[p4]->cord);
+    s3 = orient2d_float_sign(pt[p3]->cord, pt[p4]->cord, pt[p1]->cord);
+    s4 = orient2d_float_sign(pt[p3]->cord, pt[p4]->cord, pt[p2]->cord);
+    return s1*s2 < 0 && s3*s4 < 0;
 }
 
 

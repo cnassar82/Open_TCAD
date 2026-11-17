@@ -27,7 +27,7 @@ extern long time();
  *	Original :	Mark E. Law	Oct, 1984
  *									*
  ************************************************************************/
-int cpu(char *par, int param )
+int cpu(char *par, struct par_str *param )
 {
     char *f;
     int on;

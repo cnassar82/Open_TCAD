@@ -1,0 +1,18 @@
+option quiet
+line x loc=0 spac=0.4 tag=left
+line x loc=10 spac=0.4 tag=right
+line y loc=0 spac=0.04 tag=top
+line y loc=2 spac=0.2 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize boron conc=1e15 orient=100
+deposit oxide thick=0.02 divisions=5
+deposit poly thick=0.5 divisions=5
+etch poly left p1.x=4
+etch poly right p1.x=6
+deposit oxide thick=0.5 divisions=5
+structure outfile=before.str
+etch oxide dry thick=1.5
+structure outfile=after.str
+quit

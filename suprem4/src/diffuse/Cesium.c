@@ -175,7 +175,7 @@ struct bound_str *bval;
  ************************************************************************/
 cesium( par, param )
 char *par;
-int param;
+struct par_str *param;
 { 
     int i, j;
     int tmpfl, imp_flag, gro_flag;

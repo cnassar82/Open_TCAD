@@ -1,0 +1,94 @@
+# Rounded STI: 30 nm upper and 50 nm lower corner radii.
+# Local 5 nm substrate spacing around the trench edges; dimensions in um.
+# Geometric etchback, not a calibrated CMP model.
+option quiet
+line x loc=-1 spac=0.12 tag=left
+line x loc=-0.4 spac=0.015
+line x loc=-0.33 spac=0.005
+line x loc=-0.3 spac=0.005
+line x loc=-0.25 spac=0.0075
+line x loc=0 spac=0.025
+line x loc=0.25 spac=0.0075
+line x loc=0.3 spac=0.005
+line x loc=0.33 spac=0.005
+line x loc=0.4 spac=0.015
+line x loc=1 spac=0.12 tag=right
+line y loc=0 spac=0.005 tag=top
+line y loc=0.03 spac=0.005
+line y loc=0.1 spac=0.015
+line y loc=0.25 spac=0.01
+line y loc=0.3 spac=0.005
+line y loc=0.35 spac=0.005
+line y loc=0.45 spac=0.02
+line y loc=1 spac=0.1 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize orient=100 boron conc=1e15
+structure outfile=initial.str
+etch silicon start x=-0.33 y=-0.2
+etch continue x=-0.33 y=0
+etch continue x=-0.3260842142 y=0.0002566541588
+etch continue x=-0.3222354286 y=0.001022225211
+etch continue x=-0.318519497 y=0.002283614025
+etch continue x=-0.315 y=0.004019237886
+etch continue x=-0.3117371571 y=0.006199399791
+etch continue x=-0.3087867966 y=0.008786796564
+etch continue x=-0.3061993998 y=0.01173715713
+etch continue x=-0.3040192379 y=0.015
+etch continue x=-0.302283614 y=0.01851949703
+etch continue x=-0.3010222252 y=0.02223542865
+etch continue x=-0.3002566542 y=0.02608421423
+etch continue x=-0.3 y=0.03
+etch continue x=-0.3 y=0.3
+etch continue x=-0.2995722431 y=0.3065263096
+etch continue x=-0.2982962913 y=0.3129409523
+etch continue x=-0.2961939766 y=0.3191341716
+etch continue x=-0.2933012702 y=0.325
+etch continue x=-0.289667667 y=0.3304380715
+etch continue x=-0.2853553391 y=0.3353553391
+etch continue x=-0.2804380715 y=0.339667667
+etch continue x=-0.275 y=0.3433012702
+etch continue x=-0.2691341716 y=0.3461939766
+etch continue x=-0.2629409523 y=0.3482962913
+etch continue x=-0.2565263096 y=0.3495722431
+etch continue x=-0.25 y=0.35
+etch continue x=0.25 y=0.35
+etch continue x=0.2565263096 y=0.3495722431
+etch continue x=0.2629409523 y=0.3482962913
+etch continue x=0.2691341716 y=0.3461939766
+etch continue x=0.275 y=0.3433012702
+etch continue x=0.2804380715 y=0.339667667
+etch continue x=0.2853553391 y=0.3353553391
+etch continue x=0.289667667 y=0.3304380715
+etch continue x=0.2933012702 y=0.325
+etch continue x=0.2961939766 y=0.3191341716
+etch continue x=0.2982962913 y=0.3129409523
+etch continue x=0.2995722431 y=0.3065263096
+etch continue x=0.3 y=0.3
+etch continue x=0.3 y=0.03
+etch continue x=0.3002566542 y=0.02608421423
+etch continue x=0.3010222252 y=0.02223542865
+etch continue x=0.302283614 y=0.01851949703
+etch continue x=0.3040192379 y=0.015
+etch continue x=0.3061993998 y=0.01173715713
+etch continue x=0.3087867966 y=0.008786796564
+etch continue x=0.3117371571 y=0.006199399791
+etch continue x=0.315 y=0.004019237886
+etch continue x=0.318519497 y=0.002283614025
+etch continue x=0.3222354286 y=0.001022225211
+etch continue x=0.3260842142 y=0.0002566541588
+etch continue x=0.33 y=0
+etch done x=0.33 y=-0.2
+structure outfile=trench.str
+method viscous oxide.rel=1e-2 grid.oxide=0.01
+diffuse time=10 temp=1000 dryo2
+structure outfile=liner.str
+deposit oxide thick=0.4 divisions=24 space=0.01
+structure outfile=filled.str
+etch oxide start x=-1.1 y=-1
+etch continue x=-1.1 y=0
+etch continue x=1.1 y=0
+etch done x=1.1 y=-1
+structure outfile=sti.str
+quit

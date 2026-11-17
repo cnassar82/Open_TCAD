@@ -19,6 +19,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include "global.h"
 #include "constant.h"
@@ -28,6 +29,32 @@
 #include "regrid.h"
 #include "refine.h"
 
+static int mesh_diag_enabled()
+{
+    char *v = (char *)getenv("SUPREM4_MESH_DIAG");
+    return(v && *v && *v != '0');
+}
+
+static void mesh_diag_line(name, n, p, loops)
+char *name;
+int n;
+struct line *p;
+int loops;
+{
+    int i;
+    double dx, dy, len, minlen = MAXFLOAT;
+
+    if (!mesh_diag_enabled()) return;
+    for(i = 1; i < n; i++) {
+	dx = p[i].x - p[i-1].x;
+	dy = (mode == ONED)?0.0:(p[i].y - p[i-1].y);
+	len = sqrt(dx * dx + dy * dy);
+	if (len < minlen) minlen = len;
+    }
+    if (n < 2) minlen = 0.0;
+    fprintf(stderr, "[meshdiag] %s points=%d min_segment=%e loops_removed=%d\n",
+	    name, n, minlen, loops);
+}
 
 
 /************************************************************************
@@ -53,7 +80,34 @@ double space;		/*size of the spacing*/
     double rot[2][2];
     double err = space * 0.01;
     int maxop;
+    int loops = 0;
     struct line *op;
+
+#ifdef SUPREM_DOMAIN_OFFSET
+    if (mode==TWOD && getenv("SUPREM4_DEPOSITION_GEOMETRY") &&
+        !strcmp(getenv("SUPREM4_DEPOSITION_GEOMETRY"),"domain")) {
+        extern int suprem_domain_offset(int,const double *,double,double,double **);
+        double *input=salloc(double,2*nump),*output=NULL;
+        for(i=0;i<nump;i++){input[2*i]=p[i].x;input[2*i+1]=p[i].y;}
+        nop=suprem_domain_offset(nump,input,thick,space,&output);
+        free(input);
+        if(nop<2) {
+            fprintf(stderr,"[domain-offset] failed status=%d source=%d\n",nop,nump);
+            panic("domain deposition cannot represent the requested coating as one simple region");
+        }
+        *pop=salloc(struct line,nop);
+        for(i=0;i<nop;i++) {
+            (*pop)[i].x=output[2*i];(*pop)[i].y=output[2*i+1];
+            (*pop)[i].p=-1;(*pop)[i].map=0;
+        }
+        free(output);
+        return nop;
+    }
+#else
+    if (getenv("SUPREM4_DEPOSITION_GEOMETRY") &&
+        !strcmp(getenv("SUPREM4_DEPOSITION_GEOMETRY"),"domain"))
+        panic("domain deposition requires a native build with --domain-offset");
+#endif
 
     maxop = 100;
     *pop = salloc( struct line, maxop );
@@ -183,7 +237,7 @@ double space;		/*size of the spacing*/
     nop++;
 
     /*de_loop the outer line...*/
-    while( de_loop(&nop, op, err) );
+    while( de_loop(&nop, op, err) ) loops++;
 
     /*strip the first and last pseudo points*/
     del_fromline( 0, &nop, op );
@@ -196,6 +250,7 @@ double space;		/*size of the spacing*/
 	for(j = op[i-1].map+1; j < op[i].map; j++) p[j].map = i;
     }
 
+    mesh_diag_line("gen_offset", nop, op, loops);
     return(nop);
 }
 

@@ -28,6 +28,8 @@
 #include "material.h"
 #include "expr.h"
 #include "matrix.h"
+#include "skel.h"
+#include "mesh_trial.h"
 
 #define Alloc(P,O,N) if(P) free(P); P = scalloc( O, N);
 #define Free(P)      if(P) free(P); P=0;
@@ -90,11 +92,34 @@ int min_ok;
     int get_connect();
     int *reorder;
     int retval = FALSE;
+    int bad_triangle;
 
     /*move the points to their new locations*/
     if ( (imptosol[XVEL] != -1) || (delta != 0.0) ) {
-	move_point( delta );
+        if (!mesh_trial_move(delta, &bad_triangle)) {
+            fprintf(stderr,"[mesh-motion] reject dt=%.17g triangle=%d before mutation\n",
+                    delta,bad_triangle);
+            if(getenv("SUPREM4_MOTION_TRACE")) {
+                static int saved=0;
+                if(!saved && bad_triangle>=0) {
+                    int j,n,p;
+                    saved=1;
+                    ig2_write("first_rejected_motion.str",0,1.0);
+                    for(j=0;j<num_vert(bad_triangle);j++) {
+                        n=vert_tri(bad_triangle,j);p=pt_nd(n);
+                        fprintf(stderr,"[motion-trace] region=%d material=%d node=%d point=%d x=%.17g y=%.17g vx=%.17g vy=%.17g owners=%d\n",
+                            reg_tri(bad_triangle),mat_nd(n),n,p,
+                            (double)xcord(p),(double)ycord(p),
+                            (double)pt[p]->vel[0],(double)pt[p]->vel[1],num_nd(p));
+                    }
+                }
+            }
+            if (min_ok) panic("invalid mesh at diffusion trial entry");
+            return -1;
+        }
+        mesh_embedding_trace("trial motion");
 	geom("during update of diffusion");
+        mesh_embedding_trace("trial geometry and flips");
     }
 
     if ( doit || UpdateSymbolic ) {
@@ -596,6 +621,7 @@ assem_map( )
     register int i, j, k;
     register int nx1, nx2, m;
     register int aoff = ia[nn] - ia[0];
+    struct LLedge *boundary;
 
     bcnum = 0;
     Alloc( bval, struct bound_str, nn );
@@ -643,6 +669,13 @@ assem_map( )
 		    m = nd_edg(nx1,0);
 		    nd_edg(nx1,0) = nd_edg(nx1,1);
 		    nd_edg(nx1,1) = m;
+		    /* Matrix ordering must preserve each skeleton's directed
+		     * traversal when an edge's endpoint order is reversed. */
+		    for (k = 0; k < num_skel_edg(nx1); k++) {
+			boundary = eindex(skel_edg(nx1,k), nx1);
+			if (!boundary) panic("missing boundary edge in assembly map");
+			boundary->iscc = !boundary->iscc;
+		    }
 		}
 	    }
 	}

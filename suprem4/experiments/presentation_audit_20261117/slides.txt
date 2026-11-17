@@ -1,0 +1,3118 @@
+                              Sub-CMOS Process
+
+ ROCHESTER INSTITUTE OF TECHNOLOGY
+   MICROELECTRONIC ENGINEERING
+
+        RIT’s Sub-CMOS Process
+             (Leff < 1.0 µm)
+         Dr. Lynn Fuller
+Suraj Bhaskaran and Ivan Puchades
+                         Microelectronic Engineering
+                       Rochester Institute of Technology
+                          82 Lomb Memorial Drive
+                          Rochester, NY 14623-5604
+                              Tel (585) 475-2035
+                             Fax (585) 475-5041
+                         Email: Lynn.Fuller@rit.edu
+                      Webpage: http://people.rit.edu/lffeee
+
+   Rochester Institute of Technology
+   Microelectronic Engineering
+                                                                     9-10-15 SubCmos2014.ppt
+
+                              © September 10, 2015 Dr. Lynn Fuller          Page 1
+                                      Sub-CMOS Process
+
+                                  ADOBE PRESENTER
+
+
+This PowerPoint module has been published using Adobe Presenter.
+Please click on the Notes tab in the left panel to read the instructors
+comments for each slide. Manually advance the slide by clicking
+on the play arrow or pressing the page down key.
+
+
+
+
+           Rochester Institute of Technology
+           Microelectronic Engineering
+
+
+                                      © September 10, 2015 Dr. Lynn Fuller   Page 2
+                           Sub-CMOS Process
+
+                                    OUTLINE
+
+
+            Introduction
+            Process Description
+            Well Doping Calculations
+            Layout Design Layers and Masks
+            Subµ CMOS Process Details
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 3
+                                       Sub-CMOS Process
+
+                                         INTRODUCTION
+
+RIT is supporting two different CMOS process technologies. The
+older p-well CMOS and SMFL-CMOS have been phased out. The
+SUB-CMOS process is used for standard 3 Volt Digital and Analog
+integrated circuits. This is the technology of choice for teaching
+circuit design and fabricating CMOS circuits at RIT. The ADV-
+CMOS process is intended to introduce our students to process
+technology that is close to industry state-of-the-art. This process is
+used to build test structures and develop new technologies at RIT.
+RIT p-well CMOS                                   l = 4 µm                    Lmin = 8 µm
+RIT SMFL-CMOS                                     l = 1 µm                    Lmin = 2 µm
+RIT Subµ-CMOS                                     l = 0.5 µm                  Lmin = 1.0 µm
+RIT Advanced-CMOS                                 l = 0.25 µm                 Lmin = 0.5 µm
+
+            Rochester Institute of Technology
+            Microelectronic Engineering
+
+
+                                       © September 10, 2015 Dr. Lynn Fuller        Page 4
+          Sub-CMOS Process
+
+     MAJOR CONSIDERATIONS
+
+Well Doping
+Substrate Doping and Type
+Well Formation
+Channel Stop
+Isolation Technology
+Gate Oxide Thickness
+Gate Doping
+Threshold Voltages
+Side Wall Spacers and Low Doped Drain (LDD)
+Drain/Source Junction Depth
+Well Contacts
+Silicides
+Rochester Institute of Technology
+Metal Technology
+Microelectronic  Engineering
+
+
+          © September 10, 2015 Dr. Lynn Fuller   Page 5
+                                         Sub-CMOS Process
+
+                   WELL/JUNCTION CALCULATIONS
+
+   Built in Voltage:                  = 0.55 + KT/q ln (N /ni)
+   Width of Space Charge Layer,      Wsc= [ (2/q) (+VR) (1/N )]1/2
+            W on lightly doped side:
+   Maximum Electric Field:            = - [(2q/) ( +VR ) (N )]1/2
+
+
+Example:                                                    L
+  = 0.55 + 0.026 ln (3E16/1.45E10) = 0.96
+
+  Wsc = [ (2(11.7)(8.85-14)/1.6E-19) (0.96) (1/3E16 )]1/2
+                                                                                               Leff
+    = 0.20 µm or 0.43µm @ VR=3.3V                                                         Wsc
+                  Leff = 1.0-0.20-0.43 = ~ 0.37 µm                                        Long Channel
+                                                                                            Behavior
+  Eo = - [(2(8.85E-14(11.7))(0.96+3.3)(3E16)]1/2
+           = -1.99E5 V/cm
+                =   = 8.85E-12 (11.7) F/m
+              Rochester Institute of Technology
+                      o r Engineering
+              Microelectronic
+                                                                                Note: Eomax = 3E5 V/cm
+                          8.85E-14 (11.7) F/cm
+                                         © September 10, 2015 Dr. Lynn Fuller        Page 6
+                                        Sub-CMOS Process
+
+          WELL/JUNCTION CALCULATIONS FOR LDD
+
+ Built in Voltage:               = KT/q ln (Na Nd/ni2)
+Width of Space Charge Layer: Wsc= [(2/q)(+VR)(1/Na + 1/Nd )]1/2
+ Electric Field:                = - [(2q/)(+VR)(NaNd/(Na+Nd))]1/2
+Example:
+ = 0.026 ln (3E16 3E16/1.45E102) = 0.75
+ Wsc @ 0V=[(2(11.7)(8.85-14)/1.6E-19)(0.75)(1/3E16+1/3E16 )]1/2
+     = 0.26 µm and 0.13 µm on each side of the junction
+ Wsc @ 3.3V=[(2(11.7)(8.85E-14)/1.6E-19)(0.75+3.3)(1/1.5E16 )]1/2
+     = 0.60 µm and 0.30 µm on each side of the junction
+ Eo = - [(2(8.85E-14(11.7))(0.75+3.3)(1.5E16)]1/2
+  =-1.37E5V/cm                   Gate
+                   Source at 0 V         Drain at 3.3V
+
+                                                    Leff                        = o r = 8.85E-12 (11.7) F/m
+             Rochester Institute of Technology
+             Microelectronic Engineering
+                               Leff = 1.0-0.13-0.30 = ~ 0.57µm
+                                        © September 10, 2015 Dr. Lynn Fuller           Page 7
+                                     Sub-CMOS Process
+
+Quiz 1 Question 1: Increasing the well surface concentration
+                            will
+   A) result in larger space charge layer in the MOSFET
+   B) allow for smaller MOSFET’s
+   C) not change Leff of the MOSFET
+
+ Your answer:
+                You did not answer this question
+ The correct answer is:   completely
+                                     You answered this correctly!
+
+  You must answer the question
+       before continuing
+   Correct - Click anywhere to                    Incorrect - Click anywhere to
+             continue                                        continue
+                                                                            Submit
+                                                                              Submit    Clear
+                                                                                           Clear
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller      Page 8
+                                 Sub-CMOS Process
+
+Quiz 1 Question 2: Low Doped Drain/Source provides
+
+A) larger space charge layer widths, lower electric
+   field, smaller Leff
+   smaller space charge layer widths, larger
+B)
+   electric field, smaller Leff
+C) larger space charge layer widths, lower electric
+   field, Larger Leff
+D) smaller space charge layer widths, larger
+   electric field, smaller Leff
+
+
+ Correct - Click anywhere to                                  Incorrect - Click anywhere to
+           continue
+               Your answer:                                              continue
+
+                     You did not answer this question
+                       You answered this correctly!
+                     TheYou
+                         correct
+                             mustanswer
+                                completely
+                                  answeris:the question                   Submit
+                                                                            Submit    Clear
+                                                                                         Clear
+                              before continuing
+      Rochester Institute of Technology
+      Microelectronic Engineering
+
+
+                                 © September 10, 2015 Dr. Lynn Fuller        Page 9
+                                Sub-CMOS Process
+
+                                              Quiz1
+
+    Your Score {score}
+
+
+     Max Score {max-score}
+
+
+Number of Quiz {total-attempts}
+     Attempts
+
+
+          Question Feedback/Review Information Will
+                        Appear Here
+
+
+                                                                       Continue      Review Quiz
+
+     Rochester Institute of Technology
+     Microelectronic Engineering
+
+
+                                © September 10, 2015 Dr. Lynn Fuller       Page 10
+                                   Sub-CMOS Process
+
+                                     RIT SUBµ CMOS
+
+       RIT Subµ CMOS
+150 mm wafers – p-type
+Nsub = 1E15 cm-3
+Nn-well = 3E16 cm-3                                                          L
+Xj = 2.5 µm
+Np-well = 1E16 cm-3
+Xj = 3.0 µm
+LOCOS
+Field Ox = 6000 Å                                                          Long
+Xox = 150 Å                                                               Channel
+n-type Poly on both transistors                                           Behavior
+Lmin= 1.0 µm
+LDD/Side Wall Spacers                                          3.3 Volt Technology
+2 Layers Aluminum                                              VT’s = +/- 0.75 Volt
+                                                               Robust Process (always works)
+        Rochester Institute of Technology
+        Microelectronic Engineering                            Fully Characterized (SPICE)
+                                   © September 10, 2015 Dr. Lynn Fuller     Page 11
+                                     Sub-CMOS Process
+
+                                       RIT SUBµ CMOS
+
+                     NMOSFET                                            PMOSFET
+     N+ Poly
+                                              0.75 µm Aluminum
+
+
+                                                     6000 Å
+                                                   Field Oxide
+                   N+ D/S                                                   LDD P+ D/S     n+ well
+p+ well                               LDD                                                  contact
+contact                                 P-well              N-well
+             Channel Stop
+
+
+                       p-type Substrate 10 ohm-cm
+
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller        Page 12
+                                    Sub-CMOS Process
+
+                              ASML 5500/200 STEPPER
+
+
+
+
+NA = 0.48 to 0.60 variable
+= 0.35 to 0.85 variable
+    With Variable Kohler, or
+Variable Annular illumination
+Resolution = K1 l/NA
+  = ~ 0.35µm
+       for NA=0.6, =0.85
+Depth of Focus = k2 l/(NA)2                               i-Line Stepper l = 365 nm
+  = > 1.0 µmRochester
+               for Institute
+                        NA       = 0.6
+                               of Technology
+             Microelectronic Engineering
+                                                             22 x 27 mm Field Size
+                                    © September 10, 2015 Dr. Lynn Fuller   Page 13
+                           Sub-CMOS Process
+
+           JOHN GALT CMOS TESTCHIP
+
+
+
+
+                                                                            2010
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 14
+                     RIT SUB-CMOS PROCESS
+
+        NMOSFET                     PMOSFET
+   N+ Poly                                                          LVL 6 – P-LDD
+                    0.75 µm Aluminum
+                                                  LVL 1 – n-WELL
+
+                        6000 Å
+                      Field Oxide                                   LVL 7 – N-LDD
+p+ well N+ D/S LDD            LDDP+ D/S n+ well
+                                        contact    LVL 2 - ACTIVE
+contact         P-well N-well
+     Channel Stop
+                                                                     LVL 8 - P+ D/S
+         P-type Substrate 10 ohm-cm               LVL 3 - STOP
+
+                    POLY
+                     ACTIVE          P SELECT                       LVL 9 - N+ D/S
+             CC                                   LVL 4 - PMOS VT
+
+
+
+                  METAL                                              LVL 8 - CC
+
+                                                   LVL 5 - POLY
+N SELECT
+                                N-WELL            11 PHOTO
+                                                   LEVELS           LVL 9 - METAL
+                                 Sub-CMOS Process
+
+                                          ASML MASK
+
+
+
+
+     Chrome Side                                              Non Chrome Side
+     Mirrored 90°                                        As loaded into Reticle Pod,
+Chip Bottom at Bottom                                    Chrome Down, Reticle Pre-
+                                                         Alignment Stars Sticking out
+      Rochester Institute of Technology
+      Microelectronic Engineering                                  of Pod
+                                 © September 10, 2015 Dr. Lynn Fuller   Page 16
+                                                  Sub-CMOS Process
+
+                                        SUB-CMOS 150 PROCESS
+
+SUB-CMOS Versions 150
+1. CL01                            21. IM01- stop                     41. ET07 – Resist Strip           61. ET26 - CC Etch
+2. OX05--- pad oxide, Tube 4       22. ET07 Resist Strip              42. PH03 – 6 - n-LDD              62. ET07 – Resist Strip
+3. CV02- Si3N4-1500Å               23. CL01                           43. IM01                          63. CL01 Special - Two HF Dips
+4. PH03 –1- JG nwell               24. OX04 – field, Tube 1           44. ET07 – Resist Strip           64. ME01 – Metal 1 Dep
+5. ET29 – Nitride Etch             25. ET19 – Hot Phos Si3N4          45. PH03 – 7 - p-LDD              65. PH03 -11- metal
+6. IM01 – n-well                   26. ET06 – Oxide Etch              46. IM01                          66. ET15 – plasma Etch Al
+7. ET07 – Resist Strip             27. OX04 – Kooi, Tube 1            47. ET07 – Resist Strip           67. ET07 Resist Strip
+8. CL01                            28. IM01 – Blanket Vt              48. CL01                          68. SI01 - Sinter
+9. OX04 – well oxide, Tube 1       29. PH03 – 4-PMOS Vt Adjust        49. CV03 –TEOS, 5000A             69. CV03 – TEOS- 4000Å
+10. ET19 – Hot Phos Si3N4          30. IM01 - Vt                      50. ET10 - Spacer Etch            70. PH03 – VIA
+11. IM01 – p-well                  31. ET07 – Resist Strip            51. PH03 – 8 - N+D/S              71. ET26 – Via Etch
+12. OX06 – well drive, Tube 1      32. ET06 – Oxide Etch              52. IM01 – N+D/S                  72. ET07 – Resist Strop
+13. ET06 - Oxide Etch              33. CL01                           53. ET07 – Resist Strip           73. ME01 – Metal 2 Dep
+14. CL01                           34. OX06 – gate, Tube 4            54. PH03 – 9 P+ D/S               74. PH03- M2
+15. OX05 – pad oxide, Tube 4       35. CV01 – Poly 5000A              55. IM01 – P+ D/S                 75. ET15 – plasma Etch Al
+16. CV02 – Si3N4 -1500 Å           36. IM01 - dope poly               56. ET07 – Resist Strip           76. ET07 - Resist Strip
+17. PH03 – 2 – JG Active           37. OX08 – Anneal, Tube 3          57. CL01 Special - No HF Dip      77. SEM1
+18. ET29 – Nitride Etch            38. DE01 – 4 pt Probe              58. OX08 – DS Anneal, Tube 2      78. TE01
+19. ET07 – Resist Strip            39. PH03-5-JG poly                 59. CV03 – TEOS, 4000A            79. TE02
+20. PH03 - -Pwell Stop             40. ET08 – Poly Etch               60. PH03 – 10 CC                  80. TE03
+                                                                                                        81. TE04
+
+
+                       Rochester Institute of Technology
+                       Microelectronic Engineering
+                                                                                                                       2-6-13
+                                                  © September 10, 2015 Dr. Lynn Fuller               Page 17
+                           Sub-CMOS Process
+
+                         STARTING WAFER
+
+
+
+
+     (100) P-type Silicon Wafer 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 18
+                                       Sub-CMOS Process
+
+                                 TENCORE SURF SCAN
+
+
+Gives total surface particle count and
+count in 4 bins <0.5, 0.5 to 2.0, 2.0-
+10, >10. Bin boundary can be
+selected. Edge exclusion eliminated
+count from near the edge of the
+wafer.
+
+
+
+
+            Rochester Institute of Technology
+            Microelectronic Engineering
+
+
+                                       © September 10, 2015 Dr. Lynn Fuller   Page 19
+                               Sub-CMOS Process
+
+   EXAMPLE SURFACE PARTICLE COUNT DATA
+
+
+
+
+Before Cleaning (75 mm)                                               After Cleaning (75 mm)
+Size Range (µm) Count                                                 Size Range (µm) Count
+0.2 - 0.5         104                                                 0.2 - 0.5         10
+0.5 - 2.0         562                                                 0.5 - 2.0          4
+2.0 - 10           19                                                 2.0 - 10           3
+>10                 2                                                 >10                0
+    Rochester Institute of Technology
+    Microelectronic Engineering
+
+
+                               © September 10, 2015 Dr. Lynn Fuller            Page 20
+                                Sub-CMOS Process
+
+                                         RCA CLEAN
+
+    APM
+NH4OH - 1part
+H2O2 - 1parts                               DI water                      H20 - 50
+H2O - 17parts                             rinse, 5 min.                    HF - 1
+70 °C, 15 min.                                                            30 sec.
+                                             HPM
+                                          HCL - 1part
+   DI water                              H2O2 - 1parts                    DI water
+ rinse, 5 min.                           H2O - 17parts                  rinse, 5 min.
+                                         70 °C, 15 min.
+                                     What does RCA
+ SPIN/RINSE                            stand for?
+    DRY                               ANSWER                                 PLAY
+                                                                       Explain the Process
+     Rochester Institute of Technology
+     Microelectronic Engineering
+
+
+                                © September 10, 2015 Dr. Lynn Fuller     Page 21
+                                   Sub-CMOS Process
+
+                                 RCA CLEAN TOOLS
+
+
+Megasonics Wet Bench
+Spin/Rinse/Dry Tool (SRD)
+
+
+
+
+        Rochester Institute of Technology
+        Microelectronic Engineering
+
+
+                                   © September 10, 2015 Dr. Lynn Fuller   Page 22
+                                  Sub-CMOS Process
+
+                             PAD OXIDE GROWTH
+
+
+                                           Stress Relief for subsequent nitride layer
+                                           Etch stop for plasma etch of nitride
+                                           Screening oxide for n-well implant
+
+Pad Oxide, 500A
+Bruce Furnace 04 Recipe 250
+
+
+Substrate 10 ohm-cm
+
+
+
+       Rochester Institute of Technology
+       Microelectronic Engineering
+
+
+                                  © September 10, 2015 Dr. Lynn Fuller   Page 23
+                                                     Sub-CMOS Process
+
+              BRUCE FURNACE RECIPE 250 500Å DRY OXIDE
+
+     Recipe #250
+                                                                    1000°C
+
+    Boat Out Boat In                                                                                                   Boat Out
+    Load    Push     Stabilize                   Ramp-Up               Soak             Anneal         Ramp-Down         Pull
+            800 °C 800 °C                                                                                               800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2            Interval 3          Interval 4      Interval 5   Interval 6     Interval 7
+
+  Any        12 min         15 min                   20 min               40min         5min         40 min               12 min
+  0 lpm      10 lpm         10 lpm                   5 lpm                10 lpm        15 lpm       10 lpm               5 lpm
+  none       N2             N2                       O2                   O2            N2           N2                   N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller            Page 24
+                              Sub-CMOS Process
+
+MEASURE OXIDE WITH TENCORE SPECROMAP
+
+
+
+                                                                       Record:
+
+                                                                       Mean
+                                                                       Std Deviation
+                                                                       Min
+                                                                       Max
+                                                                       No of Points
+
+
+
+   Rochester Institute of Technology
+   Microelectronic Engineering
+
+
+                              © September 10, 2015 Dr. Lynn Fuller   Page 25
+                                      Sub-CMOS Process
+
+                        DEPOSIT SILICON NITRIDE
+
+Nitride Target 1500A                                           Recipe FACTORY NITRIDE 810
+LPCVD, 810C, Rate~60Å/min                                      Temp = 810°C
+Time~25 min                                                    Pressure = 300 mTorr
+                                                               DCS Flow = 60 sccm
+                                                               Ammonia Flow = 150 sccm
+
+
+
+
+Substrate 10 ohm-cm
+
+
+
+           Rochester Institute of Technology
+           Microelectronic Engineering
+
+
+                                      © September 10, 2015 Dr. Lynn Fuller   Page 26
+                           Sub-CMOS Process
+
+               LEVEL 1 PHOTO - N-WELL
+
+
+
+
+             P-Type Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 27
+                               Sub-CMOS Process
+
+SSI COAT AND DEVELOP TRACK FOR 6” WAFERS
+
+
+
+
+              Use Recipe: Coat.rcp and Develop.rcp
+    Rochester Institute of Technology
+    Microelectronic Engineering
+
+
+                               © September 10, 2015 Dr. Lynn Fuller   Page 28
+                                           Sub-CMOS Process
+
+         LITHOGRAPHY FOR SUB-CMOS 150 PROCESS
+
+Lvl   Level       Coat               Spin RPM Xpr Dose   Dev                                  Dev     Hard Bake
+                                                       2
+#     Name        Recipe                      µm mj/cm Recipe                                 Time
+1     Nwell       coat                    3250           1.0       250            develop     50s     140C/1min
+2     Active      coat                    3250           1.0       250            devfac      60s     140C/1min
+3     Stop        coat                    3250           1.0       250            devfac      50s     140C/1min
+4     pmosVt      coat                    3250           1.0       250            devfac      60s     140C/1min
+5     Poly        coat                    3250           1.0       250            develop     50s     140C/1min
+6     NLDD        coat                    3250           1.0       250            develop     50s     140C/1min
+7     PLDD        coat                    3250           1.0       250            develop     50s     140C/1min
+8     N+DS        coat                    3250           1.0       250            develop     50s     140C/1min
+9     P+DS        coat                    3250           1.0       250            develop     50s     140C/1min
+10    CC          coat                    3250           1.0       250            devCC       120s    140C/1min
+11    Metal 1     coatmtl                 2000           1.3       250            devmtl      68s     140C/2min
+                Rochester Institute of Technology
+                Microelectronic Engineering
+
+
+                                           © September 10, 2015 Dr. Lynn Fuller             Page 29
+                                    Sub-CMOS Process
+
+                                       ASML 5500/200
+
+
+
+
+NA = 0.48 to 0.60 variable
+= 0.35 to 0.85 variable
+    With Variable Kohler, or
+Variable Annular illumination
+Resolution = K1 l/NA
+  = ~ 0.35µm
+       for NA=0.6, =0.85
+Depth of Focus = k2 l/(NA)2                               i-Line Stepper l = 365 nm
+  = > 1.0 µmRochester
+               for Institute
+                        NA       = 0.6
+                               of Technology
+             Microelectronic Engineering
+                                                             22 x 27 mm Field Size
+                                    © September 10, 2015 Dr. Lynn Fuller   Page 30
+                               Sub-CMOS Process
+
+                     ADD WAFER IDNUMBER
+
+
+
+F110422
+  D1
+
+
+F110422
+  D2
+
+
+F110422
+  D3
+
+
+
+
+    Rochester Institute of Technology
+    Microelectronic Engineering
+
+
+                               © September 10, 2015 Dr. Lynn Fuller   Page 31
+                                      Sub-CMOS Process
+
+       EXPOSE ID NUMBER ON FRONT OFWAFER
+
+
+
+   Black Plastic
+ And Transparency
+
+
+
+
+                                                                               Karl Suss Aligner
+After exposure in the ASML, place
+black plastic light shield with ID
+number (transparency) on the
+wafer. Use clear glass plate to hold
+flat and expose on Karl Suss Tool
+for 30s. Develop on SSI track.
+
+           Rochester Institute of Technology                           Wafer, Black Plastic Light Shield and
+           Microelectronic Engineering
+                                                                         Glass Plate on Karl Suss Chuck
+                                      © September 10, 2015 Dr. Lynn Fuller         Page 32
+                                     Sub-CMOS Process
+
+       MASK ID AND STEPPER JOB FOR JOHN GALT PRODUCT
+
+Level #   Step#            Mask ID                        Stepper Job                 Level
+  1         4          JG NWELL                 Factory Sub CMOS            Nwell
+  2        17          JG ACT                   Factory Sub CMOS            Active
+  3        20          JG STOP                  Factory Sub CMOS            Stop
+  4        29          JG VT                    Factory Sub CMOS            pmosVt
+  5        39          JG POLY                  Factory Sub CMOS            Poly
+  6        42          JG NLDD                  Factory Sub CMOS            NLDD
+  7        45          JG PLDD                  Factory Sub CMOS            PLDD
+  8        51          JG N+D/S                 Factory Sub CMOS            N+DS
+  9        54          JG P+D/S                 Factory Sub CMOS            P+DS
+  10       60          JG CC                    Factory Sub CMOS            CC
+  11       65          JG M1                    Factory Sub CMOS            Metal 1
+  12       70          JG VIA                   Factory Sub CMOS            VIA
+            Rochester Institute of Technology
+  13       74          JGEngineering
+            Microelectronic    M2               Factory Sub CMOS            Metal 2
+                                     © September 10, 2015 Dr. Lynn Fuller   Page 33
+                                Sub-CMOS Process
+
+                       PLASMA ETCH NITRIDE
+
+
+
+                                                                       N-well
+
+
+
+Nitride Etch: SF6 plasma
+LAM 490 Etcher, Etch Rate ~1000 Å/min
+
+
+                  P-Type Substrate 10 ohm-cm
+
+
+     Rochester Institute of Technology
+     Microelectronic Engineering
+
+
+                                © September 10, 2015 Dr. Lynn Fuller            Page 34
+                                      Sub-CMOS Process
+
+                             PLASMA ETCH TOOL
+
+Lam 490 Etch Tool
+Plasma Etch Nitride (~ 1500 Å/min)
+SF6 flow = 200 sccm
+Pressure= 260 mTorr
+Power = 125 watts
+Time=thickness/rate
+Use end point detection capability
+This system has filters at 520 nm
+and 470 nm. In any case the color
+of the plasma goes from pink/blue
+to white/blue once the nitride is
+removed.
+
+           Rochester Institute of Technology
+           Microelectronic Engineering
+
+
+                                      © September 10, 2015 Dr. Lynn Fuller   Page 35
+                                                      Sub-CMOS Process
+
+                                                  LAM 490 END POINT
+
+                           EPD Total Film Etch (1483A Nitride, 460A Pad oxide)
+
+                   400
+                   350
+                   300
+
+
+
+
+Signal Intensity
+                                                       85%Trigger
+                                                                                              520nm
+                   250
+                   200
+                                                                                                                      #12
+                   150
+                   100
+                    50            Nitride                      Pad Oxide                       Silicon
+                     0
+                   -50 0               50               100             150             200      250            300
+                                                                 Time [sec]
+
+                           Rochester Institute of Technology
+                           Microelectronic Engineering
+
+
+                                                      © September 10, 2015 Dr. Lynn Fuller            Page 36
+                                     Sub-CMOS Process
+
+                                 LAM 490 END POINT
+
+Process: Step 1 –                 260mTorr; 0W,
+                                  200sccm SF6,
+                                  Max Time = 1 min, Time Only
+Process: Step 2 –                 260mTorr; 125W,
+                                  200sccm SF6,
+                                  Max Time = 2min 30sec, Endpoint & Time
+Process: Step 3 –                 260mTorr; 125W,
+                                  200sccm SF6,
+                                  Over etch – 20%
+Endpoint Parameters – Sampling A (ch12 @ 520nm)
+                  Active during step 02
+                  Delay 90sec before normalizing
+                  Normalize for 10sec
+                  Trigger at 90%
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller   Page 37
+                           Sub-CMOS Process
+
+                          N-WELL IMPLANT
+
+
+
+
+                                                                  9.5e12, 125keV, P31
+
+
+
+             P-Type Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller          Page 38
+                                           Sub-CMOS Process
+
+         IMPLANT MASKING THICKNESS CALCULATOR
+
+Rochester Institute of Technology                                                 Lance Barron
+Microelectronic Engineering                                                       Dr. Lynn Fuller
+     11/20/2004
+
+IMPLANT MASK CALCULATOR                                            Enter 1 - Yes      0 - No in white boxes
+
+DOPANT SPECIES                                      MASK TYPE                                ENERGY
+    B11        0                                     Resist               1                    125       KeV
+    BF2        0                                      Poly                0
+    P31        1                                     Oxide                0
+                                                     Nitride              0
+
+Thickness to Mask >1E15/cm3 Surface Concentration                                             8279.002 Angstroms
+
+
+
+
+                Rochester Institute of Technology
+                Microelectronic Engineering
+
+
+                                           © September 10, 2015 Dr. Lynn Fuller           Page 39
+                                 Sub-CMOS Process
+
+VARIAN 350 D ION IMPLANTER (4” AND 6” WAFERS)
+
+
+
+
+      Rochester Institute of Technology
+      Microelectronic Engineering
+
+
+                                 © September 10, 2015 Dr. Lynn Fuller   Page 40
+                                     Sub-CMOS Process
+
+     PHOTORESIST ASH, RCA CLEAN AND, N-WELL
+            MASKING OXIDE GROWTH
+
+
+
+
+                                                                            3000 Å
+                                                            N-well
+Oxide, 3000A
+Bruce Furnace01 Recipe 330
+
+                       P-Type Substrate 10 ohm-cm
+
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller      Page 41
+                           Sub-CMOS Process
+
+     OXIDE THICKNESS CALCULATOR
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 42
+                                                     Sub-CMOS Process
+
+          BRUCE FURNACE RECIPE 330 – STEAM OXIDE 3,000Å
+
+     Recipe #330 Lfull 3000 A Steam Ox
+                                                                          1000°C
+
+    Boat Out Boat In                                                                                         Boat Out
+    Load    Push     Stabilize                Ramp-Up            Flood        Soak Anneal      Ramp-Down     Pull
+            800 °C 800 °C                                                                                         800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2 Interval 3 Interval 4 Interval 5 Interval 6            Interval 7   Interval 8
+
+  Any        12 min         15 min              20 min        5 min       50 min      5 min      40 min      12 min
+  0 lpm      10 lpm         10 lpm              5 lpm         10 lpm      3.6/2.0 lpm 15 lpm     10 lpm      5 lpm
+  none       N2             N2                  N2            O2          O2/H2       N2         N2          N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                                          Steam Oxide Growth, Target 3000 Å
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller        Page 43
+                           Sub-CMOS Process
+
+          MEASURE OXIDE THICKNESS
+
+
+                                                          Record:
+                                                          Color =
+                                                          Color Chart Thickness =   Å
+                                                          Nanospec Thickness =      Å
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller        Page 44
+                                Sub-CMOS Process
+
+FACTORY THICKNESS MEASUREMENT LOCATIONS
+
+
+
+
+                              X5                                   X4
+
+
+                                                 X1
+
+
+                              X2                                   X3
+
+
+
+
+     Rochester Institute of Technology
+     Microelectronic Engineering
+
+
+                                © September 10, 2015 Dr. Lynn Fuller    Page 45
+                           Sub-CMOS Process
+
+                                    SPC CHARTS
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 46
+                           Sub-CMOS Process
+
+MEGASONIC RCA CLEAN, SRD & ASHER
+
+
+
+
+              RCA Clean Bench
+Rochester Institute of Technology
+Microelectronic Engineering                                       Branson Asher
+                           © September 10, 2015 Dr. Lynn Fuller        Page 47
+                  Sub-CMOS Process
+
+                WET ETCH NITRIDE
+
+Hot Phosphoric Acid
+Wet Nitride Etch.
+Etch Rate ~50 Å/min
+Etch 45 min.
+                                                             2750 Å
+                                         N-well
+
+
+
+
+           Substrate 10 ohm-cm
+
+    Note:        etch of Oxynitride layer prior to the Hot Phos
+     Rochester Institute of Technology
+
+    etch     removes 250Å of the 3000Å oxide.
+     Microelectronic Engineering
+
+
+                  © September 10, 2015 Dr. Lynn Fuller   Page 48
+                                          Sub-CMOS Process
+
+               HOT PHOSPHORIC ACID ETCH BENCH
+
+
+Include all Device Wafers
+Warm up Hot Phosphoric Acid pot to ~165º C
+Etch Oxynitride in BOE if appropriate
+   10:1 BOE for ~30sec. Rinse in DI, 5 min
+Rinse, SRD
+Use Teflon boat to place wafers in acid bath
+“U” shape handle allows cover to close tightly
+   3500Å +/-500  90 minutes
+   1500Å +/- 500  45minutes
+   Etch rate of ~80 Å/min
+Rinse for 5 minutes in Cascade Rinse
+Spin/Rins/Dry (SRD) wafers
+
+
+
+
+               Rochester Institute of Technology
+               Microelectronic Engineering
+
+
+                                          © September 10, 2015 Dr. Lynn Fuller   Page 49
+                              Sub-CMOS Process
+
+                             IMPLANT P-WELL
+
+
+
+
+                                                                         2750 Å
+                         P-well                      N-well
+
+2e13, 35keV, B11
+
+
+                P-Type Substrate 10 ohm-cm
+
+
+   Rochester Institute of Technology
+   Microelectronic Engineering
+
+
+                              © September 10, 2015 Dr. Lynn Fuller   Page 50
+                                           Sub-CMOS Process
+
+         IMPLANT MASKING THICKNESS CALCULATOR
+
+Rochester Institute of Technology                                                 Lance Barron
+Microelectronic Engineering                                                       Dr. Lynn Fuller
+     11/20/2004
+
+IMPLANT MASK CALCULATOR                                            Enter 1 - Yes      0 - No in white boxes
+
+DOPANT SPECIES                                      MASK TYPE                                ENERGY
+    B11        1                                     Resist               0                     35       KeV
+    BF2        0                                      Poly                0
+    P31        0                                     Oxide                1
+                                                     Nitride              0
+
+Thickness to Mask >1E15/cm3 Surface Concentration                                             2530.241 Angstroms
+
+
+
+
+                Rochester Institute of Technology
+                Microelectronic Engineering
+
+
+                                           © September 10, 2015 Dr. Lynn Fuller           Page 51
+                               Sub-CMOS Process
+
+B11 IMPLANT FOR BORON THRESHOLD ADJUSTS,
+               STOP, P-WELL
+
+                                                                      BF2
+
+         I µA
+                                                USE THIS PEAK
+    50
+
+    40                             B11
+                                                           BF+
+    30
+
+    20                       B10                                                 PLAY
+    10
+
+                                10      11           19       30      48 49
+
+    Rochester Institute of Technology
+                                         ION MASS (AMU)
+    Microelectronic Engineering
+
+
+                               © September 10, 2015 Dr. Lynn Fuller    Page 52
+                                                                    Sub-CMOS Process
+
+                                                    ION IMPLANT RANGE CHART
+
+                               1
+
+
+
+
+Projected Range, Rp ,(um)
+                                                                                                           As
+
+                             10-1
+                            ~600 Å
+                                                   B
+
+                                                   P
+
+                             10-2                 Sb
+                                    10                                       100                                      1,000
+                                                                  Implantation Energy (KeV)
+                                         Rochester Institute of Technology
+                                         Microelectronic Engineering
+
+
+                                                                    © September 10, 2015 Dr. Lynn Fuller        Page 53
+                                Sub-CMOS Process
+
+  P-WELL IMPLANT PROCESS IMPROVEMENT
+
+ B11 35KeV 2E13                                                        BF2 110KeV 8E12
+                                                                           N-Well
+
+
+P-Well                                                             P-Well
+                         N-Well                                                        N-Well
+
+        Silvaco                                                             Silvaco
+      Simulation                                                           Simulation
+
+
+
+     Rochester Institute of Technology
+   Old Process
+     Microelectronic Engineering                                          New Process
+                                © September 10, 2015 Dr. Lynn Fuller         Page 54
+                           Sub-CMOS Process
+
+                                    WELL DRIVE
+
+
+         1100 C, 10 Hours, N2
+
+
+
+                      P-well
+                                                  N-well
+
+
+
+             P-Type Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 55
+                                                     Sub-CMOS Process
+
+         BRUCE FURNACE RECIPE 10 SUB-CMOS WELL DRIVE
+
+    Recipe #10                                                                                         Verified:12-8-04
+                                                                   1100°C
+
+   Boat Out Boat In                                                                                          Boat Out
+   Load     Push    Stabilize                   Ramp-Up               Soak          Anneal    Ramp-Down           Pull
+            800 °C 800 °C                                                                                          800 °C
+
+   25 °C
+Interval 0   Interval 1      Interval 2            Interval 3      Interval 4 Interval 5 Interval 6           Interval 7
+
+ Any         12 min       15 min                   30 min                600 min       5 min  60 min           12 min
+ 0 lpm       10 lmp       10 lpm                   10 lpm                10 lpm        10 lpm 10 lpm           5 lpm
+ none        N2           N2                       N2                    N2            N2     N2                N2
+
+    At the end of a run the furnace returns to Interval 0 which is set for
+    boat out, 25 °C and no gas flow. The furnace waits in that state
+    until someone aborts the current recipe or loads a new recipe.
+            Sub-CMOS Well Drive, No Oxide Growth, Tube 1
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller          Page 56
+                           Sub-CMOS Process
+
+                           ETCH ALL OXIDE
+
+
+
+
+                      P-well
+                                                  N-well
+
+
+
+             P-Type Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 57
+                           Sub-CMOS Process
+
+                          GROW PAD OXIDE
+
+
+                                                    Pad Oxide, 500A
+                                                    Bruce Furnace 01 Recipe 250
+
+
+                      P-well
+                                                  N-well
+
+
+
+             P-Type Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 58
+                                                     Sub-CMOS Process
+
+              BRUCE FURNACE RECIPE 250 500Å DRY OXIDE
+
+     Recipe #250
+                                                                    1000°C
+
+    Boat Out Boat In                                                                                                   Boat Out
+    Load    Push     Stabilize                   Ramp-Up               Soak             Anneal         Ramp-Down         Pull
+            800 °C 800 °C                                                                                               800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2            Interval 3          Interval 4      Interval 5   Interval 6     Interval 7
+
+  Any        12 min         15 min                   20 min               40min         5min         40 min               12 min
+  0 lpm      10 lpm         10 lpm                   5 lpm                10 lpm        15 lpm       10 lpm               5 lpm
+  none       N2             N2                       O2                   O2            N2           N2                   N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller            Page 59
+                           Sub-CMOS Process
+
+                          DEPOSIT NITRIDE
+
+
+                                                      Nitride, 1500A
+                                                      LPCVD, 810C, 25min
+
+
+                      P-well
+                                                  N-well
+
+
+
+             Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 60
+                           Sub-CMOS Process
+
+                           PHOTO 2 ACTIVE
+
+
+
+
+                      P-well
+                                                  N-well
+
+
+
+             Substrate 10 ohm-cm
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 61
+                           Sub-CMOS Process
+
+        RIT 0.5 µm OVERLAY VERNIERS
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 62
+                                Sub-CMOS Process
+
+                                   ETCH NITRIDE
+
+
+
+
+                 1500 Å
+                           P-well
+                                                       N-well
+Nitride Etch: SF6 plasma
+LAM 490 Etcher, Etch Rate ~1000 Å/min
+
+
+
+
+     Rochester Institute of Technology
+     Microelectronic Engineering
+
+
+                                © September 10, 2015 Dr. Lynn Fuller   Page 63
+                                     Sub-CMOS Process
+
+                                 LAM 490 END POINT
+
+Process: Step 1 –                 260mTorr; 0W,
+                                  200sccm SF6,
+                                  Max Time = 2 min, Time Only
+Process: Step 2 –                 260mTorr; 125W,
+                                  200sccm SF6,
+                                  Max Time = 2min 30sec, Endpoint & Time
+Process: Step 3 –                 260mTorr; 125W,
+                                  200sccm SF6,
+                                  Over etch – 40%
+Endpoint Parameters – Sampling A (ch12 @ 520nm)
+                  Active during step 02
+                  Delay 50sec before normalizing
+                  Normalize for 10sec
+                  Trigger at 85%
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller   Page 64
+                           Sub-CMOS Process
+
+                PHOTO 3 CHANNEL STOP
+
+
+
+
+            1500 Å
+                      P-well
+                                                  N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 65
+                           Sub-CMOS Process
+
+               CHANNEL STOP IMPLANT
+
+
+
+
+            1500 Å
+                      P-well
+                                                  N-well
+
+     B11
+     Dose = 8E13
+     100 KeV
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 66
+                             Sub-CMOS Process
+
+RESIST STRIP, CLEAN, GROW FIELD OXIDE
+
+
+
+
+              1500 Å                         6500 Å
+                                           Field Oxide
+
+                                P-well              N-well
+
+
+
+
+  Rochester Institute of Technology
+  Microelectronic Engineering
+
+
+                             © September 10, 2015 Dr. Lynn Fuller   Page 67
+                                                     Sub-CMOS Process
+
+          BRUCE FURNACE RECIPE 406 – STEAM OXIDE 6,500Å
+
+     Recipe #406
+                                                                      1100°C
+
+    Boat Out Boat In                                                                                                Boat Out
+    Load    Push     Stabilize                   Ramp-Up                Soak            Anneal      Ramp-Down         Pull
+            800 °C 800 °C                                                                                            800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2 Interval 3 Interval 4 Interval 5 Interval 6              Interval 7     Interval 8
+
+  Any        12 min         15 min              30 min        5 min       65 min    5 min         55 min         15 min
+  0 lpm      10 lpm         10 lpm              5 lpm         5 lpm       3.6/2 lpm 15 lpm        10 lpm         15 lpm
+  none       N2             N2                  N2            O2          O2/H2     N2            N2             N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                    Steam Oxide Growth, Target 6,500 Å
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller         Page 68
+                           Sub-CMOS Process
+
+       ETCH NITRIDE AND PAD OXIDE
+
+
+
+
+                                           6000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 69
+                                          Sub-CMOS Process
+
+               HOT PHOSPHORIC ACID ETCH BENCH
+
+
+Include all Device Wafers
+Warm up Hot Phosphoric Acid pot to ~165º C
+Etch Oxynitride in BOE if appropriate
+   10:1 BOE for ~1 min. Rinse in DI, 5 min
+Rinse, SRD
+Use Teflon boat to place wafers in acid bath
+“U” shape handle allows cover to close tightly
+   3500Å +/-500  90 minutes
+   1500Å +/- 500  45minutes
+   Etch rate of ~80 Å/min
+Rinse for 5 minutes in Cascade Rinse
+Spin/Rins/Dry (SRD) wafers
+
+
+
+
+               Rochester Institute of Technology
+               Microelectronic Engineering
+
+
+                                          © September 10, 2015 Dr. Lynn Fuller   Page 70
+                            Sub-CMOS Process
+
+GROW SACRIFICIAL OXIDE (KOOI OXIDE)
+
+                                                    1000 Å Oxide, 900°C, Wet O2
+                                                    Bruce Furnace01 Recipe 311:
+
+
+                                            6000 Å
+                                          Field Oxide
+
+                               P-well              N-well
+
+
+
+
+ Rochester Institute of Technology
+ Microelectronic Engineering
+
+
+                            © September 10, 2015 Dr. Lynn Fuller   Page 71
+                           Sub-CMOS Process
+
+             KOOI (SACRIFICIAL) OXIDE
+
+
+
+                                                                  White ribbon problem
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller          Page 72
+                                                     Sub-CMOS Process
+
+             BRUCE FURNACE RECIPE 311 – WET OXIDE 1,000Å
+
+     Recipe #311
+                                                                     900°C
+
+    Boat Out Boat In                                                                                                   Boat Out
+    Load    Push     Stabilize Ramp-Up/O2 Purge                        Soak         Anneal          Ramp-Down          Pull
+            800 °C 800 °C                                                                                              800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2 Interval 3               4     Interval 5      Interval 6     Interval 7   Interval 8
+
+  Any        12 min         15 min              10 min        5 min       40 min        5 min          15 min             15 min
+  0 lpm      15 lpm         15 lmp              10 lpm        10 lpm      10 lpm        15 lpm         10 lpm             15 lpm
+  none       N2             N2                  O2            O2          O2/H2         N2             N2                 N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                 Wet Oxide Growth, Target 1000 Å, Kooi
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller              Page 73
+                              Sub-CMOS Process
+
+THRESHOLD VOLTAGE ADJUST IMPLANT DOSE
+
+
+
+
+   Rochester Institute of Technology
+   Microelectronic Engineering
+
+
+                              © September 10, 2015 Dr. Lynn Fuller   Page 74
+                              Sub-CMOS Process
+
+BLANKET PMOS & NMOS VT ADJUST IMPLANT
+
+  7e11, 60keV, B11
+
+
+
+                                              6000 Å
+                                            Field Oxide
+
+                                 P-well              N-well
+
+
+
+
+   Rochester Institute of Technology
+   Microelectronic Engineering
+
+
+                              © September 10, 2015 Dr. Lynn Fuller   Page 75
+                           Sub-CMOS Process
+
+                         PHOTO 4 PMOS VT
+
+
+
+
+                                           6000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 76
+                           Sub-CMOS Process
+
+                         PMOS VT IMPLANT
+
+                                                            2.6E12, 60keV, B11
+
+
+
+                                           6000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller      Page 77
+                             Sub-CMOS Process
+
+ASH RESIST, ETCH KOOI OXIDE, RCA CLEAN
+
+
+
+
+                                             5000 Å
+                                           Field Oxide
+
+                                P-well              N-well
+
+
+
+
+  Rochester Institute of Technology
+  Microelectronic Engineering
+
+
+                             © September 10, 2015 Dr. Lynn Fuller   Page 78
+                                       Sub-CMOS Process
+
+          SPECIAL RCA CLEAN (TWO 50:1 HF STEPS)
+
+PLAY       APM
+       NH4OH - 1part
+       H2O2 - 1parts                               DI water                      H20 - 50
+       H2O - 17parts                             rinse, 5 min.                    HF - 1
+       70 °C, 15 min.                                                            30 sec.
+                                                    HPM
+                                                 HCL - 1part
+          DI water                              H2O2 - 1parts                    DI water
+        rinse, 5 min.                           H2O - 17parts                  rinse, 5 min.
+                                                70 °C, 15 min.
+
+          H20 - 50                                                            SPIN/RINSE
+           HF - 1                                 DI water
+          30 sec.                               rinse, 5 min.                    DRY
+
+            Rochester Institute of Technology
+            Microelectronic Engineering          Clean includes 50:1 HF Dip twice once after each bath
+                                                 to remove chemically grown oxide
+                                       © September 10, 2015 Dr. Lynn Fuller     Page 79
+                           Sub-CMOS Process
+
+                        GROW GATE OXIDE
+
+                                                   Oxide, 150A, Dry O2
+                                                   Bruce Furnace04 Recipe 215
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 80
+                                                     Sub-CMOS Process
+
+             BRUCE FURNACE RECIPE 215 – 150Å DRY OXIDE
+
+     Recipe #215                                                                                        Verified:2-24-04
+                                                                    900°C
+
+    Boat Out Boat In                                                                                                   Boat Out
+    Load    Push     Stabilize                   Ramp-Up               Soak             Anneal         Ramp-Down         Pull
+            800 °C 800 °C                                                                                               800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2            Interval 3          Interval 4      Interval 5   Interval 6     Interval 7
+
+  Any        12 min         15 min                   10 min               45 min        5 min        20 min               15 min
+  0 lpm      10 lpm         10 lmp                   5 lpm                10 lpm        15 lpm       10 lpm               5 lpm
+  none       N2             N2                       O2                   O2            N2           N2                   N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                      Dry Oxide Growth, Target 150 Å
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller            Page 81
+                                  Sub-CMOS Process
+
+ LOCATION FOR MEASUREMENT OF GATE OXIDE
+
+Measure gate oxide thickness (~150A) in white active area
+
+
+
+
+       Rochester Institute of Technology
+       Microelectronic Engineering
+
+
+                                  © September 10, 2015 Dr. Lynn Fuller   Page 82
+                                         Sub-CMOS Process
+
+            MEASURE OXIDE QUALITY ON SCA-2500
+
+Login: FACTORY
+Password: OPER
+<F1> Operate
+<F1> Test          Center the wafer on the stage
+Select (use arrow keys on the numeric pad (far right on the keyboard)
+          space bar, page up, etc)
+          PROGRAM = FAC-P or FAC-N
+          LOT ID = HAWAII
+          WAFER NO. = C1
+          TOX = 250 (from nanospec)
+<F12> start test and wait for measurement
+<Print Screen> print results
+<F8> exit and log off
+<ESC> can be used anytime, but wait for
+          current test to be completed
+
+
+
+              Rochester Institute of Technology
+              Microelectronic Engineering
+
+
+                                         © September 10, 2015 Dr. Lynn Fuller   Page 83
+                           Sub-CMOS Process
+
+SCA MEASUREMENT OF GATE OXIDE
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 84
+                           Sub-CMOS Process
+
+                                    LPCVD POLY
+
+                                                      Polysilicon, 5000A
+                                                      LPCVD, 610C, 55 min
+
+
+                                           6000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 85
+                                     Sub-CMOS Process
+
+   LOCATION FOR POLY THICKNESS MEASUREMENT
+
+Measure poly thickness within active area using thin film stack
+#4 (poly on oxide) on nanospec
+
+
+
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller   Page 86
+                           Sub-CMOS Process
+
+                    POLYSILICON DOPING
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+            P-well                                                N-well
+
+                                                             Ion Implant P31
+                                                             Dose = 2E16
+                                                             Energy = 50KeV
+                                                             Time ~20 min at 400 µA
+                                                             Anneal Tube 3 Recipe 120
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller        Page 87
+                                                     Sub-CMOS Process
+
+               BRUCE FURNACE RECIPE 120- N+ POLY DOPE
+
+     Recipe #120                                                                                         Verified:2-24-04
+                                                                    1000°C
+
+    Boat Out Boat In                                                                                                      Boat Out
+    Load    Push     Stabilize                   Ramp-Up               Soak                    Ramp-Down                  Pull
+            800 °C 800 °C                                                                                                 800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2            Interval 3          Interval 4           Interval 6       Interval 7
+
+  Any        12 min         15 min                   20 min               15 min                   40 min                   15 min
+  0 lpm      10 lpm         10 lmp                   5 lpm                10 lpm                   10 lpm                   5 lpm
+  none       N2             N2                       N2                   N2                       N2                       N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+           N+ Poly Doping, Thin Poly, < 1 µm, No Oxide Growth
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller          Page 88
+                                   Sub-CMOS Process
+
+        MEASURE POLY SHEET RESISTANCE
+
+
+
+
+CDE Resistivity Mapper
+
+        Rochester Institute of Technology
+        Microelectronic Engineering
+
+
+                                   © September 10, 2015 Dr. Lynn Fuller   Page 89
+                           Sub-CMOS Process
+
+                      PHOTO 5 POLY GATE
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 90
+                           Sub-CMOS Process
+
+                                    POLY ETCH
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 91
+                           Sub-CMOS Process
+
+                DRYTEK QUAD RIE TOOL
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 92
+                                Sub-CMOS Process
+
+2 OF 4 CHAMBERS IN THE DRYTEK QUAD RIE TOOL
+
+
+
+
+     Rochester Institute of Technology
+     Microelectronic Engineering
+
+
+                                © September 10, 2015 Dr. Lynn Fuller   Page 93
+                            Sub-CMOS Process
+
+PLASMA ETCHING IN THE DRYTEK QUAD
+
+
+
+
+ Rochester Institute of Technology
+ Microelectronic Engineering
+
+
+                            © September 10, 2015 Dr. Lynn Fuller   Page 94
+                                          Sub-CMOS Process
+
+              ANISOTROPIC POLY GATE ETCH RECIPE
+
+Anisotropic Poly Gate Etch Recipe
+SF6 30 sccm, CHF3 30 sccm, O2 5 sccm, RF Power 160 w, Pressure 40 mTorr,
+1900 A/min (Anisotropic), Resist Etch Rate 300 A/min, Oxide Etch Rate 200 A/min
+
+Recipe Name:                          FACPOLY Step 2
+Chamber                               2
+Power                                 160 watts
+Pressure                              40 mTorr
+Gas                                   SF6
+Flow                                  30 sccm
+Gas                                   CHF3
+Flow                                  30 sccm
+Gas                                   O2           Endpoint See Video
+Flow                                  5 sccm       http://people.rit.edu/lffeee/videos.htm
+Poly Etch Rate                        1150 Å/min
+Photoresist Etch Rate:                300 Å/min
+Oxide Etch Rate:
+               Rochester Institute of 200    Å/min
+                                     Technology
+                Microelectronic Engineering
+
+
+                                          © September 10, 2015 Dr. Lynn Fuller   Page 95
+                                         Sub-CMOS Process
+
+                        POLY ETCH WITH END POINT
+
+Process: Step 1 – 325mTorr; 0 watts
+                  Gap = 1.5 cm
+                   140sccm SF6, 15 sccm O2
+                   Max Time = 2 min.
+                   Time Only
+Process: Step 2 – 325mTorr; 100 watts,
+                  Gap = 1.5 cm
+                   140sccm SF6, 15 sccm O2
+                   Max Time = 1 min. 15 sec
+                   Time or Endpoint
+                           Endpoint and Time
+                           Sampling A (ch12 @ 520nm)
+                           Active during step 02
+                           Delay 15sec before normalizing
+                           Normalize for 10sec
+                           Trigger at 90%
+Process: Step 3 – 325mTorr; 140W,
+                  Gap = 1.5 cm
+                   140sccm SF6, 15 sccm O2
+                   Overetch – 10%                                               FPOLY6K.RCP
+              Rochester Institute of Technology
+              Microelectronic Engineering
+
+
+                                         © September 10, 2015 Dr. Lynn Fuller   Page 96
+                           Sub-CMOS Process
+
+                                STRIP RESIST
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                                                Strip Photresist in Branson Asher
+                                                Using Recipe 6”FACTORY
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller    Page 97
+                           Sub-CMOS Process
+
+       PHOTO 6 LDD N-TYPE IMPLANT
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 98
+                           Sub-CMOS Process
+
+                               IMPLANT LDD
+
+                                          P31, Dose = 2.5E13, 60 KeV
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 99
+                           Sub-CMOS Process
+
+                                STRIP RESIST
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                                                Strip Photresist in Gasonics Asher
+                                                Using Recipe FF
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller    Page 100
+                           Sub-CMOS Process
+
+        PHOTO 7 LDD P-TYPE IMPLANT
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 101
+                           Sub-CMOS Process
+
+                               IMPLANT LDD
+
+                                                  B11, Dose = 4E13, E = 50 KeV
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 102
+                           Sub-CMOS Process
+
+                                    STRIP RESIT
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                                                Strip Photresist in Gasonics Asher
+                                                Using Recipe FF
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller    Page 103
+                           Sub-CMOS Process
+
+                               LPCVD OXIDE
+
+
+                                                                  Target 5000 Å
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+        ASM 6” LPCVD Tool
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller     Page 104
+                           Sub-CMOS Process
+
+                 PECVD OXIDE FROM TEOS
+TEOS Program: (Chamber A)
+Step 1
+  Setup Time = 15 sec
+  Pressure = 9 Torr
+  Susceptor Temperature= 390 C
+  Susceptor Spacing= 220 mils
+  RF Power = 0 watts
+  TEOS Flow = 400 scc
+  O2 Flow = 285 scc
+Step 2 – Deposition
+ Dep Time = 55 sec (5000 Å)
+ Pressure = 9 Torr
+ Susceptor Temperature= 390 C
+ Susceptor Spacing= 220 mils
+ RF Power = 205 watts
+ TEOS Flow = 400 scc
+ O2 Flow = 285 scc
+Step 3 – Clean
+ Time = 10 sec
+ Pressure = Fully Open
+ Susceptor Temperature= 390 C
+ Susceptor Spacing= 999 mils
+ RF Power = 50 watts
+ TEOSRochester
+        FlowInstitute
+                 = 0 sccof Technology
+ O2 Flow    = 285 scc
+      Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 105
+                             Sub-CMOS Process
+
+ETCH OXIDE TO FORM SIDE WALL SPACERS
+
+
+
+
+                                             5000 Å
+                                           Field Oxide
+
+                                P-well              N-well
+                                                                    Drytek Quad
+                                                                    Recipe FACSPCR
+                                                                    65 sccm Ar
+                                                                    65 sccm CHF3
+                                                                    5 sccm O2
+                                                                    Power = 200 watts
+                                                                    Pressure = 70 mTorr
+  Rochester Institute of Technology
+  Microelectronic Engineering                          Measure remaining oxide here
+                             © September 10, 2015 Dr. Lynn Fuller        Page 106
+                                      Sub-CMOS Process
+
+       SIDE WALL SPACER ETCH IN DRYTEK QUAD
+
+Drytek Quad
+Recipe FACSPCR
+65 sccm Ar
+65 sccm CHF3
+5 sccm O2
+Power = 200 watts
+Pressure = 70 mTorr
+Thermal Oxide Etch Rate = 330 Å/min
+LTO/TEOS Etch Rate = 1000 Å/min
+Annealed TEOS Etch Rate 400 Å/min
+Photoresist Etch Rate = 200 Å/min
+Etch 5 min, Measure remaining Oxide
+Should be less than 1000Å
+           Rochester Institute of Technology
+           Microelectronic Engineering
+
+
+                                      © September 10, 2015 Dr. Lynn Fuller   Page 107
+                           Sub-CMOS Process
+
+                             PHOTO 8 N+ D/S
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 108
+                           Sub-CMOS Process
+
+                            IMPLANT N+ D/S
+
+                    P31, Dose = 2 E15, E = 60 KeV
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 109
+                           Sub-CMOS Process
+
+                                STRIP RESIST
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                                                Strip Photresist in Branson Asher
+                                                Using Recipe 6”FACTORY
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller    Page 110
+                           Sub-CMOS Process
+
+                             PHOTO 9 P+ D/S
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 111
+                           Sub-CMOS Process
+
+                            IMPLANT P+ D/S
+
+                                         B11, Dose = 2 E15, E = 50 KeV
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 112
+                                           Sub-CMOS Process
+
+         IMPLANT MASKING THICKNESS CALCULATOR
+
+Rochester Institute of Technology                                                 Lance Barron
+Microelectronic Engineering                                                       Dr. Lynn Fuller
+     11/20/2004
+
+IMPLANT MASK CALCULATOR                                            Enter 1 - Yes      0 - No in white boxes
+
+DOPANT SPECIES                                      MASK TYPE                                ENERGY
+    B11        1                                     Resist               0                     50       KeV
+    BF2        0                                      Poly                1
+    P31        0                                     Oxide                0
+                                                     Nitride              0
+
+Thickness to Mask >1E15/cm3 Surface Concentration                                             3529.481 Angstroms
+
+
+
+
+                Rochester Institute of Technology
+                Microelectronic Engineering
+
+
+                                           © September 10, 2015 Dr. Lynn Fuller           Page 113
+                           Sub-CMOS Process
+
+              STRIP RESIST, RCA CLEAN
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                                                Strip Photresist in Gasonics Asher
+                                                Using Recipe FF
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller    Page 114
+                              Sub-CMOS Process
+
+       SPECIAL RCA CLEAN (NO 50:1 HF)
+
+    APM
+NH4OH - 1part
+H2O2 - 1parts                               DI water                  H20 - 50
+H2O - 17parts                             rinse, 5 min.                HF - 1
+70 °C, 15 min.                                                        60 sec.
+
+
+                                            HPM
+                                         HCL - 1part
+   DI water                             H2O2 - 4parts                  DI water
+ rinse, 5 min.                          H2O - 17parts                rinse, 5 min.
+                                        70 °C, 15 min.
+
+
+
+ SPIN/RINSE
+    DRY
+                                           Sidewall spacers not annealed yet so
+                                           etch rate will be high in 50:1 HF
+   Rochester Institute of Technology
+   Microelectronic Engineering
+
+
+                              © September 10, 2015 Dr. Lynn Fuller     Page 115
+                                                     Sub-CMOS Process
+
+                            ANNEAL DRAIN/SOURCE IMPLANTS
+
+     Recipe #280
+                                                                    1000°C
+
+    Boat Out Boat In                                                                                                   Boat Out
+    Load    Push     Stabilize                   Ramp-Up               Soak             Anneal         Ramp-Down         Pull
+            800 °C 800 °C                                                                                               800 °C
+
+    25 °C
+Interval 0   Interval 1      Interval 2            Interval 3          Interval 4      Interval 5   Interval 6     Interval 7
+
+  Any        12 min         15 min                   20 min               20 min        5 min        40 min               15 min
+  0 lpm      10 lpm         10 lmp                   5 lpm                10 lpm        15 lpm       10 lpm               5 lpm
+  none       N2             N2                       O2                   O2/           N2           N2                   N2
+
+     At the end of a run the furnace returns to Interval 0 which is set for
+     boat out, 25 °C and no gas flow. The furnace waits in that state
+     until someone aborts the current recipe or loads a new recipe.
+                    DS Implant Anneal, Oxide Growth
+                          Rochester Institute of Technology
+                          Microelectronic Engineering
+
+
+                                                     © September 10, 2015 Dr. Lynn Fuller            Page 116
+                           Sub-CMOS Process
+
+RCA CLEAN AND DEPOSIT CVD OXIDE
+
+                                                                  Target 5000 Å
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                               Oxide by LTO CVD or PECVD from TEOS
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller         Page 117
+                           Sub-CMOS Process
+
+                 PECVD OXIDE FROM TEOS
+TEOS Program: (Chamber A)
+Step 1
+  Setup Time = 15 sec
+  Pressure = 9 Torr
+  Susceptor Temperature= 390 C
+  Susceptor Spacing= 220 mils
+  RF Power = 0 watts
+  TEOS Flow = 400 scc
+  O2 Flow = 285 scc
+Step 2 – Deposition
+ Dep Time = 60 sec (5000 Å)
+ Pressure = 9 Torr
+ Susceptor Temperature= 390 C
+ Susceptor Spacing= 220 mils
+ RF Power = 205 watts
+ TEOS Flow = 400 scc
+ O2 Flow = 285 scc
+Step 3 – Clean
+ Time = 10 sec
+ Pressure = Fully Open
+ Susceptor Temperature= 390 C
+ Susceptor Spacing= 999 mils
+ RF Power = 50 watts
+ TEOSRochester
+        FlowInstitute
+                 = 0 sccof Technology
+ O2 Flow    = 285 scc
+      Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 118
+                           Sub-CMOS Process
+
+               PHOTO 10 CONTACT CUTS
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 119
+                           Sub-CMOS Process
+
+                     ETCH CONTACT CUTS
+
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+                                       Plasma Etch
+                                       Using FACCUT in Drytek Quad
+                                       200 Watt, 100 mTorr
+                                       50 sccm CHF3, 10 sccm CF4
+Rochester Institute of Technology      100 sccm Ar
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 120
+                                          Sub-CMOS Process
+
+       DRYTEK QUAD ETCH RECIPE FOR CC AND VIA
+
+Recipe Name:                FACCUT                                     US Patent 5935877 - Etch
+Chamber                     3                                          process for forming contacts
+Power                       200W                                       over titanium silicide
+Pressure                    100 mTorr
+Gas 1              CHF3 50 sccm
+Gas 2              CF4      10 sccm
+Gas 3              Ar       100 sccm
+Gas 4              O2       0 sccm
+                (could be changed to N2)
+
+TEOS Etch Rate           494                         Å/min
+Annealed TEOS            450                         Å/min
+Photoresist Etch Rate:   117                         Å/min
+Thermal Oxide Etch Rate: 441                         Å/min
+Silicon Etch Rate         82                         Å/min
+TiSi2 Etch Rate             1                        Å/min
+               Rochester Institute of Technology
+               Microelectronic Engineering
+                                                                                 Drytek Quad
+                                          © September 10, 2015 Dr. Lynn Fuller    Page 121
+                              Sub-CMOS Process
+
+                     CONTACT CUT ETCH RECIPE
+Theory: The CHF3 and CF4 provide the F radicals that do the etching of the
+silicon dioxide, SiO2. The high voltage RF power creates a plasma and the gasses
+in the chamber are broken into radicals and ions. The F radical combines with Si
+to make SiF4 which is volatile and is removed by pumping. The O2 in the oxide is
+released and also removed by pumping. The C and H can be removed as CO,
+CO2, H2 or other volatile combinations. The C and H can also form hydrocarbon
+polymers that can coat the chamber and wafer surfaces. The Ar can be ionized in
+the plasma and at low pressures can be accelerated toward the wafer surface
+without many collisions giving some vertical ion bombardment on the horizontal
+surfaces. If everything is correct (wafer temperature, pressure, amounts of polymer
+formed, energy of Ar bombardment, etc.) the SiO2 should be etched, polymer
+should be formed on the horizontal and vertical surfaces but the Ar bombardment
+on the horizontal surfaces should remove the polymer there. The O2 (O radicals)
+released also help remove polymer. Once the SiO2 is etched and the underlying Si
+is reached there is less O2 around and the removal of polymer on the horizontal
+surfaces is not adequate thus the removal rate of the Si is reduced. The etch rate of
+SiO2 should be 4 or 5 times the etch rate of the underlying Si. The chamber should
+be cleaned in an O2 plasma after each wafer is etched.
+               Rochester Institute of Technology US Patent 5935877 - Etch process for
+               Microelectronic Engineering       forming contacts over Titanium Silicide
+                              © September 10, 2015 Dr. Lynn Fuller   Page 122
+                           Sub-CMOS Process
+
+              STRIP RESIST, RCA CLEAN
+
+                                          Clean includes 50:1 HF Dip twice once
+                                          after each bath to remove chemically grown
+                                          oxide
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+                     Include D1-D3
+                     Strip Photresist in Asher
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 123
+                                       Sub-CMOS Process
+
+          SPECIAL RCA CLEAN (TWO 50:1 HF STEPS)
+
+PLAY       APM
+       NH4OH - 1part
+       H2O2 - 3parts                               DI water                      H20 - 50
+       H2O - 15parts                             rinse, 5 min.                    HF - 1
+       70 °C, 15 min.                                                            60 sec.
+                                                    HPM
+                                                 HCL - 1part
+          DI water                              H2O2 - 3parts                    DI water
+        rinse, 5 min.                           H2O - 15parts                  rinse, 5 min.
+                                                70 °C, 15 min.
+
+          H20 - 50                                                            SPIN/RINSE
+           HF - 1                                 DI water
+          60 sec.                               rinse, 5 min.                    DRY
+
+            Rochester Institute of Technology
+            Microelectronic Engineering          Clean includes 50:1 HF Dip twice once after each bath
+                                                 to remove chemically grown oxide
+                                       © September 10, 2015 Dr. Lynn Fuller     Page 124
+                           Sub-CMOS Process
+
+                            DEPOSIT METAL
+
+
+                                    0.75 µm Aluminum
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+             CVC 601 Sputter Tool
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 125
+                             Sub-CMOS Process
+
+CVC 601 SPUTTER THICKNESS UNIFORMITY
+
+
+
+
+  Rochester Institute of Technology
+  Microelectronic Engineering
+
+
+                             © September 10, 2015 Dr. Lynn Fuller   Page 126
+                           Sub-CMOS Process
+
+                          PHOTO 11 METAL
+
+
+                                    0.75 µm Aluminum
+
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+                                                  § Coat (Recipe: COATMTL.RCP)
+                                                          § 400RPM for 2 seconds
+                                                          § 2000RPM for 30 seconds
+                                                          § Thickness of 13127A
+                                                  § Exposure
+                                                          § Energy: 140mJ/cm2
+                                                          § Focus: 0.24um
+                                                  § Develop (Recipe: DEVMTL.RCP)
+Rochester Institute of Technology
+Microelectronic Engineering
+                                                          § Dispense 7 seconds
+                                                          § Wait 68 seconds
+                                                          § Hard Bake 2 min.
+                           © September 10, 2015 Dr. Lynn Fuller         Page 127
+                                        Sub-CMOS Process
+
+     LAM4600 ANISOTROPIC ALUMINUM ETCH
+
+Step             1             2               3     4                 5
+Pressure      100            100             100   100                 0
+RF Top (W)       0             0               0     0                 0
+RF Bottom        0           250             125   125                 0
+Gap (cm)         3             3               3     3               5.3
+O2 111           0             0               0     0                 0
+N2 222          13            13              20    25                25
+BCl 333         50            50              25    25                 0
+Cl2 444         10            10              30    23                 0
+Ar 555           0             0               0     0                 0
+CFORM666         8             8               8     8                 8
+Complete     Stabl          Time            Time Oetch             Time        Channel    B
+Time (s)        15             8             230 10%                  15
+                                                                               Delay      130
+                                                                               Normalize 10 s
+         Fuller, May 2010                                                      Norm Val   5670
+             Rochester Institute of Technology
+                                                                               Trigger    105%
+             Microelectronic Engineering
+                                                                               Slope      +
+                                        © September 10, 2015 Dr. Lynn Fuller   Page 128
+                           Sub-CMOS Process
+
+ALUMINUM ETCH, ASH RESIST, SINTER
+
+
+
+                                    0.75 µm Aluminum
+
+
+                                           5000 Å
+                                         Field Oxide
+
+                              P-well              N-well
+
+
+
+
+                                              Bruce Furnace 02
+Rochester Institute of Technology
+                                              Recipe 101: 400C, H2/N2, 30min
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 129
+                                           Sub-CMOS Process
+
+                BRUCE FURNACE RECIPE 101 SINTER
+
+ SINTER Recipe #101                                                                        Verified:2-24-04
+
+              Warm               Push Stabilize                  Soak             Anneal    Pull
+                                                    400°C
+
+      25 °C                                                                                25 °C
+Interval 0           1                2                3                 4         5        6
+        Any`       90           12                  15              30             5       15 min
+        0 lmp      10           10                  10               5            10        5 lpm
+        None      N2           N2/H2                 N2/H2         N2/H2          N2       N2
+
+  At the end of a run the furnace returns to Interval 0 which is set for
+  boat out, 25 °C and no gas flow. The furnace waits in that state
+  until someone aborts the current recipe or loads a new recipe.
+                Rochester Institute of Technology
+                Microelectronic Engineering                           Sinter, Tube 2
+                                           © September 10, 2015 Dr. Lynn Fuller        Page 130
+                                    Sub-CMOS Process
+
+                                               SINTER
+
+
+   Before Sinter                                                           After Sinter
+
+                                   Reduce Contact
+                                     Resistance
+      Native Oxide
+                                                       Hydrogen, neutral region
+           Oxygen
++ charge region                                                                Silicon DiOxide
+silicon
+                                                                               Interface
+atom that lost
+an electron                                                                    Silicon Crystal
+
+
+                                Reduce Surface States
+         Rochester Institute of Technology
+         Microelectronic Engineering
+
+
+                                    © September 10, 2015 Dr. Lynn Fuller      Page 131
+                             Sub-CMOS Process
+
+TAKE SEM PICTURES OF RING OSCILLATOR
+
+
+
+
+  Rochester Institute of Technology
+  Microelectronic Engineering
+
+
+                             © September 10, 2015 Dr. Lynn Fuller   Page 132
+                                     Sub-CMOS Process
+
+             SUBµ CMOS SINGLE LAYER METAL
+
+                      NMOSFET                                           PMOSFET
+     N+ Poly
+                                              0.75 µm Aluminum
+
+
+                                                     5000 Å
+                                                   Field Oxide
+                   N+ D/S             LDD                                   LDD P+ D/S      n+ well
+p+ well                                                                                     contact
+contact                                 P-well              N-well
+                   Channel Stop
+
+                                        Substrate 10 ohm-cm
+
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller        Page 133
+                                 Sub-CMOS Process
+
+SEVERAL MORE STEPS FOR SECOND LAYER METAL
+
+
+  CV03 – TEOS Deposition (5000Å)
+  PH03 – Via One Photo
+  ET26 – Plasma Etch of Via
+  ET07 – Strip Resist
+  ME01 – Sputter Etch then Sputter Aluminum (7500Å)
+  PH03 – Metal Two Photo
+  ET15 – Plasma Etch Metal Two
+  ET17 – Strip Resist (Solvent plus Plasma)
+  Repeat for third layer of metal
+
+
+      Rochester Institute of Technology
+      Microelectronic Engineering
+
+
+                                 © September 10, 2015 Dr. Lynn Fuller   Page 134
+                           Sub-CMOS Process
+
+                                    ETCH VIAS
+
+
+
+
+                                       Plasma Etch
+                                       Using FACCC in Drytek Quad
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 135
+               Sub-CMOS Process
+
+       SPUTTER 2ND LAYER METAL
+
+
+
+
+              Aluminum deposition using PE4400
+              Base pressure: 1E-6 Torr
+              Sputter Etch 15 min.
+              Power: 400W for Aluminum target
+              Sputter pressure: 5 mTorr
+              Argon flow: 40 sccm
+              Deposition
+Rochester Institute of Technology time: 200 min
+Microelectronic Engineering
+              Dep rate: 37 Å/min
+              © September 10, 2015 Dr. Lynn Fuller   Page 136
+                           Sub-CMOS Process
+
+                                       PE4400
+
+
+
+
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 137
+                           Sub-CMOS Process
+
+            SUMMARY - FOR SPUTTERING IN PE4400
+
+1. Smoother films can be deposited at lower powers.
+2. Thinner films are smoother.
+3. To quantify the roughness/smoothness the Veeco Wyco Optical
+Surface Profilometer is useful.
+4. The deposition rate is lower at lower powers.
+5. Deposition times become many hours for low power and film
+thickness approaching 1 micron.
+6. Moving the wafers closer to the target increases sputter rate and
+surface roughness. (The height is as close as possible now “C”)
+7. Rough films give problems for lithography and etching.
+8. Surface roughness needs to be less than 10nm RMS for successful
+lithography and plasma etching.
+9. Best conditions observed so far are, 300 watts, 5 mT, 40 sccm, to
+give a deposition rate of 37Å/min and surface roughness of ~11nm
+RMS for a film thickness of ~7500 Å. after 180 min sputter time.
+10. Non uniformity
+             Rochester Instituteis   22%. Wafers are thinner toward the flat.
+                                 of Technology
+             Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 138
+                               Sub-CMOS Process
+
+VEECO WYCO NT1100 OPTICAL PROFILOMETER
+
+        Used to measure RMS surface roughness
+
+
+
+
+    Rochester Institute of Technology
+    Microelectronic Engineering
+
+
+                               © September 10, 2015 Dr. Lynn Fuller   Page 139
+                           Sub-CMOS Process
+
+    ALUMINUM ETCH USING LAM4600
+
+
+
+
+LAM4600
+Rochester Institute of Technology
+Microelectronic Engineering
+
+
+                           © September 10, 2015 Dr. Lynn Fuller   Page 140
+                                        Sub-CMOS Process
+
+     LAM4600 ANISOTROPIC ALUMINUM ETCH
+
+Step             1             2               3     4                 5
+Pressure      100            100             100   100                 0
+RF Top (W)       0             0               0     0                 0
+RF Bottom        0           250             125   125                 0
+Gap (cm)         3             3               3     3               5.3
+O2 111           0             0               0     0                 0
+N2 222          13            13              20    25                25
+BCl 333         50            50              25    25                 0
+Cl2 444         10            10              30    23                 0
+Ar 555           0             0               0     0                 0
+CFORM666         8             8               8     8                 8
+Complete     Stabl          Time            Time Oetch             Time        Channel    B
+Time (s)        15             8             230 10%                  15
+                                                                               Delay      130
+                                                                               Normalize 10 s
+         Fuller, May 2010                                                      Norm Val   5670
+             Rochester Institute of Technology
+                                                                               Trigger    105%
+             Microelectronic Engineering
+                                                                               Slope      +
+                                        © September 10, 2015 Dr. Lynn Fuller   Page 141
+                                     Sub-CMOS Process
+
+                    FINAL DEVICE CROSSECTION
+
+                      NMOSFET                                           PMOSFET
+     N+ Poly
+
+
+
+                                                     5000 Å
+                                                   Field Oxide
+                   N+ D/S             LDD                                   LDD P+ D/S      n+ well
+p+ well                                                                                     contact
+contact                                 P-well              N-well
+                   Channel Stop
+
+                                        Substrate 10 ohm-cm
+
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller        Page 142
+                                     Sub-CMOS Process
+
+                    MESA WIPTRACKING SYSTEM
+
+The process is long and complicated and will take many months to
+complete each lot. A computerized record keeping system is
+required to provide instructions and collect data. MESA
+(Manufacturing Execution System Application) from Camstar, Inc.
+runs on our AS/400 computer.
+
+
+
+
+          Rochester Institute of Technology
+          Microelectronic Engineering
+
+
+                                     © September 10, 2015 Dr. Lynn Fuller   Page 143
+                                      Sub-CMOS Process
+
+                                               SUMMARY
+
+The process described can be used down to ~1.0 µm gate length.
+
+A new process for gate lengths down to 0.5 µm is being developed
+that involves shallow trench isolation, dual doped gates and other
+process advances.
+
+Several lots have been processed and final process adjustments are
+being made.
+
+
+
+
+           Rochester Institute of Technology
+           Microelectronic Engineering
+
+
+                                      © September 10, 2015 Dr. Lynn Fuller   Page 144
+                                       Sub-CMOS Process
+
+                                            REFERENCES
+
+1. Silicon Processing for the VLSI Era, Volume 1 – Process
+   Technology, 2nd, S. Wolf and R.N. Tauber, Lattice Press.
+2. The Science and Engineering of Microelectronic Fabrication,
+   Stephen A. Campbell, Oxford University Press, 1996.
+3. The Invention of LOCOS, Else Kooi, Institute of Electrical and
+   Electronic Engineers, Inc., NY, NY 1991
+
+
+
+
+            Rochester Institute of Technology
+            Microelectronic Engineering
+
+
+                                       © September 10, 2015 Dr. Lynn Fuller   Page 145
+                                       Sub-CMOS Process
+
+                       HOMEWORK – RIT CMOS2014
+
+1. Calculate the junction depth for both wells.
+2. Estimate the well doping by calculating dose divided by junction
+   depth.
+3. Using the calculated well doping and a surface state density of
+   1E11 calculate the threshold voltage for nmos and pmos FETs.
+4. Calculate the threshold adjust implant dose to give 0.75 and –0.75
+   volts for Vth.
+5. Calculate the width of the space charge layer for the drain when it
+   is reverse biased by 3 volts.
+
+
+
+            Rochester Institute of Technology
+            Microelectronic Engineering
+
+
+                                       © September 10, 2015 Dr. Lynn Fuller   Page 146
+

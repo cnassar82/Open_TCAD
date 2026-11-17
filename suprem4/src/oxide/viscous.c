@@ -92,7 +92,7 @@ visco_growth( temp, dt)
  *----------------------------------------------------------------------*/
 stress_analysis( par, param)
      char *par;
-     int param;
+     struct par_str *param;
 {
     float temp1=1000, temp2=1000;
     int element;

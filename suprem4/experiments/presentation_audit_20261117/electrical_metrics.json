@@ -1,0 +1,224 @@
+{
+  "nmos": {
+    "threshold_method": "largest adjacent-point d|Id|/d|Vg| tangent; signed (x_intercept - |Vd|/2), low Vd=50mV; 50mV gate sampling",
+    "Vt_maxgm_V": 0.24607703722400756,
+    "Vt_target_V": 0.75,
+    "Vt_error_V": -0.5039229627759925,
+    "gm_max_A_per_V_um": 5.602839371785602e-06,
+    "gm_peak_gate_interval_V": [
+      0.45,
+      0.5
+    ],
+    "Vt_constant_100nA_V": 0.2457076586823672,
+    "Vt_constant_100nA_high_drain_V": 0.2145665453502849,
+    "DIBL_constant_100nA_mV_per_V": 9.581881025256093,
+    "SS_best_four_point_low_drain": {
+      "SS_mV_per_dec": 86.20030775965157,
+      "gate_drive_range_V": [
+        0.0,
+        0.15
+      ],
+      "current_range_A": [
+        1.80766806873308e-10,
+        9.92086810467972e-09
+      ]
+    },
+    "low_drain": {
+      "points": 67,
+      "max_KCL_residual_A": 2.2013861469670018e-15,
+      "drain_first_V": 0.05,
+      "drain_last_V": 0.05,
+      "gate_first_V": 0.0,
+      "gate_last_V": 3.3,
+      "Ioff_A_per_um": 1.80766806873308e-10,
+      "Ion_A_per_um": 1.13748506949112e-05
+    },
+    "high_drain": {
+      "points": 67,
+      "max_KCL_residual_A": 2.2653889678880534e-15,
+      "drain_first_V": 3.3,
+      "drain_last_V": 3.3,
+      "gate_first_V": 0.0,
+      "gate_last_V": 3.3,
+      "Ioff_A_per_um": 3.00626149256622e-10,
+      "Ion_A_per_um": 0.000244103061970676,
+      "execution": {
+        "device": "nmos",
+        "case": "transfer_vd3p3",
+        "returncode": 0,
+        "elapsed_seconds": 274.3867082861252,
+        "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+        "deck_sha256": "2d3c5638a3bcd8111639835c2f22aad41f677082866412458628f64e7bef8be6",
+        "input_tif_sha256": "e3f23d425c978c27d3d458d9df31c4ca7507239b8883367820bae293567023db"
+      }
+    },
+    "output_curves": {
+      "0.75": {
+        "points": 67,
+        "max_KCL_residual_A": 1.99373819112162e-15,
+        "drain_first_V": 0.0,
+        "drain_last_V": 3.3,
+        "gate_first_V": 0.75,
+        "gate_last_V": 0.75,
+        "Id_at_3p3V_drain_A_per_um": 1.43981313186934e-05,
+        "execution": {
+          "device": "nmos",
+          "case": "output_vg0p75",
+          "returncode": 0,
+          "elapsed_seconds": 187.0048393420875,
+          "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+          "deck_sha256": "9e76b844004e4a3cfa7e6098e1e677a0b1d26bded4791bf98231fab58b1b1c8c",
+          "input_tif_sha256": "e3f23d425c978c27d3d458d9df31c4ca7507239b8883367820bae293567023db"
+        }
+      },
+      "1.5": {
+        "points": 67,
+        "max_KCL_residual_A": 1.8591492827433707e-15,
+        "drain_first_V": 0.0,
+        "drain_last_V": 3.3,
+        "gate_first_V": 1.5,
+        "gate_last_V": 1.5,
+        "Id_at_3p3V_drain_A_per_um": 6.65070232546729e-05,
+        "execution": {
+          "device": "nmos",
+          "case": "output_vg1p5",
+          "returncode": 0,
+          "elapsed_seconds": 210.0274051441811,
+          "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+          "deck_sha256": "c3ba32b2452dc239a3d5fb38f15cd927ed4995009edc4487b988d76dc129e5ea",
+          "input_tif_sha256": "e3f23d425c978c27d3d458d9df31c4ca7507239b8883367820bae293567023db"
+        }
+      },
+      "3.3": {
+        "points": 67,
+        "max_KCL_residual_A": 2.162715824714123e-15,
+        "drain_first_V": 0.0,
+        "drain_last_V": 3.3,
+        "gate_first_V": 3.3,
+        "gate_last_V": 3.3,
+        "Id_at_3p3V_drain_A_per_um": 0.000244103061954693,
+        "execution": {
+          "device": "nmos",
+          "case": "output_vg3p3",
+          "returncode": 0,
+          "elapsed_seconds": 279.67463359981775,
+          "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+          "deck_sha256": "043caa91e7109af5ab1f1f06c531bb63b66b55a7eeea96de25729bdce85003ed",
+          "input_tif_sha256": "e3f23d425c978c27d3d458d9df31c4ca7507239b8883367820bae293567023db"
+        }
+      }
+    },
+    "Ion_path_relative_difference": 6.547648416267677e-11
+  },
+  "pmos": {
+    "threshold_method": "largest adjacent-point d|Id|/d|Vg| tangent; signed (x_intercept - |Vd|/2), low Vd=50mV; 50mV gate sampling",
+    "Vt_maxgm_V": -0.5547018636581088,
+    "Vt_target_V": -0.75,
+    "Vt_error_V": 0.1952981363418912,
+    "gm_max_A_per_V_um": 2.7007600453585984e-06,
+    "gm_peak_gate_interval_V": [
+      1.15,
+      1.2
+    ],
+    "Vt_constant_100nA_V": -0.300571190672335,
+    "Vt_constant_100nA_high_drain_V": null,
+    "DIBL_constant_100nA_mV_per_V": null,
+    "SS_best_four_point_low_drain": {
+      "SS_mV_per_dec": 203.41043366154344,
+      "gate_drive_range_V": [
+        0.0,
+        0.15
+      ],
+      "current_range_A": [
+        4.87789685003917e-09,
+        2.65313856232796e-08
+      ]
+    },
+    "low_drain": {
+      "points": 67,
+      "max_KCL_residual_A": 4.770440749532866e-16,
+      "drain_first_V": -0.05,
+      "drain_last_V": -0.05,
+      "gate_first_V": 0.0,
+      "gate_last_V": -3.3,
+      "Ioff_A_per_um": 4.87789685003917e-09,
+      "Ion_A_per_um": 5.23309196042444e-06
+    },
+    "high_drain": {
+      "points": 67,
+      "max_KCL_residual_A": 4.4268768211351113e-16,
+      "drain_first_V": -3.3,
+      "drain_last_V": -3.3,
+      "gate_first_V": 0.0,
+      "gate_last_V": -3.3,
+      "Ioff_A_per_um": 7.2183072303061e-07,
+      "Ion_A_per_um": 0.000120177025373003,
+      "execution": {
+        "device": "pmos",
+        "case": "transfer_vd3p3",
+        "returncode": 0,
+        "elapsed_seconds": 249.77400456834584,
+        "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+        "deck_sha256": "0e57eed5045577c5cbccb4bb31641686cf3b07e42e0105e6c3335d19d3ab3343",
+        "input_tif_sha256": "d894f3a99895a82d5d8d983738fab4981d1ad889da34a2efbdf1275c41c3890f"
+      }
+    },
+    "output_curves": {
+      "0.75": {
+        "points": 67,
+        "max_KCL_residual_A": 6.479497938165491e-16,
+        "drain_first_V": 0.0,
+        "drain_last_V": -3.3,
+        "gate_first_V": -0.75,
+        "gate_last_V": -0.75,
+        "Id_at_3p3V_drain_A_per_um": 8.13862908156732e-06,
+        "execution": {
+          "device": "pmos",
+          "case": "output_vg0p75",
+          "returncode": 0,
+          "elapsed_seconds": 155.60670892661437,
+          "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+          "deck_sha256": "65d31999fe797878062a9632ca7f0e488c0c112f09de958e74b70f82fd247129",
+          "input_tif_sha256": "d894f3a99895a82d5d8d983738fab4981d1ad889da34a2efbdf1275c41c3890f"
+        }
+      },
+      "1.5": {
+        "points": 67,
+        "max_KCL_residual_A": 6.325728676654926e-16,
+        "drain_first_V": 0.0,
+        "drain_last_V": -3.3,
+        "gate_first_V": -1.5,
+        "gate_last_V": -1.5,
+        "Id_at_3p3V_drain_A_per_um": 2.93829603130807e-05,
+        "execution": {
+          "device": "pmos",
+          "case": "output_vg1p5",
+          "returncode": 0,
+          "elapsed_seconds": 169.4134397590533,
+          "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+          "deck_sha256": "6acfd4f645147a329185c09b9154685be5eaea65eb64f6ef1513a4fc30d5dd6c",
+          "input_tif_sha256": "d894f3a99895a82d5d8d983738fab4981d1ad889da34a2efbdf1275c41c3890f"
+        }
+      },
+      "3.3": {
+        "points": 67,
+        "max_KCL_residual_A": 5.444276737260098e-16,
+        "drain_first_V": 0.0,
+        "drain_last_V": -3.3,
+        "gate_first_V": -3.3,
+        "gate_last_V": -3.3,
+        "Id_at_3p3V_drain_A_per_um": 0.000120177025105702,
+        "execution": {
+          "device": "pmos",
+          "case": "output_vg3p3",
+          "returncode": 0,
+          "elapsed_seconds": 178.77265296317637,
+          "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+          "deck_sha256": "737d19bdfed1d42e62b2caf75e5fa11810e3d9788bf432b956b94f7397295235",
+          "input_tif_sha256": "d894f3a99895a82d5d8d983738fab4981d1ad889da34a2efbdf1275c41c3890f"
+        }
+      }
+    },
+    "Ion_path_relative_difference": 2.224227178706118e-09
+  }
+}

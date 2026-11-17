@@ -1,0 +1,8 @@
+option quiet
+method fermi vertical grid.oxide=0.04
+structure infile=/home/chris/Open_TCAD/decks/subcmos2014/results/directional_final_fresh_20261117/pmos/gate_oxide.str
+deposit poly thick=0.5 divisions=50 space=0.01
+structure outfile=before.str
+implant phosphorus dose=2e16 energy=50 pearson
+structure outfile=after.str
+quit

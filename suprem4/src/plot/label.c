@@ -35,7 +35,7 @@
  ************************************************************************/
 draw_lab( par, param )
 char *par;
-int param;
+struct par_str *param;
 {
     char *label;
     float x,y;

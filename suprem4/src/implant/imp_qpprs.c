@@ -7,6 +7,7 @@
  * imp_qpprs.c	5.1	7/3/91	12:08:42
  */
 
+#include <stdlib.h>
 #include <math.h>
 #define  abs(V) ((V) < 0.? -(V): (V))
 #include "global.h"

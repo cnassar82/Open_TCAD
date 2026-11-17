@@ -166,6 +166,6 @@ int ir;
     }
 
     ck_clock(rnew, TRUE);
+    return(rnew);
 
 }
-

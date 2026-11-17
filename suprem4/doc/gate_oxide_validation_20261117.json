@@ -1,0 +1,199 @@
+{
+  "accepted": false,
+  "gate_oxide_repair_verified": true,
+  "fresh_process_structures_passed": true,
+  "scope": "2D selected-material vertical dry etch shielding; complete nominal separate NMOS/PMOS RIT processes, unchanged recipes; no general-release or PDF electrical calibration claim",
+  "candidate": "/home/chris/Open_TCAD/suprem4/build/native64_rxq2pnrb/src/suprem4",
+  "candidate_sha256": "7ecc199edc84db2f6ba063c85fde3ef3c76e7e3c67515780971e2e775bf29070",
+  "sanitized_candidate": "/home/chris/Open_TCAD/suprem4/build/native64__7fbbihz/src/suprem4",
+  "sanitized_sha256": "04ea0084202d44116aa138da219e7710a27d32a24c2814ee24ae655310ee359c",
+  "source_sha256": {
+    "refine/etch.c": "c9b8e7ebd14990041e89437002717426d90b79b61540b6ed098c5356fc5b3e16",
+    "refine/skel.c": "15754d562357c6eb957835b945d5682ccf1591825147cebf8910799c2db80125",
+    "include/directional_etch.h": "a959f7a9055ba0b4cb0182002ad4f3cc3b6f71a56eec118ba14609f9469cc30c"
+  },
+  "runtime_options": {
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_MASS_LUMPING": null,
+    "SUPREM4_TIME_INTEGRATOR": null,
+    "SUPREM4_POSITIVITY_STEP": null,
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_VERTICAL_CONSTRAINTS": null,
+    "SUPREM4_PROCESS_SURFACE": "1"
+  },
+  "fresh_results": "/home/chris/Open_TCAD/decks/subcmos2014/results/directional_final_fresh_20261117/results.json",
+  "bounded_checks": {
+    "stack": {
+      "passed": true,
+      "record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_stack/results.json",
+      "sha256": "393fe3a2407fd23a22090fc476f91fb3d1874dcbd749a68d8a7e5999f8317dc8"
+    },
+    "stack_sanitized": {
+      "passed": true,
+      "record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_stack_sanitized/results.json",
+      "sha256": "ac7b650e265352e29c1c3649e8f62c4b80639190055201fc78e98f92603136fe"
+    },
+    "contact_sanitized": {
+      "passed": true,
+      "record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_contact_sanitized/result.json",
+      "sha256": "df1994cb9468ae2b32275db4bfe572dd7adeb630ea60f38f518022d092813f95"
+    },
+    "contact_perturbations": {
+      "passed": true,
+      "record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_perturbations/results.json",
+      "sha256": "0293729d083970d90f233d1f491973e430ad1c3a58e1a28d071a00ebd28c8fd9"
+    },
+    "construction": {
+      "passed": true,
+      "record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_construction/results.json",
+      "sha256": "9e9e3b7a46fdfd19cbac1becb63ea98993284e9e2e5281507304fa019d527dc2"
+    },
+    "captured_cases": {
+      "passed": true,
+      "cases": 7,
+      "record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_captured/results.json"
+    }
+  },
+  "analytic_clipping_suite_sanitized_passed": true,
+  "old_on_on_clipping_source_fails_new_regression": true,
+  "devices": {
+    "nmos": {
+      "final_structure": "/home/chris/Open_TCAD/decks/subcmos2014/results/directional_final_fresh_20261117/nmos/metal1.str",
+      "structure_sha256": "a9d4ceade0a1b2d814778850a6ba10d2cff04423b593846e50ea3cc0f010dc9f",
+      "final_checks": {
+        "gate_length_um": 1.0000000474974513,
+        "poly_midpoint": {
+          "boron_cm3": 14178627272547.25,
+          "phosphorus_cm3": 5.852301241673104e+19,
+          "net_donor_cm3": 5.8522998238103765e+19
+        },
+        "gate_dielectric_um": 0.016674543987024282,
+        "gate_oxide_material_probes": [
+          {
+            "x_um": 5.599999974947423,
+            "oxide_thickness_um": 0.01720562523936843
+          },
+          {
+            "x_um": 5.74999998207204,
+            "oxide_thickness_um": 0.016703511188134304
+          },
+          {
+            "x_um": 5.999999993946403,
+            "oxide_thickness_um": 0.01667454398705509
+          },
+          {
+            "x_um": 6.250000005820766,
+            "oxide_thickness_um": 0.016702875366364597
+          },
+          {
+            "x_um": 6.400000012945384,
+            "oxide_thickness_um": 0.01719250490472156
+          }
+        ],
+        "source_50nm_below_surface": {
+          "boron_cm3": 7.1625255756108456e+16,
+          "phosphorus_cm3": 8.518364954661e+19,
+          "net_donor_cm3": 8.51120242908539e+19
+        },
+        "drain_50nm_below_surface": {
+          "boron_cm3": 7.122830667053815e+16,
+          "phosphorus_cm3": 8.363484935171038e+19,
+          "net_donor_cm3": 8.356362104503984e+19
+        },
+        "body_50nm_below_surface": {
+          "boron_cm3": 3.2536177125337588e+19,
+          "phosphorus_cm3": 1.2372805427246886e+17,
+          "net_donor_cm3": -3.241244907106512e+19
+        },
+        "metal_islands": 4,
+        "body_contact_gap_um": 0.0,
+        "source_contact_gap_um": 0.0,
+        "gate_contact_gap_um": 0.0,
+        "drain_contact_gap_um": 0.0
+      },
+      "gate_oxide_thickness_changes_um": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "pmos": {
+      "final_structure": "/home/chris/Open_TCAD/decks/subcmos2014/results/directional_final_fresh_20261117/pmos/metal1.str",
+      "structure_sha256": "13b1522880bafc32c8bf7f635188227cfa6048295c6e138a064d3283f6bc3769",
+      "final_checks": {
+        "gate_length_um": 1.0000000474974513,
+        "poly_midpoint": {
+          "boron_cm3": 3.623002863109523e+19,
+          "phosphorus_cm3": 5.9489231630792835e+19,
+          "net_donor_cm3": 2.3259202999697605e+19
+        },
+        "gate_dielectric_um": 0.01697009793287127,
+        "gate_oxide_material_probes": [
+          {
+            "x_um": 5.599999974947423,
+            "oxide_thickness_um": 0.01751739801692423
+          },
+          {
+            "x_um": 5.74999998207204,
+            "oxide_thickness_um": 0.01700038797123493
+          },
+          {
+            "x_um": 5.999999993946403,
+            "oxide_thickness_um": 0.01697009793290391
+          },
+          {
+            "x_um": 6.250000005820766,
+            "oxide_thickness_um": 0.017001217552643222
+          },
+          {
+            "x_um": 6.400000012945384,
+            "oxide_thickness_um": 0.017504852614758426
+          }
+        ],
+        "source_50nm_below_surface": {
+          "boron_cm3": 2.8338504115912385e+19,
+          "phosphorus_cm3": 1.2539694553171962e+17,
+          "net_donor_cm3": -2.8213107170380665e+19
+        },
+        "drain_50nm_below_surface": {
+          "boron_cm3": 2.8025211299166368e+19,
+          "phosphorus_cm3": 1.2649921282862634e+17,
+          "net_donor_cm3": -2.789871208633774e+19
+        },
+        "body_50nm_below_surface": {
+          "boron_cm3": 1.779332052983074e+17,
+          "phosphorus_cm3": 1.1885912763055779e+20,
+          "net_donor_cm3": 1.1868119442525947e+20
+        },
+        "metal_islands": 4,
+        "body_contact_gap_um": 0.0,
+        "source_contact_gap_um": 0.0,
+        "gate_contact_gap_um": 0.0,
+        "drain_contact_gap_um": 0.0
+      },
+      "gate_oxide_thickness_changes_um": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "remaining_qualification": {
+    "strict_non_target_real_etch_inventory_1e_12_passed": false,
+    "largest_relative_inventory_difference": 2.1206133277786705e-09,
+    "inventory_record": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/final_non_target_inventory.json",
+    "full_flow_mesh_convergence": "NOT RUN for this candidate",
+    "general_launcher_promoted": false,
+    "electrical": "Both fresh 67-point DD transfer sweeps completed, strong gate modulation; PDF threshold calibration not established"
+  },
+  "electrical_sweeps_completed": true,
+  "electrical_summary": "/home/chris/Open_TCAD/suprem4/experiments/directional_etch_20261117/electrical/summary.json",
+  "presentation_agreement_verified": false,
+  "poly_implant_resolution_qualified": false,
+  "presentation_audit": "/home/chris/Open_TCAD/suprem4/doc/rit_cmos_presentation_audit_20261117.md"
+}

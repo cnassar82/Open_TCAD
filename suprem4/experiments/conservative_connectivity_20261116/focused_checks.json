@@ -1,0 +1,93 @@
+[
+  {
+    "test": "run_geometry_weights.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_geometry_weights.sh.log",
+    "log_sha256": "cecd02f3ec6e054eee79cca3b7028aaed9953c8cb606fcd859fc11f15b1b96c7"
+  },
+  {
+    "test": "run_reflecting_normal.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_reflecting_normal.sh.log",
+    "log_sha256": "807f524fcac86154c9ad14432d691998b2aa4688cadafb2c122c1034bcfda55b"
+  },
+  {
+    "test": "run_interface_measure.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_interface_measure.sh.log",
+    "log_sha256": "7b34c67b4fc7ead7bd583c7412ae4e3b01e1ec7530451f7975f30c1fe60100cd"
+  },
+  {
+    "test": "run_moving_flux.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_moving_flux.sh.log",
+    "log_sha256": "f28d71bbfa74aecd92b8c071b3281a2ecd8eb0418d1f93ba8e1c3e0a41ff84dc"
+  },
+  {
+    "test": "run_be_time.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_be_time.sh.log",
+    "log_sha256": "d00717761cf73632b0f4eef99a153fa02ea8133e29f94b0704abb99036d1360a"
+  },
+  {
+    "test": "run_be_mass_term.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_be_mass_term.sh.log",
+    "log_sha256": "610d298b6d606cf6bfaab3337395c95bb4c9929084349d80f81c8f53ed15bdaa"
+  },
+  {
+    "test": "run_boundary_angle.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_boundary_angle.sh.log",
+    "log_sha256": "9515b694dced8a6ffe1b89cabd89b5a9c5b6a8bd0d8d8beaec1c204718360a06"
+  },
+  {
+    "test": "run_rect_projection.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_rect_projection.sh.log",
+    "log_sha256": "122aa707d133da898708dde1baecfd099cdb1b0a84a601a5db281a106f8517e5"
+  },
+  {
+    "test": "run_ear_clip.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_ear_clip.sh.log",
+    "log_sha256": "9a9ac00a9c5d31a8c2b48a3bbbf8302ab68bab56c84d0aa08c8b57b212f2e4df"
+  },
+  {
+    "test": "run_quad_split.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_quad_split.sh.log",
+    "log_sha256": "1cc11c52b7e95c4dcf1d38cc1718fc6c2a4b2220885ddfe743f8b1ddb2818f92"
+  },
+  {
+    "test": "test_time_stage.py",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/test_time_stage.py.log",
+    "log_sha256": "a61b4e00ac914947941fcd0f8ad8a753ca9ad6ff305f1217b7cdb1227c75041c"
+  },
+  {
+    "test": "test_diffusion_retry.py",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/test_diffusion_retry.py.log",
+    "log_sha256": "d3292644e1817fcc1c8131d26f4709ceb0c56f4f0b431f0b1f6fc785b27d1482"
+  },
+  {
+    "test": "run_p1_mass.sh",
+    "returncode": 0,
+    "passed": true,
+    "log": "suprem4/experiments/conservative_connectivity_20261116/run_p1_mass.sh.log",
+    "log_sha256": "9826d3a4e0bdb88ff3e82cdce9efd2459abfdf0056314894db5522e4ad58b228"
+  }
+]

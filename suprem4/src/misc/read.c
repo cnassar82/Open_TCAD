@@ -55,7 +55,9 @@ char *name;
 	return(-1);
     }
 
-    status = read_list( &(cards[-1]), fd);
+    /* The reader starts before the first entry logically, never by forming
+     * a pointer outside the cards array. */
+    status = read_list(cards, fd, -1);
 
     /*now match up the command names with the card names*/
     for(i = 0; cards[i] && strlen(cards[i]->name) != 0; i++) {

@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <global.h>
 #include <constant.h>
 #include <dbaccess.h>
@@ -29,17 +30,28 @@ add_list( l, item )
 struct list_str *l;
 int item;
 {
+    int capacity;
+    int *items;
 
     /*check for space consideration*/
     if ( l->num >= l->all ) {
-	if ( l->all == 0 ) {
-	    l->all = 10;
-	    l->list = salloc( int, l->all );
+	if (l->num == INT_MAX) {
+	    panic("Connectivity list exceeds integer capacity");
+	    return;
 	}
-	else {
-	    l->all += 10;
-	    l->list = sralloc(int, l->all, l->list);
+	capacity = l->all == 0 ? 10 :
+	    (l->all > INT_MAX / 2 ? INT_MAX : 2 * l->all);
+	if ((size_t)capacity > (size_t)-1 / sizeof(*items)) {
+	    panic("Connectivity list allocation size overflow");
+	    return;
 	}
+	items = realloc(l->list, (size_t)capacity * sizeof(*items));
+	if (!items) {
+	    panic("Out of storage growing connectivity list");
+	    return;
+	}
+	l->list = items;
+	l->all = capacity;
     }
 
     /*store the triangle number away*/

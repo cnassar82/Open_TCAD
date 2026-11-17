@@ -1,0 +1,6 @@
+{
+  "sha256": "2ff5830aaf05c9618bc0b30cfb3126dbfb052f8381f3c7eb4cbd6484c83ee493",
+  "source": "decks/subcmos2014/results/exposure_rebuilt/pmos/ldd.str",
+  "scope": "PMOS full-width coating after refined spacer etch",
+  "known_failure": "native64_88fw7xz8 resist stops at x=5.540488637 um"
+}
