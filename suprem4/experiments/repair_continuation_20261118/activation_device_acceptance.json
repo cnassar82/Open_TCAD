@@ -1,0 +1,8 @@
+{
+  "accepted_full_cmos": false,
+  "scope": "physical body-polarity acceptance after numerical activation",
+  "errors": {
+    "poly_doped": "wrong body polarity before source/drain implantation: {'boron_cm3': 1.2048600486354566e+17, 'phosphorus_cm3': 5.222874932473427e+19, 'net_donor_cm3': 5.210826331987072e+19}",
+    "gate": "wrong body polarity before source/drain implantation: {'boron_cm3': 1.2048600486354566e+17, 'phosphorus_cm3': 5.222874932473427e+19, 'net_donor_cm3': 5.210826331987072e+19}"
+  }
+}

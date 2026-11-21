@@ -1,0 +1,116 @@
+{
+  "accepted_full_cmos": false,
+  "errors": [],
+  "structures": {
+    "locos_mask": {
+      "sha256": "63dbfaaf024788ff3f63595a6bfcf25321cf769563a31c77211ea7906a45d351",
+      "topology": {
+        "triangles": 14700,
+        "area_by_region_um2": {
+          "1": 78.0607194487806,
+          "2": 0.42511831518789445,
+          "3": 0.22500324697676452,
+          "4": 0.8999966542896932
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 23896,
+        "boundary_pairs_checked": 850,
+        "triangles": 14700,
+        "boundary_edges": 850
+      },
+      "chemistry": {
+        "species_checked": [
+          3,
+          5
+        ],
+        "inventory_by_material_species": {
+          "3:3": 8.96470090037395e+17,
+          "3:5": 7.699725264654712e+16,
+          "1:3": 544322034221703.2,
+          "1:5": 428870680078717.6,
+          "2:3": 31739246.495439015,
+          "2:5": 31739246.495439015
+        }
+      },
+      "points": 7776,
+      "minimum_quality": 1.4822108319456775e-06
+    },
+    "quality_initial": {
+      "sha256": "048610f6f1be670439e0c7c6c43a45b4e2272bc442f4c1e514a1c00d07f921bc",
+      "topology": {
+        "triangles": 14723,
+        "area_by_region_um2": {
+          "1": 78.0607194487806,
+          "2": 0.4251183151052216,
+          "3": 0.22500324703426267,
+          "4": 0.8999966542896932
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 24165,
+        "boundary_pairs_checked": 857,
+        "triangles": 14723,
+        "boundary_edges": 857
+      },
+      "chemistry": {
+        "species_checked": [
+          3,
+          5
+        ],
+        "inventory_by_material_species": {
+          "3:3": 8.96470090037395e+17,
+          "3:5": 7.699725264654712e+16,
+          "1:3": 544322034221698.1,
+          "1:5": 428870680078693.8,
+          "2:3": 31739246.50066132,
+          "2:5": 31739246.50066132
+        }
+      },
+      "points": 7791,
+      "minimum_quality": 0.01187678194500048
+    },
+    "flood": {
+      "sha256": "b575a195d0a1d16f089cce3f2f3ac2f917de98ea0d565445938c44f2bf0dd9e9",
+      "topology": {
+        "triangles": 14705,
+        "area_by_region_um2": {
+          "1": 78.05116285456319,
+          "2": 0.44613682098682744,
+          "3": 0.22499618911470398,
+          "4": 0.8999906807218432
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 24320,
+        "boundary_pairs_checked": 855,
+        "triangles": 14705,
+        "boundary_edges": 855
+      },
+      "chemistry": {
+        "species_checked": [
+          3,
+          5
+        ],
+        "inventory_by_material_species": {
+          "3:3": 8.964409670241505e+17,
+          "3:5": 7.709236683277102e+16,
+          "1:3": 554558346035355.6,
+          "1:5": 329965392500496.25,
+          "2:3": 7726402290039.205,
+          "2:5": 175394473400.14233
+        }
+      },
+      "points": 7781,
+      "minimum_quality": 0.004650168056738197
+    }
+  },
+  "execution": {
+    "exit": 0,
+    "elapsed_seconds": 280.61070396983996,
+    "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_zamfas02/src/suprem4",
+    "binary_sha256": "30a6e6c2d8b56090894c1dbfa3a0f07e4f3c8bbf0cfae97d8732c4c673cc82a6",
+    "input_sha256": "699787f257dc013dd251491adc895f90315336006c712df7a0d9c38dc60e1b05"
+  },
+  "replay_mesh_checks_passed": true
+}

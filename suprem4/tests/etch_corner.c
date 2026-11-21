@@ -431,8 +431,12 @@ static void check_remove_material_junction(void)
     nb=mk_nd(pb,Si);mk_nd(pb,GAS);
     edge=mk_edg(na,nb);
     /* The material search ends with node_mat(...,SiO2)==-1. That
-     * lookup result must never be passed to dead_nd(). */
+     * lookup result must never be passed to dead_nd(). This checks the
+     * legacy edge collapse; the default mesh-patch remover is covered by
+     * test_mesh_patch_c.py and run_mesh_patch_commit.sh. */
+    setenv("SUPREM4_MESH_PATCH_REMOVAL","0",1);
     rem_edg(edge);
+    unsetenv("SUPREM4_MESH_PATCH_REMOVAL");
     assert(pt_nd(oxide)==pb && node_mat(nb,SiO2)==oxide);
     assert(dead_nd(na) && !dead_nd(nb));
 }

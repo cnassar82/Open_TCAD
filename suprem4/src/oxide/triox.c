@@ -19,8 +19,12 @@
 
 
 #include <stdio.h>
+#include "suprem_options.h"
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include "triangle7.h"
 
 
 /************************************************************************
@@ -36,104 +40,24 @@ triox_shape( s,t, Cord, xsj, shp)
 			   shp[i][0/1] = x,y derivative of shp[i][2] */
 {
     int j, k;
-    double lam0, lam1, lam2, tmpx, tmpy;
+    double tmpx, tmpy;
     double xs00, xs01, xs10, xs11, sx00, sx01, sx10, sx11;
     double cord[NEL][2];
 
-    /* Cache the common cases */
-    if (NEL==7) {
-    if( s == 0.5 && t == 0.5 ) {
-	shp[0][0] =  0.75; shp[0][1] =   0.75; shp[0][2] =  0.0;
-	shp[1][0] =  0.75; shp[1][1] =  -0.25; shp[1][2] =  0.0; 
-	shp[2][0] = -0.25; shp[2][1] =   0.75; shp[2][2] =  0.0; 
-	shp[3][0] =   3.0; shp[3][1] =    3.0; shp[3][2] =  1.0; 
-	shp[4][0] =  -1.0; shp[4][1] =   -1.0; shp[4][2] =  0.0; 
-	shp[5][0] =  -1.0; shp[5][1] =   -1.0; shp[5][2] =  0.0; 
-	shp[6][0] = -2.25; shp[6][1] =  -2.25; shp[6][2] =  0.0;
-    }
-    else if( s == 0 && t == 0.5) {
-	shp[0][0] = -0.75; shp[0][1] = -1.0; shp[0][2] =  0.0; 
-	shp[1][0] = -0.75; shp[1][1] =  0.0; shp[1][2] =  0.0; 
-	shp[2][0] =  0.25; shp[2][1] =  1.0; shp[2][2] =  0.0; 
-	shp[3][0] =   1.0; shp[3][1] =  0.0; shp[3][2] =  0.0; 
-	shp[4][0] =  -3.0; shp[4][1] =  0.0; shp[4][2] =  1.0; 
-	shp[5][0] =   1.0; shp[5][1] =  0.0; shp[5][2] =  0.0; 
-	shp[6][0] =  2.25; shp[6][1] =  0.0; shp[6][2] =  0.0; 
-    }
-    else if (s == 0.5 && t == 0) {
-	shp[0][0] = -1.0; shp[0][1] =  -0.75; shp[0][2] =  0.0; 
-	shp[1][0] =  1.0; shp[1][1] =   0.25; shp[1][2] =  0.0; 
-	shp[2][0] =  0.0; shp[2][1] =  -0.75; shp[2][2] =  0.0; 
-	shp[3][0] =  0.0; shp[3][1] =    1.0; shp[3][2] =  0.0; 
-	shp[4][0] =  0.0; shp[4][1] =    1.0; shp[4][2] =  0.0; 
-	shp[5][0] =  0.0; shp[5][1] =   -3.0; shp[5][2] =  1.0; 
-	shp[6][0] =  0.0; shp[6][1] =   2.25; shp[6][2] =  0.0;
-    }
-    }
-    else {
+    triangle7_basis(s,t,shp);
 
-	/* The linear shape functions...*/
-	lam0 = 1-s-t;
-	lam1 = s;
-	lam2 = t;
-
-	/* The parabolic shape functions...*/
-	shp[0][2] = lam0 * (2 * lam0 - 1);
-	shp[1][2] = lam1 * (2 * lam1 - 1);
-	shp[2][2] = lam2 * (2 * lam2 - 1);
-	shp[3][2] = 4 * lam1 * lam2;
-	shp[4][2] = 4 * lam2 * lam0;
-	shp[5][2] = 4 * lam0 * lam1;
-
-	/* The derivatives...*/
-	shp[0][0] = -1 * (4 * lam0 - 1);
-	shp[0][1] = -1 * (4 * lam0 - 1);
-
-	shp[1][0] = 4 * lam1 - 1;
-	shp[1][1] = 0;
-
-	shp[2][0] = 0;
-	shp[2][1] = 4 * lam2 - 1;
-
-	shp[3][0] = 4 * t;
-	shp[3][1] = 4 * s;
-
-	shp[4][0] = -4 * t;
-	shp[4][1] =  4 * (1 - s - 2 * t);
-
-	shp[5][0] =  4 * (1 - 2 * s - t);
-	shp[5][1] = -4 * s;
-
-	if( NEL==7) {
-	    /* The bubble node */
-	    shp[6][2] = 27*lam0*lam1*lam2;
-	    shp[6][0] = 27*lam2*(lam0-lam1);
-	    shp[6][1] = 27*lam1*(lam0-lam2);
-
-	    /* Force other shape functions to zero here */
-	    for (j = 0; j < 3; j++) {
-		double dj = -shp[6][j]/9;
-		shp[0][j] -= dj;
-		shp[1][j] -= dj;
-		shp[2][j] -= dj;
-		dj *= -4;
-		shp[3][j] -= dj;
-		shp[4][j] -= dj;
-		shp[5][j] -= dj;
-	    }
-	}
-    }
-
-    /*Try a fix for obtuse triangles*/
-    obfix( Cord, cord);
+    /* A finite element must use its actual geometry, including obtuse
+     * angles. Moving vertices only for assembly breaks the affine patch
+     * test and disagrees with the boundary integrals. */
+    for(k=0;k<NEL;k++)for(j=0;j<2;j++)cord[k][j]=Cord[k][j];
 
     /*The jacobian and its inverse*/
     xs00 = 0; xs01 = 0; xs10 = 0; xs11 = 0;
     for (k = 0; k < NEL; k++) {
-	xs00 += cord[k][0] * shp[k][0];
-	xs01 += cord[k][1] * shp[k][0];
-	xs10 += cord[k][0] * shp[k][1];
-	xs11 += cord[k][1] * shp[k][1];
+	xs00 += (cord[k][0]-cord[0][0]) * shp[k][0];
+	xs01 += (cord[k][1]-cord[0][1]) * shp[k][0];
+	xs10 += (cord[k][0]-cord[0][0]) * shp[k][1];
+	xs11 += (cord[k][1]-cord[0][1]) * shp[k][1];
     }
     *xsj = xs00*xs11 - xs01*xs10;
     if (*xsj < 1e-30) {
@@ -155,69 +79,6 @@ triox_shape( s,t, Cord, xsj, shp)
 
 }
 
-/*-----------------Obfix------------------------------------------------
- * A very heuristic fix for obtuse triangles.
- * For the purposes of computing the stiffness, obtuse points are
- * moved to the nearest right-angle location.  The only justification
- * possible is that the stiffness matrix for an obtuse triangle is
- * fairly meaningless anyway.
- *----------------------------------------------------------------------*/
-obfix( Cord, cord)
-    double Cord[NEL][2], cord[NEL][2];
-{
-    int j;
-    double ax, ay, bx, by, cx, cy, r, vx, vy, v, px, py, qx, qy;
-    extern float oxide_obfix;
-    double dot;
-    
-    /* First make a duplicate */
-    dcopy( &(Cord[0][0]), &(cord[0][0]), NEL*2);
-
-    if( oxide_obfix >= 1) return;
-    
-    /* Test each angle for obtuseness */
-    for( j = 0; j < 3; j++) {
-	px = cord[ (j+1)%3][X] - cord[ j][X];
-	py = cord[ (j+1)%3][Y] - cord[ j][Y];
-	qx = cord[ (j+2)%3][X] - cord[ j][X];
-	qy = cord[ (j+2)%3][Y] - cord[ j][Y];
-	dot = px*qx + py*qy;
-	if( dot < 0) {
-	    dot = (dot*dot)/((px*px+py*py)*(qx*qx+qy*qy));
-	    if( dot > oxide_obfix) break;
-	}
-    }
-
-    /* Maybe it's a good'un */
-    if( j == 3) return;
-
-    /* No, it's obtuse at node j. */
-    /* Move the offending point onto the half-circle on the other side. */
-    /* This guarantees a right angle at j. */
-    ax = cord[ (j+1)%3][X];
-    ay = cord[ (j+1)%3][Y];
-    bx = cord[ (j+2)%3][X];
-    by = cord[ (j+2)%3][Y];
-    cx = 0.5*( ax+bx);
-    cy = 0.5*( ay+by);
-    r  = 0.5*sqrt( (ax-bx)*(ax-bx) + (ay-by)*(ay-by));
-    vx = cord[ j][X] - cx;
-    vy = cord[ j][Y] - cy;
-    v  = sqrt( vx*vx+vy*vy);
-    cord[ j][X] = cx + r*vx/v;
-    cord[ j][Y] = cy + r*vy/v;
-
-    /* Set the remaining points accordingly */
-    for ( j = 3; j < 6; j++) {
-	cord[ j][X] = 0.5*(cord[ (j+1)%3][X] + cord[ (j+2)%3][X]);
-	cord[ j][Y] = 0.5*(cord[ (j+1)%3][Y] + cord[ (j+2)%3][Y]);
-    }
-    if (NEL == 7) {
-	cord[ 6][X] = (cord[0][X] + cord[1][X] + cord[2][X])/3;
-	cord[ 6][Y] = (cord[0][Y] + cord[1][Y] + cord[2][Y])/3;
-    }
-}
-
 #include "global.h"		/* for SAT */
 #include "constant.h"		
 #include "FEgeom.h"		/* for MAXDOF */
@@ -230,6 +91,75 @@ obfix( Cord, cord)
  *		  NEL-noded oxidation triangle 				*
  *									*
  ************************************************************************/
+/* L2 projection of the dilatational strain onto elementwise P1.
+ * This is the condensed pressure space for the P2+bubble velocity element.
+ * Keep deviatoric strain fully integrated; do not introduce hourglass modes
+ * by reducing the entire stiffness quadrature. Physical coefficients stay
+ * unchanged. The formula uses int(bubble)/area=3/20 and the exact P1 mass.
+ */
+extern int noderiv;
+static void triox_strain_basis(double s,double t,double xl[7][2],
+                               double shp[7][3],double bx[7][3],double by[7][3])
+{
+    double dx1=xl[1][0]-xl[0][0],dy1=xl[1][1]-xl[0][1];
+    double dx2=xl[2][0]-xl[0][0],dy2=xl[2][1]-xl[0][1];
+    double det=dx1*dy2-dy1*dx2,projection[2],gradient[3][2],l[3],alpha,cx,cy;
+    int i,k;
+    projection[0]=projection[1]=0;
+    if(suprem_option("SUPREM4_FE_BBAR_P1")) {
+        l[0]=1-s-t;l[1]=s;l[2]=t;
+        gradient[1][0]=dy2/det;gradient[1][1]=-dx2/det;
+        gradient[2][0]=-dy1/det;gradient[2][1]=dx1/det;
+        for(k=0;k<2;k++)gradient[0][k]=-gradient[1][k]-gradient[2][k];
+        for(i=0;i<3;i++)for(k=0;k<2;k++)projection[k]-=1.8*l[i]*gradient[i][k];
+        projection[0]-=shp[6][0];projection[1]-=shp[6][1];
+    }
+    for(i=0;i<7;i++) {
+        alpha=i<3?1./9:i<6?-4./9:1.;
+        cx=.5*alpha*projection[0];cy=.5*alpha*projection[1];
+        bx[i][0]=shp[i][0]+cx;bx[i][1]=cx;bx[i][2]=shp[i][1];
+        by[i][0]=cy;by[i][1]=shp[i][1]+cy;by[i][2]=shp[i][0];
+    }
+}
+static int triox_projected_stiff(double stiff[21][21],double rhs[7][3],
+                                double xl[7][2],double disp[7][3],int (*coeff)(),int mat)
+{
+    double shp[7][3],bx[7][3],by[7][3],B[14][3],DB[14][3],eps[3],sig[3],m[40];
+    double jac,dv,fx,fy,source,value;int q,i,j,k,c,d;
+    for(q=0;q<7;q++) {
+        triox_shape(triangle7_q[q][0],triangle7_q[q][1],xl,&jac,shp);
+        triox_strain_basis(triangle7_q[q][0],triangle7_q[q][1],xl,shp,bx,by);
+        dv=jac*triangle7_q[q][2];fx=fy=0;eps[0]=eps[1]=eps[2]=0;
+        for(i=0;i<7;i++) {
+            for(k=0;k<3;k++){B[2*i][k]=bx[i][k];B[2*i+1][k]=by[i][k];eps[k]+=bx[i][k]*disp[i][0]+by[i][k]*disp[i][1];}
+            fx+=shp[i][0]*disp[i][2];fy+=shp[i][1]*disp[i][2];
+        }
+        (*coeff)(m,mat,eps,sig);
+        for(i=0;i<14;i++) {
+            value=0;for(k=0;k<3;k++)value+=B[i][k]*sig[k];
+            rhs[i/2][i%2]-=dv*value;
+            if(!noderiv)for(k=0;k<3;k++) {
+                DB[i][k]=0;for(c=0;c<3;c++)DB[i][k]+=m[10+3*k+c]*B[i][c];
+            }
+        }
+        for(i=0;i<7;i++)rhs[i][2]-=dv*m[5]*m[20]*(shp[i][0]*fx+shp[i][1]*fy);
+        if(noderiv)continue;
+        for(i=0;i<14;i++)for(j=0;j<14;j++) {
+            value=0;for(k=0;k<3;k++)value+=B[i][k]*DB[j][k];
+            stiff[3*(i/2)+i%2][3*(j/2)+j%2]+=dv*value;
+        }
+        for(i=0;i<7;i++) {
+            source=dv*m[5]*(shp[i][0]*fx+shp[i][1]*fy);
+            for(j=0;j<14;j++) {
+                value=0;for(k=0;k<3;k++)value+=m[21+k]*B[j][k];
+                stiff[3*i+2][3*(j/2)+j%2]+=source*value;
+            }
+            for(j=0;j<7;j++)stiff[3*i+2][3*j+2]+=dv*m[5]*m[20]*(shp[i][0]*shp[j][0]+shp[i][1]*shp[j][1]);
+        }
+    }
+    return 0;
+}
+
 triox_stiff( stiff, wrhs, xl, disp, coeff, mat)
      double stiff[3*NEL][3*NEL]; /* The stiffness matrix */
      double wrhs[NEL][3];	/* extra right hand side stuff */
@@ -238,7 +168,9 @@ triox_stiff( stiff, wrhs, xl, disp, coeff, mat)
      int (*coeff)();		/* Fetches material data */
      int mat;			/* What material this triangle is */
 {
-    static double sg[]={0.5,0,0.5}, tg[]={0.5,0.5,0}, wg=0.166666666666667;
+    if(suprem_option("SUPREM4_FE_BBAR_P1"))return triox_projected_stiff(stiff,wrhs,xl,disp,coeff,mat);
+
+
     register double six, siy, sjx, sjy;
     double db00,db01,db10,db11,db20,db21, ddx,ddy;
     double shp[NEL][3];
@@ -248,11 +180,11 @@ triox_stiff( stiff, wrhs, xl, disp, coeff, mat)
     int l, i, j;
 
     /*for each integration point compute contribution to stiffness*/
-    for (l=0; l < 3; l++) {
+    for (l=0; l < TRIANGLE7_NQ; l++) {
 
-	/* The shape functions */
-	triox_shape( sg[l], tg[l], xl, &xsj, shp);
-	dv = wg*xsj;
+	/* Integrate the cubic-bubble stiffness without hourglass modes. */
+	triox_shape(triangle7_q[l][0],triangle7_q[l][1],xl,&xsj,shp);
+	dv = triangle7_q[l][2]*xsj;
 
 	/* Current strains and fluxes */
 	exx = 0; eyy = 0; exy = 0; fx = 0; fy = 0;
@@ -335,6 +267,54 @@ static double simpson[3]={ 1/6., 1/6., 4/6.};
 static int edges[3][3] = {{1,2,3},{2,0,4},{0,1,5}};
 static double locg[3][2] = {{0.5,0.5},{0,0.5},{0.5,0}};
 
+/* Experimental mixed-order scalar space. T prolongs the three corner
+ * concentrations to the seven velocity nodes. Use T^T R and T^T J T,
+ * with exact interpolation equations for the redundant scalar unknowns.
+ * No concentration is clipped and no reaction coefficient is changed. */
+static const double oxidant_prolong[7][3]={
+ {1,0,0},{0,1,0},{0,0,1},{0,.5,.5},{.5,0,.5},{.5,.5,0},{1./3,1./3,1./3}
+};
+static int triox_scalar_map(int i,int *fixity,double *map)
+{
+ int j,node=i/3,component=i%3,reduced;
+ reduced=(component==2 && node>=3 && suprem_option("SUPREM4_FE_OXIDANT_P1")) ||
+         (component<2 && node>=3 && node<6 && fixity[i]==4 && suprem_option("SUPREM4_FE_LINEAR_TRACE"));
+ for(j=0;j<7;j++)map[j]=reduced?(j<3?oxidant_prolong[node][j]:0):(j==node?1:0);
+ return reduced;
+}
+void triox_project_oxidant(double *disp,double *original,int *fixity)
+{
+ int i,j;double map[7];
+ for(i=0;i<21;i++)if(triox_scalar_map(i,fixity,map)) {
+  disp[i]=0;for(j=0;j<7;j++)disp[i]+=map[j]*original[3*j+i%3];
+ }
+}
+void triox_reduce_oxidant(double *stiff,double *rhs,double *original,int *fixity)
+{
+ double columns[21][21],result[21][21],out[21],map[21][7],constraint;
+ int reduced[21],i,j,k;
+ memset(columns,0,sizeof(columns));memset(result,0,sizeof(result));memset(out,0,sizeof(out));
+ for(i=0;i<21;i++) {
+  reduced[i]=triox_scalar_map(i,fixity,map[i]);
+  for(k=0;k<7;k++)if(map[i][k])out[3*k+i%3]+=map[i][k]*rhs[i];
+ }
+ if(!noderiv) {
+  for(i=0;i<21;i++)for(j=0;j<21;j++)for(k=0;k<7;k++)if(map[j][k])columns[i][3*k+j%3]+=stiff[21*i+j]*map[j][k];
+  for(i=0;i<21;i++)for(j=0;j<21;j++)for(k=0;k<7;k++)if(map[i][k])result[3*k+i%3][j]+=map[i][k]*columns[i][j];
+ }
+ for(i=0;i<21;i++)if(reduced[i]) {
+  constraint=original[i];for(j=0;j<7;j++)constraint-=map[i][j]*original[3*j+i%3];
+  out[i]=-constraint;
+  if(!noderiv) {
+   result[i][i]=1;
+   for(j=0;j<7;j++)if(map[i][j])result[i][3*j+i%3]=-map[i][j];
+  }
+ }
+ memcpy(rhs,out,sizeof(out));if(!noderiv)memcpy(stiff,result,sizeof(result));
+}
+static double *oxidant_projected;
+static int oxidant_capacity;
+
 /* garbage storage is like so: */
 /* normal [xy] ks [xx yy xy k0 vcv kr] ri ri+1 toc*/
 /*         01      2  3  4  5  6   7   8  9    10*/
@@ -365,8 +345,10 @@ triox_bc( stiff, wrhs, xl, disp, coeff, mat, fixity, bc, ie, fixme)
 {
     int l,m,j,k, nbr, in, c, IsItf=0;
     double *ks, nx, ny, len, ks0, vcv, fr, ksv, cpl, *n, toc;
-    double matco[40], xsj, dkde0, dkde1, dkde2, dkdu, dkdv, *DT;
-    static double shpg[3][NEL][3], shpx[NEL][3], sigx[3];
+    double matco[40], xsj, dkde0, dkde1, dkde2, dkdu, dkdv, *DT, average_factor;
+    static double shpg[NEL][NEL][3], shpx[NEL][3], sigx[3];
+    double bx[7][3],by[7][3];
+    static const double node_position[7][2]={{0,0},{1,0},{0,1},{.5,.5},{0,.5},{.5,0},{1./3,1./3}};
     static int do_sdep=1;
 
     /*
@@ -409,15 +391,12 @@ triox_bc( stiff, wrhs, xl, disp, coeff, mat, fixity, bc, ie, fixme)
 	}
     }
 
-    /*Away on out of here if this isn't an oxide triangle*/
-    /*Assuming only oxide triangles contribute to stress at oxide/si interf*/
-    if (mat != SiO2) return(0);
     if (!IsItf) return(0);
 
-    /*Get the derivatives of the strains at the gauss points*/
+    /* Differentiate the actual nodal strain traces. */
     if (!noderiv)
-    for (l = 0; l < 3; l++) {
-	triox_shape( locg[l][0], locg[l][1], xl, &xsj, shpg[l]);
+    for (l = 0; l < NEL; l++) {
+        triox_shape(node_position[l][0],node_position[l][1],xl,&xsj,shpg[l]);
     }
 
     /*Loop through the nodes looking for the magic variables*/
@@ -427,8 +406,9 @@ triox_bc( stiff, wrhs, xl, disp, coeff, mat, fixity, bc, ie, fixme)
 	n =  &FEnd[ in]->garbage[NORMAL];
 	ks = &FEnd[ in]->garbage[KS];
 
-	/*The precomputed strain -> stress*/
-	(*coeff)( matco, mat, FEnd[ in]->eps, sigx);
+	/* The reaction law always uses the oxide constitutive stress of
+         * the averaged strain, including at oxide/nitride junctions. */
+        (*coeff)(matco, SiO2, FEnd[in]->eps, sigx);
 		
 	/*
 	 * Surface velocity equation: v = ks * C/N1 * normal + toc
@@ -439,6 +419,7 @@ triox_bc( stiff, wrhs, xl, disp, coeff, mat, fixity, bc, ie, fixme)
 	ksv = ks0*vcv*fr;
 	toc = ks[ TOC];
 
+	if(mat == SiO2) {
 	wrhs[ l][ X] = -(disp[l][X] - ksv * n[X] *disp[l][D] - toc * n[X]);
 	wrhs[ l][ Y] = -(disp[l][Y] - ksv * n[Y] *disp[l][D] - toc * n[Y]);
 	if (noderiv) continue;
@@ -446,31 +427,40 @@ triox_bc( stiff, wrhs, xl, disp, coeff, mat, fixity, bc, ie, fixme)
 	stiff[ 3*l+Y][ 3*l+Y] = 1;
 	stiff[ 3*l+X][ 3*l+D] =     - ksv * n[X];
 	stiff[ 3*l+Y][ 3*l+D] =     - ksv * n[Y];
+        }
+        if(noderiv)continue;
 
 	if( do_sdep) {
 	/* Stress dependence of growth rate */
 	/* We know dk/dsig, now get dsig/deps */
+        /* Residuals are repeated once per incident oxide element, but
+         * ave_stress averages over ALL active elements. Its derivative
+         * therefore needs every side with the same averaging denominator.
+         * Restricting this term to oxide loses the nitride coupling and
+         * overweights oxide contributions at a material junction. */
+        assert(FEnd[in]->strain_count > 0);
+        average_factor=FEnd[in]->garbage[RI+1]/FEnd[in]->strain_count;
 	DT = matco+10;
 		
 	/* Form dk/eps */
-	dkde0 = (ks[XX]*DT[0] + ks[YY]*DT[3] + ks[XY]*DT[6]);
-	dkde1 = (ks[XX]*DT[1] + ks[YY]*DT[4] + ks[XY]*DT[7]);
-	dkde2 = (ks[XX]*DT[2] + ks[YY]*DT[5] + ks[XY]*DT[8]);
+	dkde0 = average_factor * (ks[XX]*DT[0] + ks[YY]*DT[3] + ks[XY]*DT[6]);
+	dkde1 = average_factor * (ks[XX]*DT[1] + ks[YY]*DT[4] + ks[XY]*DT[7]);
+	dkde2 = average_factor * (ks[XX]*DT[2] + ks[YY]*DT[5] + ks[XY]*DT[8]);
 
 	/* and deps/du */
-	/*Extrapolated shape function at this node*/
-	for (c = 0;  c < NEL;  c++) {
-	    shpx[c][X] = (l>=3)?   shpg[     l-3][c][X] :
-	    shpg[ (l+1)%3][c][X] + shpg[ (l+2)%3][c][X] - shpg[ l][c][X];
-	    shpx[c][Y] = (l>=3)?   shpg[     l-3][c][Y] :
-	    shpg[ (l+1)%3][c][Y] + shpg[ (l+2)%3][c][Y] - shpg[ l][c][Y];
-	}
+        /* Use the actual gradient trace of the cubic-bubble basis.
+         * Linear extrapolation from three midpoints gives a nonzero
+         * corner gradient to an interior bubble whose true trace is zero. */
+        for(c=0;c<NEL;c++) {
+            shpx[c][X]=shpg[l][c][X];shpx[c][Y]=shpg[l][c][Y];
+        }
 
 	
+        triox_strain_basis(node_position[l][0],node_position[l][1],xl,shpg[l],bx,by);
 	/* and build up drhs/du neighbor by neighbor */
 	for (m = 0; m < NEL; m++) {
-	    dkdu =  (dkde0*shpx[m][X] + dkde2*shpx[m][Y]);
-	    dkdv =  (dkde1*shpx[m][Y] + dkde2*shpx[m][X]);
+	    dkdu = dkde0*bx[m][0]+dkde1*bx[m][1]+dkde2*bx[m][2];
+	    dkdv = dkde0*by[m][0]+dkde1*by[m][1]+dkde2*by[m][2];
 	    stiff[ 3*l+X][ 3*m+X] += -vcv * n[X] * dkdu * disp[l][D];
 	    stiff[ 3*l+X][ 3*m+Y] += -vcv * n[X] * dkdv * disp[l][D];
 	    stiff[ 3*l+Y][ 3*m+X] += -vcv * n[Y] * dkdu * disp[l][D];
@@ -480,6 +470,9 @@ triox_bc( stiff, wrhs, xl, disp, coeff, mat, fixity, bc, ie, fixme)
 	}
 	}
     }
+
+    /* Radiative residual and its concentration derivative live on oxide. */
+    if(mat != SiO2)return 0;
 
     /*Integrate the radiative boundary condition*/
     for (j = 0; j < 3; j++) {
@@ -529,15 +522,16 @@ triox_stress( mat, coeff, xl, ul, where, eps, sig, xsj)
 {
     int j;
     double shp[NEL][3];
-    double matco[40];
+    double matco[40],bx[7][3],by[7][3];
 
     /* Evaluate strains */
     eps[XX] = 0; eps[YY] = 0; eps[XY] = 0;
     triox_shape( where[0], where[1], xl, xsj, shp);
+    triox_strain_basis(where[0],where[1],xl,shp,bx,by);
     for (j=0; j < NEL; j++) {
-	eps[ XX] += shp[j][X] * ul[j][X];
-	eps[ YY] += shp[j][Y] * ul[j][Y];
-	eps[ XY] += shp[j][X] * ul[j][Y] + shp[j][Y] * ul[j][X];
+	eps[ XX] += bx[j][0]*ul[j][X]+by[j][0]*ul[j][Y];
+	eps[ YY] += bx[j][1]*ul[j][X]+by[j][1]*ul[j][Y];
+	eps[ XY] += bx[j][2]*ul[j][X]+by[j][2]*ul[j][Y];
     }
 
     /* Call the strain to stress routine */
@@ -546,7 +540,7 @@ triox_stress( mat, coeff, xl, ul, where, eps, sig, xsj)
 }
 
 /*-----------------TRIOX_NODAL_STRESS---------------------------------*
- * Compute the strains, stress at the corners by linear extrapolation.
+ * Evaluate the strains and stress at the actual element nodes.
  *--------------------------------------------------------------------*/
 triox_nodal_stress( xl, ul, epsn, sign, coeff, mat, xsj)
     double xl[NEL][2];
@@ -557,32 +551,14 @@ triox_nodal_stress( xl, ul, epsn, sign, coeff, mat, xsj)
     int mat;
     double *xsj;
 {
-    double epsg[3][3], sigg[3][3];
-    int j, l, c;
-
-    /* Compute at the gauss points */
-    for (l = 0; l < 3; l++) {
-	triox_stress( mat, coeff, xl, ul, locg[l], epsg[l], sigg[l], xsj);
+    static const double position[7][2]={{0,0},{1,0},{0,1},{.5,.5},{0,.5},{.5,0},{1./3,1./3}};
+    int j;
+    /* The displacement space is cubic, so its strain is quadratic.  A
+     * three-point linear extrapolation cannot give its nodal traces. */
+    for(j=0;j<NEL;j++) {
+        double where[2];where[0]=position[j][0];where[1]=position[j][1];
+        triox_stress(mat,coeff,xl,ul,where,epsn[j],sign[j],xsj);
     }
-
-    /* Extrapolate to nodes */
-    for (j = 0; j < 3; j++) {
-	for (c = 0; c < 3; c++) {
-	    sign[j+3][c] = sigg[j][c];
-	    sign[j  ][c] = sigg[(j+1)%3][c] + sigg[(j+2)%3][c] - sigg[j][c];
-	    epsn[j+3][c] = epsg[j][c];
-	    epsn[j  ][c] = epsg[(j+1)%3][c] + epsg[(j+2)%3][c] - epsg[j][c];
-	}
-    }
-    
-    /* centroid nodes gets average */
-    if( NEL == 7) {
-	for (c = 0; c < 3; c++) {
-	    sign[ 6 ][c] = (sigg[0][c] + sigg[1][c] + sigg[2][c])/3;
-	    epsn[ 6 ][c] = (epsg[0][c] + epsg[1][c] + epsg[2][c])/3;
-	}
-    }
-    return(0);
 }
 
 
@@ -595,6 +571,21 @@ TrioxBCinit()
     int in, k, l, nbr, j, ie;
     double matco[40], sig[3], nx, ny, len, cpl, *ks, *normal;
     FEelt_typ *pie; int *ip;
+
+    if(suprem_option("SUPREM4_FE_OXIDANT_P1")) {
+        int corner;
+        if(oxidant_capacity<FEnn) {
+            free(oxidant_projected);oxidant_projected=malloc(FEnn*sizeof(double));
+            if(!oxidant_projected)abort();oxidant_capacity=FEnn;
+        }
+        for(in=0;in<FEnn;in++)oxidant_projected[in]=FEnd[in]->sol[D];
+        for(ie=0;ie<FEne;ie++)if(FEdesc[FEelt[ie]->desc].stiff==triox_stiff) {
+            for(j=3;j<7;j++) {
+                in=FEelt[ie]->nd[j];oxidant_projected[in]=0;
+                for(corner=0;corner<3;corner++)oxidant_projected[in]+=oxidant_prolong[j][corner]*FEnd[FEelt[ie]->nd[corner]]->sol[D];
+            }
+        }
+    }
 
     /* Redundancy here: we only use the strains, not stress */
     ave_stress();
@@ -642,7 +633,7 @@ TrioxBCinit()
 		    l = edges[j][k];
 		    in = pie->nd[ l];
 		    cpl = len * simpson[k];
-		    FEnd[in]->garbage[ RI] += cpl * FEnd[ in]->sol[ D];
+		    FEnd[in]->garbage[ RI] += cpl * (suprem_option("SUPREM4_FE_OXIDANT_P1")?oxidant_projected[in]:FEnd[in]->sol[D]);
 		}
 	    }
 	}

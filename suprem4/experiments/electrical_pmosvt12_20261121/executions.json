@@ -1,0 +1,26 @@
+[
+  {
+    "device": "pmos",
+    "case": "transfer_vd0p05",
+    "returncode": 0,
+    "elapsed_seconds": 103.55372451499716,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "5dfc862294ddcd906bfd0ffcb57d9b3ee8976c41825e10d897e58d46531597c5"
+  },
+  {
+    "device": "pmos",
+    "case": "transfer_vd3p3",
+    "returncode": 0,
+    "elapsed_seconds": 176.2446573250054,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "0e57eed5045577c5cbccb4bb31641686cf3b07e42e0105e6c3335d19d3ab3343"
+  },
+  {
+    "device": "pmos",
+    "case": "transfer_neg_vd0p05",
+    "returncode": 0,
+    "elapsed_seconds": 52.76782012899639,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "fba3234b20df9fdc22c7a9e48842b09a7fc5281e1b1903acc977463203de0934"
+  }
+]

@@ -99,12 +99,31 @@ FEconvert( element, dof)
     FEne = ne;
     FEnn = np;
 
+    FEwarm_start=0;
     /* Nodal coordinates and solutions*/
     for (in = 0; in < FEnn; in++) {
 	FEnd[ in]->cord[ 0] = pt[ in]->cord[0];
 	FEnd[ in]->cord[ 1] = pt[ in]->cord[1];
 
-	stash_noniC( in, (double *)FEnd[ in]->user);
+        stash_noniC(in,(double *)FEnd[in]->user);
+#ifdef SUPREM_FE_UMFPACK
+        if(element==TRIOX && dof==3 && imptosol[XVEL]>=0 && imptosol[YVEL]>=0) {
+            int node=node_mat(nd_pt(in,0),SiO2),axis;
+            if(node<0)node=nd_pt(in,0);
+            for(axis=0;axis<2;axis++) {
+                int stream=axis==0?imptosol[XVEL]:imptosol[YVEL];
+                double value=sol_nd(node,stream);
+                if(isfinite(value)) {
+                    FEnd[in]->sol[axis]=value;
+                    if(value!=0)FEwarm_start=1;
+                }
+            }
+            if(imptosol[gas_type]>=0) {
+                double value=sol_nd(node,imptosol[gas_type]);
+                if(isfinite(value))FEnd[in]->sol[2]=value;
+            }
+        }
+#endif
     }
 
     /* Triangle materials, corner nodes, nbrs */
@@ -183,6 +202,17 @@ FEconvert( element, dof)
 	FEnn++;
     }
 
+#ifdef SUPREM_FE_UMFPACK
+    if(element==TRIOX && dof==3) {
+        for(ie=0;ie<FEne;ie++) {
+            nl=FEelt[ie]->nd;
+            for(j=0;j<3;j++)for(is=0;is<dof;is++)
+                FEnd[nl[j+3]]->sol[is]=.5*(FEnd[nl[(j+1)%3]]->sol[is]+FEnd[nl[(j+2)%3]]->sol[is]);
+            if(FEdesc[element].nel==7)for(is=0;is<dof;is++)
+                FEnd[nl[6]]->sol[is]=(FEnd[nl[0]]->sol[is]+FEnd[nl[1]]->sol[is]+FEnd[nl[2]]->sol[is])/3;
+        }
+    }
+#endif
     valencies();
 
     return(0);

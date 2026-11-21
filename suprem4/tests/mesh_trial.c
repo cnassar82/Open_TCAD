@@ -57,8 +57,8 @@ static void check_lists(void)
 
 int main(void)
 {
-    struct pt_str points[4] = {0}, *points_ptr[4];
-    struct nd_str nodes[4] = {0}, *nodes_ptr[4];
+    struct pt_str points[6] = {0}, *points_ptr[6];
+    struct nd_str nodes[6] = {0}, *nodes_ptr[6];
     struct tri_str triangles[2] = {0}, original[2], *triangles_ptr[2];
     struct edg_str edges[5] = {0}, *edges_ptr[5];
     struct mesh_trial *trial;
@@ -69,9 +69,9 @@ int main(void)
     const int endpoints[5][2] = {{0,2}, {0,1}, {1,2}, {2,3}, {3,0}};
     pt = points_ptr; nd = nodes_ptr; tri = triangles_ptr; edg = edges_ptr;
     np = nn = 4; ne = 2; ned = 5; mode = TWOD; nvrt = nedg = 3;
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 6; i++) {
         pt[i] = &points[i]; nd[i] = &nodes[i]; nd[i]->pt = i;
-        memcpy(pt[i]->cord, coordinates[i], sizeof(coordinates[i]));
+        if(i<4)memcpy(pt[i]->cord, coordinates[i], sizeof(coordinates[i]));
     }
     for (i = 0; i < 5; i++) {
         edg[i] = &edges[i];
@@ -200,9 +200,28 @@ int main(void)
         assert(!mesh_trial_move(1,&bad));assert(bad==-1);
         for(i=0;i<3;i++)assert(!memcmp(saved[i],pt[i]->cord,sizeof saved[i]));
     }
+    /* A translation can preserve every element's area yet collide with a
+     * different component. Reject the whole candidate before any writes. */
+    {
+        const float separated[6][2]={{0,0},{1,0},{0,1},{3,0},{4,0},{3,1}};
+        float saved[6][MAXDIM];int bad;
+        np=nn=6;ne=2;
+        for(i=0;i<6;i++) {
+            memcpy(pt[i]->cord,separated[i],sizeof separated[i]);
+            memcpy(saved[i],pt[i]->cord,sizeof saved[i]);
+            pt[i]->vel[0]=i<3?0:-3;pt[i]->vel[1]=0;
+        }
+        for(i=0;i<2;i++)for(j=0;j<3;j++) {
+            tri[i]->nd[j]=3*i+j;tri[i]->nb[j]=-1022;
+        }
+        assert(area(0)>0 && area(1)>0);
+        assert(!mesh_trial_move(1,&bad));assert(bad>=0);
+        for(i=0;i<6;i++)assert(!memcmp(saved[i],pt[i]->cord,sizeof saved[i]));
+        assert(mesh_trial_move(.5,&bad));assert(area(0)>0 && area(1)>0);
+    }
     for (i = 0; i < nn; i++) { dis_list(&nd[i]->ltri); dis_list(&nd[i]->edg); }
     for (i = 0; i < ned; i++) dis_list(&edg[i]->ele);
     mesh_trial_restore(NULL); mesh_trial_discard(NULL);
-    puts("PASS: captured sliver flip, atomic rounded-motion rejection, smaller valid motion and trial rollback");
+    puts("PASS: sliver flip, atomic rounded-motion/collision rejection, smaller valid motion and rollback");
     return 0;
 }

@@ -47,9 +47,7 @@ sclk_tri(ie)
 int ie;
 {
     register int i, j, k, tt;
-    float xi, xj, xk;
-    float yi, yj, yk;
-    float s, den;
+    float xi, xj;
 
     set(tri[ie], CLKWS);
     switch( mode ) {
@@ -77,19 +75,13 @@ int ie;
 	j = tri[ie]->nd[1];
 	k = tri[ie]->nd[2];
 
-	/*get the coordinate terms*/
-	xi = pt[ nd[i]->pt ]->cord[0];	yi = pt[ nd[i]->pt ]->cord[1];
-	xj = pt[ nd[j]->pt ]->cord[0];	yj = pt[ nd[j]->pt ]->cord[1];
-	xk = pt[ nd[k]->pt ]->cord[0];	yk = pt[ nd[k]->pt ]->cord[1];
-
-	/*calculate the denominator for the coupling*/
-	den = (xk - xi) * (yj - yk) - (yk - yi) * (xj - xk);
-
-	/*triangle area is one half of this value*/
-	s = -0.5 * den;
-
-	/*if area is less than 0, reorder the points and repeat*/
-	if (s < 0.0) {
+	/* Orientation is decided by the exact predicate on the stored float
+	 * coordinates. A float determinant loses the sign of valid slivers
+	 * (e.g. two vertices one ULP apart), leaving an order that tri_geom's
+	 * more accurate evaluation then rejects as corrupt. Positive exact
+	 * orient2d(i,j,k) is this database's clockwise (y-down) convention. */
+	if (orient2d_float_sign(pt[ nd[i]->pt ]->cord, pt[ nd[j]->pt ]->cord,
+	                        pt[ nd[k]->pt ]->cord) < 0) {
 	    tri[ie]->nd[1] = k;
 	    tri[ie]->nd[2] = j;
 	    /*maintain neighbor and edge ordering*/

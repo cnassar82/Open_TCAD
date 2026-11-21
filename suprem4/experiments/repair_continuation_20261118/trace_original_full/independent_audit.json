@@ -1,0 +1,125 @@
+{
+  "accepted_full_cmos": false,
+  "errors": [],
+  "structures": {
+    "locos_mask": {
+      "sha256": "63dbfaaf024788ff3f63595a6bfcf25321cf769563a31c77211ea7906a45d351",
+      "topology": {
+        "triangles": 14700,
+        "area_by_region_um2": {
+          "1": 78.0607194487806,
+          "2": 0.42511831518789445,
+          "3": 0.22500324697676452,
+          "4": 0.8999966542896932
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 23896,
+        "boundary_pairs_checked": 850,
+        "triangles": 14700,
+        "boundary_edges": 850
+      },
+      "chemistry": {
+        "species_checked": [
+          3,
+          5
+        ],
+        "inventory_by_material_species": {
+          "3:3": 8.96470090037395e+17,
+          "3:5": 7.699725264654712e+16,
+          "1:3": 544322034221703.2,
+          "1:5": 428870680078717.6,
+          "2:3": 31739246.495439015,
+          "2:5": 31739246.495439015
+        }
+      },
+      "points": 7776,
+      "minimum_quality": 1.4822108319456775e-06
+    },
+    "quality_initial": {
+      "sha256": "63dbfaaf024788ff3f63595a6bfcf25321cf769563a31c77211ea7906a45d351",
+      "topology": {
+        "triangles": 14700,
+        "area_by_region_um2": {
+          "1": 78.0607194487806,
+          "2": 0.42511831518789445,
+          "3": 0.22500324697676452,
+          "4": 0.8999966542896932
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 23896,
+        "boundary_pairs_checked": 850,
+        "triangles": 14700,
+        "boundary_edges": 850
+      },
+      "chemistry": {
+        "species_checked": [
+          3,
+          5
+        ],
+        "inventory_by_material_species": {
+          "3:3": 8.96470090037395e+17,
+          "3:5": 7.699725264654712e+16,
+          "1:3": 544322034221703.2,
+          "1:5": 428870680078717.6,
+          "2:3": 31739246.495439015,
+          "2:5": 31739246.495439015
+        }
+      },
+      "points": 7776,
+      "minimum_quality": 1.4822108319456775e-06
+    },
+    "locos": {
+      "sha256": "2414a34d36d0d274934aa55478c057e0d997bf2331421e2b38a63ec350dc85a2",
+      "topology": {
+        "triangles": 8519,
+        "area_by_region_um2": {
+          "1": 77.10592959120119,
+          "2": 0.767138214956683,
+          "3": 0.865036193532,
+          "4": 0.4287920664783697
+        }
+      },
+      "partition": {
+        "triangle_pairs_checked": 9231,
+        "boundary_pairs_checked": 477,
+        "triangles": 8519,
+        "boundary_edges": 477
+      },
+      "chemistry": {
+        "species_checked": [
+          3,
+          5
+        ],
+        "inventory_by_material_species": {
+          "3:3": 8.756496850124521e+17,
+          "3:5": 7.569351354948522e+16,
+          "1:3": 4751778571757345.0,
+          "1:5": 1296126048813173.5
+        }
+      },
+      "points": 4499,
+      "minimum_quality": 0.0009671369549589822
+    }
+  },
+  "execution": {
+    "exit": 0,
+    "timed_out": false,
+    "runtime_options": {
+      "SUPREM4_FE_OXIDANT_P1": "1",
+      "SUPREM4_FE_LINEAR_TRACE": "1",
+      "SUPREM4_FE_BBAR_P1": "1",
+      "SUPREM4_PROCESS_SURFACE": "1",
+      "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+      "SUPREM4_MATERIAL_DOMAINS": "oxide",
+      "SUPREM4_MESH_PATCH_REMOVAL": "1"
+    },
+    "source_structure_sha256": "63dbfaaf024788ff3f63595a6bfcf25321cf769563a31c77211ea7906a45d351",
+    "elapsed_seconds": 624.639745076187,
+    "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_7bz6swgr/src/suprem4",
+    "binary_sha256": "3e4877db9a89e941265f4dcd11174cc1941d0f601140c6625e581390c569fbef",
+    "input_sha256": "e9414da55db405f0709824d303af36d26476963cd9d343fc3f6b75fe202e2f54"
+  },
+  "replay_mesh_checks_passed": true
+}

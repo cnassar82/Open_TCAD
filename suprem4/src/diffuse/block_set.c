@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 10:49:55 */
 
 #include <math.h>
+#include "suprem_options.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "global.h"
@@ -27,6 +28,8 @@
 #include "material.h"
 #include "diffuse.h"
 #include "matrix.h"
+#include <string.h>
+#include "charged_flux.h"
 
 #ifndef ardent
 #define pragma define
@@ -341,13 +344,19 @@ double spot;		/*the sign for the potential terms*/
     int vs = imptosol[ V ];	/*location of the vacancy terms*/
     double cpl, ehed;		/*diffusivity times the coupling coefficient*/
     double ced;		/*the concentrations on this edge*/
-    double grimp, grpot;	/*gradients of impurity, potential, defects*/
+    double grimp, grpot;
+    double bp,bm,dbp,dbm;
+    static int fitted=-1;	/*gradients of impurity, potential, defects*/
     double diff;
     double grad;
     double pcrow, pccol, jacrow, jaccol;
     double *ass, *asp, *asi, *asv;
     double *dvs, *dvp, *dvi, *dvv;
 
+    if(fitted<0) {
+        const char *option=suprem_option("SUPREM4_CHARGED_FLUX");
+        fitted=option && !strcmp(option,"sg");
+    }
     ass = a[ss][sol];
     asp = a[ss][ps];
     asi = a[ss][is];
@@ -378,11 +387,19 @@ double spot;		/*the sign for the potential terms*/
 
 	/*compute the interstitial flux portion*/
 	cpl     = ehed * diff;
-	grad    = grimp + ced * grpot;
+        if(fitted) {
+            charged_bernoulli(grpot,&bp,&dbp);
+            charged_bernoulli(-grpot,&bm,&dbm);
+            grad=bm*val[col]-bp*val[row];
+            /* ced is now the exact potential derivative of fitted flux. */
+            ced=-dbm*val[col]-dbp*val[row];
+            jacrow=cpl*bp;jaccol=cpl*bm;
+        } else grad=grimp+ced*grpot;
 	newb[ss][row] += cpl * grad;
 	newb[ss][col] -= cpl * grad;
 
         /*compute the derivitive w/r to value*/
+        if(!fitted) {
         if(sqval[row] != 0.0)
           jacrow  = cpl * ( 1.0 - grpot * 0.5 * sqval[col] / sqval[row]);
         else
@@ -393,6 +410,8 @@ double spot;		/*the sign for the potential terms*/
         else
           jaccol  = cpl;
 
+
+        }
 
 	/*compute the derivative w/r to the chemical concentration*/
 	pcrow   = jacrow * dvs[row];

@@ -1,0 +1,159 @@
+{
+  "accepted_full_cmos": false,
+  "scope": "complete unchanged 117-minute poly activation in one invocation after corrected native joins",
+  "errors": [],
+  "profiles": {
+    "1.25": {
+      "0.005": {
+        "boron_cm3": 4.736936824190966e+16,
+        "phosphorus_cm3": 1.659338265995003e+17,
+        "net_donor_cm3": 1.1856445835759062e+17
+      },
+      "0.01": {
+        "boron_cm3": 7.017413016270334e+16,
+        "phosphorus_cm3": 1.5132275229372298e+17,
+        "net_donor_cm3": 8.114862213101963e+16
+      },
+      "0.025": {
+        "boron_cm3": 8.908798475024566e+16,
+        "phosphorus_cm3": 1.1328572991134581e+17,
+        "net_donor_cm3": 2.4197745161100144e+16
+      },
+      "0.05": {
+        "boron_cm3": 1.0969249676805525e+17,
+        "phosphorus_cm3": 6.419009988622325e+16,
+        "net_donor_cm3": -4.5502396881832e+16
+      },
+      "0.1": {
+        "boron_cm3": 1.2854098053054275e+17,
+        "phosphorus_cm3": 1.5110276628980206e+16,
+        "net_donor_cm3": -1.1343070390156254e+17
+      }
+    },
+    "4.25": {
+      "0.005": {
+        "boron_cm3": 2.517365903598391e+16,
+        "phosphorus_cm3": 1.6956274093321267e+17,
+        "net_donor_cm3": 1.4438908189722877e+17
+      },
+      "0.01": {
+        "boron_cm3": 3.838320232210339e+16,
+        "phosphorus_cm3": 1.5453080722025738e+17,
+        "net_donor_cm3": 1.1614760489815398e+17
+      },
+      "0.025": {
+        "boron_cm3": 4.93929111719641e+16,
+        "phosphorus_cm3": 1.164318567927837e+17,
+        "net_donor_cm3": 6.70389456208196e+16
+      },
+      "0.05": {
+        "boron_cm3": 6.259467942463492e+16,
+        "phosphorus_cm3": 6.6360033032714984e+16,
+        "net_donor_cm3": 3765353608080064.0
+      },
+      "0.1": {
+        "boron_cm3": 7.565407316083154e+16,
+        "phosphorus_cm3": 1.5912573083199802e+16,
+        "net_donor_cm3": -5.9741500077631736e+16
+      }
+    },
+    "6": {
+      "0.005": {
+        "boron_cm3": 2.44519610933629e+16,
+        "phosphorus_cm3": 1.7102314307858928e+17,
+        "net_donor_cm3": 1.4657118198522637e+17
+      },
+      "0.01": {
+        "boron_cm3": 3.722052617173407e+16,
+        "phosphorus_cm3": 1.559309281814226e+17,
+        "net_donor_cm3": 1.1871040200968851e+17
+      },
+      "0.025": {
+        "boron_cm3": 4.790555962973173e+16,
+        "phosphorus_cm3": 1.175905377631957e+17,
+        "net_donor_cm3": 6.968497813346397e+16
+      },
+      "0.05": {
+        "boron_cm3": 6.0856525609806696e+16,
+        "phosphorus_cm3": 6.712982783825687e+16,
+        "net_donor_cm3": 6273302228450176.0
+      },
+      "0.1": {
+        "boron_cm3": 7.39814290857472e+16,
+        "phosphorus_cm3": 1.6139828996832096e+16,
+        "net_donor_cm3": -5.78416000889151e+16
+      }
+    },
+    "7.75": {
+      "0.005": {
+        "boron_cm3": 2.330924742094353e+16,
+        "phosphorus_cm3": 1.7126108039051635e+17,
+        "net_donor_cm3": 1.4795183296957283e+17
+      },
+      "0.01": {
+        "boron_cm3": 3.566603884711442e+16,
+        "phosphorus_cm3": 1.5608209153840074e+17,
+        "net_donor_cm3": 1.2041605269128632e+17
+      },
+      "0.025": {
+        "boron_cm3": 4.658092647933946e+16,
+        "phosphorus_cm3": 1.1760760526579654e+17,
+        "net_donor_cm3": 7.102667878645709e+16
+      },
+      "0.05": {
+        "boron_cm3": 6.006388831951925e+16,
+        "phosphorus_cm3": 6.703154417776711e+16,
+        "net_donor_cm3": 6967655858247864.0
+      },
+      "0.1": {
+        "boron_cm3": 7.4263713675389e+16,
+        "phosphorus_cm3": 1.6066408746648242e+16,
+        "net_donor_cm3": -5.819730492874075e+16
+      }
+    }
+  },
+  "device_checks": {
+    "blanket_dielectric_separation": {
+      "poly_silicon_point_contacts": 0
+    },
+    "body_50nm_below_surface": {
+      "boron_cm3": 1.0969249676805525e+17,
+      "phosphorus_cm3": 6.419009988622325e+16,
+      "net_donor_cm3": -4.5502396881832e+16
+    }
+  },
+  "independent_audit": {
+    "sha256": "060d5243a7cdeac6afb0445354311b0a7ba95c8eb14458ace9bceeaa3f8ec474",
+    "topology": {
+      "triangles": 143482,
+      "area_by_region_um2": {
+        "1": 78.2544542777526,
+        "2": 1.9802144469389078,
+        "3": 5.174995341825146
+      }
+    },
+    "partition": {
+      "triangle_pairs_checked": 369443,
+      "boundary_pairs_checked": 1562,
+      "triangles": 143482,
+      "boundary_edges": 1562
+    },
+    "chemistry": {
+      "species_checked": [
+        3,
+        5
+      ],
+      "inventory_by_material_species": {
+        "3:3": 4.546946558071776e+16,
+        "3:5": 1.5925163145092808e+18,
+        "1:3": 8.303914140501596e+17,
+        "1:5": 1.0560819192221796e+18,
+        "4:3": 8.74094306510738e+20,
+        "4:5": 1.2634283108467794e+16
+      }
+    },
+    "points": 72523,
+    "minimum_quality": 0.006436630284984331
+  },
+  "activation_physical_checks_passed": true
+}

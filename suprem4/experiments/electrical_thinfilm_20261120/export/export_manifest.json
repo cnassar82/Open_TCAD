@@ -1,0 +1,190 @@
+{
+  "nmos": {
+    "gate_oxide_material_validation": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.018062542340434945
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.01734227956501258
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.01712497129586231
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.017341233068768405
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.018128285149619797
+        }
+      ]
+    },
+    "diagnostic_only": false,
+    "input_structure": "/home/chris/Open_TCAD/decks/subcmos2014/results/fresh_full_flow_thinfilm_20261120/nmos/metal1.str",
+    "input_sha256": "606326bce0f8ebaaea4d33c4f75596832e2902c43e15b869c54b7ffd78d8d507",
+    "tif_sha256": "0061812f6352aab0c9e72b302c3ac5833f5e130746ae444295bed9078b7e77fc",
+    "counts": {
+      "nodes": 45563,
+      "triangles": 89310,
+      "edges": 4478,
+      "body_edges": 0
+    },
+    "contacts": {
+      "Body": {
+        "region": 13,
+        "original_region": 14,
+        "bounds_um": [
+          0.4999999873689376,
+          1.9999999494757503,
+          -1.4903064584359527,
+          0.18933627870865166
+        ]
+      },
+      "Source": {
+        "region": 14,
+        "original_region": 15,
+        "bounds_um": [
+          3.3999999868683517,
+          5.0000002374872565,
+          -1.606407022336498,
+          0.11202612768101972
+        ]
+      },
+      "Gate": {
+        "region": 15,
+        "original_region": 16,
+        "bounds_um": [
+          5.2499998128041625,
+          6.750000175088644,
+          -1.6791909001767635,
+          -0.4268545671948232
+        ]
+      },
+      "Drain": {
+        "region": 16,
+        "original_region": 17,
+        "bounds_um": [
+          6.99999975040555,
+          8.800000068731606,
+          -1.606365549378097,
+          0.11178241948073264
+        ]
+      }
+    },
+    "merged_poly_region": 2,
+    "poly_metal_shared_edges": 123,
+    "gate_work_function_eV": 4.17,
+    "width_um": 1.0,
+    "temperature_K": 300.0,
+    "fixed_interface_charge_cm2": 0.0,
+    "drain_bias_V": 0.05,
+    "active_dopants": true,
+    "assumptions": [
+      "Ideal n+ gate; 4.17 eV consistent with installed Si affinity model",
+      "Active B/P profiles; fully ionized fixed dopants",
+      "Lucent mobility; Fermi statistics",
+      "No fitted interface charge or interface traps",
+      "One micron device width for current normalization"
+    ]
+  },
+  "pmos": {
+    "gate_oxide_material_validation": {
+      "passed": true,
+      "probes": [
+        {
+          "x_um": 5.599999974947423,
+          "oxide_thickness_um": 0.01897959890159931
+        },
+        {
+          "x_um": 5.74999998207204,
+          "oxide_thickness_um": 0.018220350015695885
+        },
+        {
+          "x_um": 5.999999993946403,
+          "oxide_thickness_um": 0.017999245787979262
+        },
+        {
+          "x_um": 6.250000005820766,
+          "oxide_thickness_um": 0.01825741959339186
+        },
+        {
+          "x_um": 6.400000012945384,
+          "oxide_thickness_um": 0.019000295672036982
+        }
+      ]
+    },
+    "diagnostic_only": false,
+    "input_structure": "/home/chris/Open_TCAD/decks/subcmos2014/results/fresh_full_flow_thinfilm_20261120/pmos/metal1.str",
+    "input_sha256": "d5562118dff2423f69c6e9013340f89ed8c42e1b24b22bc0c1d34dcbd49b5e01",
+    "tif_sha256": "b611c3a577724e9bf87e95b169580ce58c050625d0e3a57c73fe1dec5f38f080",
+    "counts": {
+      "nodes": 41447,
+      "triangles": 81122,
+      "edges": 4299,
+      "body_edges": 0
+    },
+    "contacts": {
+      "Body": {
+        "region": 13,
+        "original_region": 14,
+        "bounds_um": [
+          0.4999999873689376,
+          1.9999999494757503,
+          -1.336142304353416,
+          0.3456140257185325
+        ]
+      },
+      "Source": {
+        "region": 14,
+        "original_region": 15,
+        "bounds_um": [
+          3.3999999868683517,
+          5.0000002374872565,
+          -1.4505961735267192,
+          0.25522986106807366
+        ]
+      },
+      "Gate": {
+        "region": 15,
+        "original_region": 16,
+        "bounds_um": [
+          5.2499998128041625,
+          6.750000175088644,
+          -1.523428363725543,
+          -0.27094700271845795
+        ]
+      },
+      "Drain": {
+        "region": 16,
+        "original_region": 17,
+        "bounds_um": [
+          6.99999975040555,
+          8.800000068731606,
+          -1.4506811567116529,
+          0.2552509795350488
+        ]
+      }
+    },
+    "merged_poly_region": 2,
+    "poly_metal_shared_edges": 128,
+    "gate_work_function_eV": 4.17,
+    "width_um": 1.0,
+    "temperature_K": 300.0,
+    "fixed_interface_charge_cm2": 0.0,
+    "drain_bias_V": -0.05,
+    "active_dopants": true,
+    "assumptions": [
+      "Ideal n+ gate; 4.17 eV consistent with installed Si affinity model",
+      "Active B/P profiles; fully ionized fixed dopants",
+      "Lucent mobility; Fermi statistics",
+      "No fitted interface charge or interface traps",
+      "One micron device width for current normalization"
+    ]
+  }
+}

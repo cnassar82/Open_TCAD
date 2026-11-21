@@ -1,0 +1,32 @@
+option quiet
+mode one.dim
+line x loc=0 spac=0.001 tag=top
+line x loc=0.1 spac=0.005
+line x loc=0.5 spac=0.02
+line x loc=8 spac=0.25 tag=bottom
+region silicon xlo=top xhi=bottom
+boundary exposed xlo=top xhi=top
+boundary backside xlo=bottom xhi=bottom
+init boron conc=1e17 orient=100
+method fermi
+deposit oxide thick=0.015 divisions=4
+deposit poly thick=0.5 divisions=40
+implant phosphorus dose=2e16 energy=50 pearson
+structure outfile=implanted.str
+
+structure outfile=poly_implanted.str
+# PDF p.88: 120 poly activation; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=15 temp=1000 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=15 temp=800 nitrogen continue
+structure outfile=activated.str
+quit

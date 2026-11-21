@@ -3,6 +3,9 @@
   "pwell_variant": "bf2",
   "gate_length_um": 1.0,
   "post_locos_model": "vertical",
+  "pmos_vt_dose_cm2": 2600000000000.0,
+  "pmos_vt_energy_keV": 35,
+  "blanket_vt_dose_cm2": 700000000000.0,
   "checkpoints": [
     "initial",
     "pad",
@@ -510,7 +513,7 @@
               "dryo2"
             ],
             [
-              45,
+              40,
               900,
               "dryo2"
             ],
@@ -1158,7 +1161,7 @@
               "dryo2"
             ],
             [
-              45,
+              40,
               900,
               "dryo2"
             ],

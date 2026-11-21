@@ -1,0 +1,27 @@
+[
+  {
+    "divisions": 1,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide1"
+  },
+  {
+    "divisions": 2,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide2"
+  },
+  {
+    "divisions": 4,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide4"
+  },
+  {
+    "divisions": 8,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide8"
+  },
+  {
+    "divisions": 16,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide16"
+  }
+]

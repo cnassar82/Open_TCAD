@@ -9,6 +9,7 @@
 /*   FEassmb.c                Version 5.1     */
 /*   Last Modification : 7/3/91  15:42:55 */
 #include "constant.h"
+#include "suprem_options.h"
 #define  WANT_STATIC
 #include "FEgeom.h"
 #include <stdio.h>
@@ -16,6 +17,9 @@
 #include <assert.h>
 
 extern int noderiv;
+extern int triox_stiff();
+extern void triox_project_oxidant(double *,double *,int *);
+extern void triox_reduce_oxidant(double *,double *,double *,int *);
 
 #define MELDOF MAXNEL*MAXDOF	/* degrees of freedom per element */
 
@@ -32,6 +36,8 @@ FEassmb( ia, aoff, a, rhs)
     static double xl[MELDOF], disp[MELDOF], bc[MELDOF];
     static int    eqns[MELDOF], fixity[MELDOF];
     double stiff[MELDOF*MELDOF], wrhs[MELDOF];
+    double original_concentration[21];
+    int p1;
     int dummy, NotYet=1;
     FEdesc_typ *desc; FEelt_typ *pie;
     int ie, i, ndf, nel;
@@ -56,6 +62,11 @@ FEassmb( ia, aoff, a, rhs)
 
 	/*Change from global to local info*/
 	localize( ie, xl, disp, eqns, fixity, bc);
+        p1=desc->stiff==triox_stiff && (suprem_option("SUPREM4_FE_OXIDANT_P1") || suprem_option("SUPREM4_FE_LINEAR_TRACE"));
+        if(p1) {
+            int l,c;for(l=0;l<7;l++)for(c=0;c<3;c++)original_concentration[3*l+c]=FEnd[pie->nd[l]]->sol[c];
+            triox_project_oxidant(disp,original_concentration,fixity);
+        }
 
 	/* avoid dummy elements */
 	dummy = (desc->stiff == 0);
@@ -68,6 +79,8 @@ FEassmb( ia, aoff, a, rhs)
 	    (*(desc->bound)) (stiff, wrhs, xl, disp, desc->coeff, pie->mat, fixity, bc, ie, NotYet);
 	    NotYet = 0;
 	}
+
+        if(p1)triox_reduce_oxidant(stiff,wrhs,original_concentration,fixity);
 
 	/*add to global array*/
 	addstf( ia, aoff, a, rhs, nel, stiff, wrhs, eqns, fixity, dummy);
@@ -182,6 +195,7 @@ ave_stress()
 
     /* Average contributions */
     for (in = 0; in < FEnn; in++) {
+        FEnd[in]->strain_count = (int)count[in];
 	if (count[ in] != 0)
 	    for (j = 0; j < FEnsc; j++) {
 		FEnd[ in]->sig[ j] /= count[in];
@@ -226,6 +240,15 @@ localize( ie, xl, disp, eqns, fixity, bc)
 	    bc    [ kf]  = inp->bc[j];
 	    kf++;
 	}
+    }
+    /* Match the velocity trace to the linear moving-boundary geometry.
+     * This projection is also used by ave_stress, not just bulk assembly. */
+    if(suprem_option("SUPREM4_FE_LINEAR_TRACE") && FEdesc[FEelt[ie]->desc].stiff==triox_stiff) {
+        int l,c,a,b;
+        for(l=3;l<6;l++)for(c=0;c<2;c++)if(FEnd[FEelt[ie]->nd[l]]->fixity[c]==4) {
+            a=FEelt[ie]->nd[(l+1)%3];b=FEelt[ie]->nd[(l+2)%3];
+            disp[FEdf*l+c]=.5*(FEnd[a]->sol[c]+FEnd[b]->sol[c]);
+        }
     }
 }
 

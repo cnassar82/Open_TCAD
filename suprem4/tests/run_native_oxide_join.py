@@ -10,6 +10,7 @@ import sys
 import tempfile
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from run_oxidation_perturbations import audit
+from partition_audit import audit_partition, orientation
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from str_compare import parse_str
 p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True)
@@ -52,7 +53,7 @@ for case in ('bare','wedge','gap'):
  r=subprocess.run([str(binary)],input=commands,text=True,cwd=folder,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=30)
  (folder/'suprem4.log').write_text(r.stdout)
  assert r.returncode==0 and 'panic' not in r.stdout.lower() and 'errors detected' not in r.stdout,f'{folder}: {r.stdout}'
- audit(folder/'seed.str');result=parse_str(folder/'seed.str')
+ audit(folder/'seed.str');audit_partition(folder/'seed.str');result=parse_str(folder/'seed.str')
  if case!='bare':
   for vertex in ((1,2,9,10) if case=='wedge' else (1,2,3,4,9,10,11,12)):
    expected=tuple(struct.unpack('f',struct.pack('f',v*1e-4))[0]*1e4
@@ -63,6 +64,18 @@ for case in ('bare','wedge','gap'):
   top=[p for p in result['coords'].values() if p[1]<0]
   assert top and max(p[1] for p in top)<-.00099,(folder,top)
  if case=='gap':
-  assert any(1<x<2 and y<-.00099 for x,y in result['coords'].values()),folder
+  # A conforming cap may span the complete gap without an interior vertex.
+  # Check material coverage, rather than requiring a particular triangulation.
+  regions={int(s[1]):int(s[2]) for line in (folder/'seed.str').read_text().splitlines()
+           if (s:=line.split()) and s[0]=='r'}
+  oxide=[]
+  for line in (folder/'seed.str').read_text().splitlines():
+   s=line.split()
+   if s and s[0]=='t' and regions[int(s[2])]==1:
+    oxide.append([result['coords'][int(v)] for v in s[3:6]])
+  for x in (1.1,1.5,1.9):
+   for y in (-.0001,-.0005,-.00099):
+    assert any(all(orientation(a,b,(x,y))>=0 for a,b in zip(t,t[1:]+t[:1]))
+               for t in oxide),(folder,'uncoated gap',x,y)
  print(f'PASS native oxide {case}: {len(result["triangles"])} positive triangles',flush=True)
 print(f'workdir: {work}')

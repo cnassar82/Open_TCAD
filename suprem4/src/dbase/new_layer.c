@@ -17,14 +17,18 @@
 /*   Last Modification : 7/3/91 08:21:06 */
 
 #include <stdio.h>
+#include "suprem_options.h"
 #include <math.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
+#include <limits.h>
 #include "global.h"
 #include "constant.h"
 #include "geom.h"
 #include "material.h"
 #include "impurity.h"
+#include "mesh_trial.h"
 #ifdef CONVEX
 #define hypot(a,b) sqrt((a)*(a)+(b)*(b))
 #endif
@@ -61,6 +65,217 @@ static int native_covered(int node, int silicon)
     return FALSE;
 }
 
+/* Build a positive-width cap by following the old oxide free boundary
+ * to its intersection with the exposed-run offset. Old boundary vertices
+ * stay fixed; a new film fills the gas-side polygon. No zero-width taper. */
+struct native_cap {int *node,count,exit;};
+static void native_cap_append(struct native_cap *cap,int node)
+{
+    int *next;
+    if(cap->count==INT_MAX || (size_t)cap->count+1>((size_t)-1)/sizeof(int))
+        panic("native oxide cap allocation overflow");
+    next=realloc(cap->node,((size_t)cap->count+1)*sizeof(int));
+    if(!next)panic("native oxide cap allocation failed");
+    cap->node=next;cap->node[cap->count++]=node;
+}
+/* The old oxide free boundary is followed from the joined endpoint while its
+ * offset-normal projection strictly increases. If it reaches the new film's
+ * offset line, that edge is noded at the crossing (bird's-beak style join).
+ * If the boundary first turns away from the film (spacer top, flush or
+ * recessed oxide) or ends, the film receives a positive-width end face at the
+ * last rising vertex M: a new gas-side vertex X=M+(thick-proj(M))*n. The old
+ * edge leaving M is recorded in cap->exit; native_cap_fill certifies with
+ * exact predicates that it does not enter the cap polygon. */
+static int native_cap_end_face(int current,double current_projection,double thick,
+                               double nx,double ny,struct native_cap *cap)
+{
+    float c[MAXDIM];
+    int k,point,node,i;
+    double rise=thick-current_projection;
+    if(!(rise>0))panic("native oxide cap end face has no height");
+    for(k=0;k<MAXDIM;k++)c[k]=cordinate(pt_nd(current),k);
+    c[X]=(double)c[X]+rise*nx;c[Y]=(double)c[Y]+rise*ny;
+    if(c[X]==xcord(pt_nd(current)) && c[Y]==ycord(pt_nd(current)))
+        panic("native oxide cap end face is not representable");
+    /* A gas-exposed point owns a GAS node, as sp_edge does for ESURF splits. */
+    point=mk_pt(3,c);
+    set_space(point,get_space(pt_nd(current)));
+    set_surf(point);
+    (void)mk_nd(point,GAS);
+    node=mk_nd(point,SiO2);
+    for(i=0;i<MAXIMP;i++)nd[node]->sol[i]=nd[current]->sol[i];
+    native_cap_append(cap,node);
+    return node;
+}
+static int native_join_cap(int silicon,struct LLedge *bare,double thick,
+                           struct native_cap *cap)
+{
+    int oxide=node_mat(silicon,SiO2),p=pt_nd(silicon),i,e,q,other,current,previous=-1;
+    int chosen,newpoint,t,j,k,a,b,child,walk;
+    double dx=xcord(pt_nd(nF(bare)))-xcord(pt_nd(nB(bare)));
+    double dy=ycord(pt_nd(nF(bare)))-ycord(pt_nd(nB(bare)));
+    double length=hypot(dx,dy),nx,ny,projection,current_projection=0,fraction;
+    float c[MAXDIM],v[3][MAXDIM],saved[MAXDIM];
+    if(oxide<0 || length<=0)panic("invalid native oxide join");
+    nx=dy/length;ny=-dx/length;current=oxide;native_cap_append(cap,current);cap->exit=-1;
+    for(walk=0;walk<ned;walk++) {
+        chosen=-1;
+        for(i=0;i<num_edge_nd(current);i++) {
+            e=edge_nd(current,i);if(e==previous || !ask(edg[e],ESURF))continue;
+            if(chosen>=0)panic("native oxide cap has ambiguous free boundary");
+            chosen=e;
+        }
+        /* Oxide free boundary ends (meets a covering material): end face. */
+        if(chosen<0)return native_cap_end_face(current,current_projection,thick,nx,ny,cap);
+        other=nd_edg(chosen,nd_edg(chosen,0)==current?1:0);q=pt_nd(other);
+        projection=((double)xcord(q)-xcord(p))*nx+((double)ycord(q)-ycord(p))*ny;
+        if(getenv("SUPREM4_MESH_DIAG"))fprintf(stderr,"[native-cap-walk] from=(%.6g,%.6g) to=(%.6g,%.6g) mat=%d projection=%.6g thick=%.6g\n",xcord(pt_nd(current))*1e4,ycord(pt_nd(current))*1e4,xcord(q)*1e4,ycord(q)*1e4,mat_nd(other),projection*1e4,thick*1e4);
+        if(projection>=thick)break;
+        /* The film joins old oxide only along a strictly rising surface
+         * (bird's beak). A flat or falling surface (flush oxide, spacer
+         * top) ends the film at its last rising vertex instead of coating
+         * the old oxide's top. */
+        if(projection<=current_projection) {
+            cap->exit=other;
+            return native_cap_end_face(current,current_projection,thick,nx,ny,cap);
+        }
+        if(node_mat(other,mat_nd(silicon))>=0)
+            panic("native oxide cap crosses another exposed run; global union required");
+        native_cap_append(cap,other);previous=chosen;current=other;current_projection=projection;
+    }
+    if(walk==ned)panic("native oxide cap boundary does not intersect offset");
+    current_projection=((double)xcord(pt_nd(current))-xcord(p))*nx+
+                       ((double)ycord(pt_nd(current))-ycord(p))*ny;
+    fraction=(thick-current_projection)/(projection-current_projection);
+    for(k=0;k<MAXDIM;k++)c[k]=cordinate(pt_nd(current),k)+fraction*
+                                      ((double)cordinate(q,k)-cordinate(pt_nd(current),k));
+    for(i=0;i<2;i++) {
+        for(k=0;k<mode;k++)if(c[k]!=cordinate(pt_edg(chosen,i),k))break;
+        if(k==mode) {
+            if(pt_edg(chosen,i)==p)panic("native oxide cap cannot be represented");
+            native_cap_append(cap,nd_edg(chosen,i));return cap->node[cap->count-1];
+        }
+    }
+    for(i=0;i<num_tri_edg(chosen);i++) {
+        t=tri_edg(chosen,i);if(dead_tri(t) || !leaf(tri[t]))continue;
+        a=b=-1;
+        for(j=0;j<3;j++) {
+            if(vert_tri(t,j)==nd_edg(chosen,0))a=j;
+            if(vert_tri(t,j)==nd_edg(chosen,1))b=j;
+            for(k=0;k<MAXDIM;k++)v[j][k]=cordinate(pt_nd(vert_tri(t,j)),k);
+        }
+        if(a<0 || b<0)panic("native oxide cap edge is inconsistent");
+        for(child=0;child<2;child++) {
+            j=child?b:a;
+            for(k=0;k<MAXDIM;k++){saved[k]=v[j][k];v[j][k]=c[k];}
+            if(orient2d_float_sign(v[0],v[1],v[2])<=0)panic("native oxide cap has an invalid rounded child");
+            for(k=0;k<MAXDIM;k++)v[j][k]=saved[k];
+        }
+    }
+    sp_gredg(chosen,c,&newpoint);
+    native_cap_append(cap,node_mat(nd_pt(newpoint,0),SiO2));
+    return cap->node[cap->count-1];
+}
+static int native_cap_orient(int a,int b,int c)
+{
+    return orient2d_float_sign(cord_arr(pt_nd(a)),cord_arr(pt_nd(b)),cord_arr(pt_nd(c)));
+}
+static int native_cap_on_segment(int p,int a,int b)
+{
+    return native_cap_orient(a,b,p)==0 &&
+        xcord(pt_nd(p))>=fmin(xcord(pt_nd(a)),xcord(pt_nd(b))) &&
+        xcord(pt_nd(p))<=fmax(xcord(pt_nd(a)),xcord(pt_nd(b))) &&
+        ycord(pt_nd(p))>=fmin(ycord(pt_nd(a)),ycord(pt_nd(b))) &&
+        ycord(pt_nd(p))<=fmax(ycord(pt_nd(a)),ycord(pt_nd(b)));
+}
+static int native_cap_bad_segment(int a,int b,int c,int d)
+{
+    int ac=native_cap_orient(a,b,c),ad=native_cap_orient(a,b,d);
+    int ca=native_cap_orient(c,d,a),cb=native_cap_orient(c,d,b);
+    if(ac*ad<0 && ca*cb<0)return 1;
+    return native_cap_on_segment(a,c,d) || native_cap_on_segment(b,c,d) ||
+           native_cap_on_segment(c,a,b) || native_cap_on_segment(d,a,b);
+}
+/* Triangulate the complete cap polygon, retaining every old free-boundary
+ * subdivision. Prepare all ears before adding any cap element. */
+static void native_cap_fill(struct native_cap *cap,int apex,int region)
+{
+    int n,*poly,*order,*triangles,i,j,k,count,out=0,a,b,c,ear;
+    if(cap->count<2 || cap->count==INT_MAX ||
+       (size_t)cap->count+1>((size_t)-1)/(3*sizeof(int)))panic("native oxide cap allocation overflow");
+    n=cap->count+1;count=n;
+    poly=malloc((size_t)n*sizeof(int));order=malloc((size_t)n*sizeof(int));
+    triangles=malloc((size_t)3*(n-2)*sizeof(int));
+    int bc[3]={BC_OFFSET,BC_OFFSET,BC_OFFSET};long double area=0;
+    double x0=xcord(pt_nd(apex)),y0=ycord(pt_nd(apex));
+    if(!poly || !order || !triangles)panic("native oxide cap allocation failed");
+    poly[0]=apex;for(i=0;i<cap->count;i++)poly[i+1]=cap->node[i];
+    for(i=0;i<n;i++) {
+        j=(i+1)%n;
+        area+=((long double)xcord(pt_nd(poly[i]))-x0)*(ycord(pt_nd(poly[j]))-y0)-
+              ((long double)ycord(pt_nd(poly[i]))-y0)*(xcord(pt_nd(poly[j]))-x0);
+        for(k=0;k<i;k++)if(pt_nd(poly[k])==pt_nd(poly[i]))panic("native oxide cap repeats a vertex");
+    }
+    for(i=0;i<n;i++)for(j=i+2;j<n;j++) {
+        if(i==0 && j==n-1)continue;
+        if(native_cap_bad_segment(poly[i],poly[(i+1)%n],poly[j],poly[(j+1)%n]))
+            panic("native oxide cap boundary requires a global union");
+    }
+    if(area==0)panic("native oxide cap has zero area");
+    /* End-face cap: the old free boundary leaves M=poly[n-2] along
+     * (M,exit). Certify that this edge lies strictly outside the cap's
+     * interior angle at M and crosses no other cap edge, so the new film
+     * cannot overlap the old oxide locally. */
+    if(cap->exit>=0) {
+        int s=area>0?1:-1,m=poly[n-2],pa=poly[n-3],pc=poly[n-1],x=cap->exit,outside;
+        int turn=s*native_cap_orient(pa,m,pc),o1=s*native_cap_orient(pa,m,x),o2=s*native_cap_orient(m,pc,x);
+        outside=turn>0?(o1<0 || o2<0):(o1<0 && o2<0);
+        if(!outside)panic("native oxide cap end face overlaps the old oxide boundary");
+        for(i=0;i<n;i++) {
+            a=poly[i];b=poly[(i+1)%n];if(a==m || b==m)continue;
+            if(native_cap_bad_segment(m,x,a,b))
+                panic("native oxide cap end face crosses the old oxide boundary");
+        }
+    }
+    for(i=0;i<n;i++)order[i]=area>0?i:n-1-i;
+    while(count>3) {
+        ear=-1;
+        for(i=0;i<count;i++) {
+            a=poly[order[(i+count-1)%count]];b=poly[order[i]];c=poly[order[(i+1)%count]];
+            if(native_cap_orient(a,b,c)<=0)continue;
+            for(j=0;j<count;j++) {
+                k=poly[order[j]];if(k==a || k==b || k==c)continue;
+                if(native_cap_orient(a,b,k)>=0 && native_cap_orient(b,c,k)>=0 && native_cap_orient(c,a,k)>=0)break;
+            }
+            if(j==count){ear=i;break;}
+        }
+        if(ear<0)panic("native oxide cap polygon needs a global union");
+        triangles[3*out]=a;triangles[3*out+1]=b;triangles[3*out+2]=c;out++;
+        for(j=ear;j<count-1;j++)order[j]=order[j+1];count--;
+    }
+    for(i=0;i<3;i++)triangles[3*out+i]=poly[order[i]];
+    if(native_cap_orient(triangles[3*out],triangles[3*out+1],triangles[3*out+2])<=0)
+        panic("native oxide cap has a degenerate final ear");
+    out++;
+    /* Every boundary segment has one owner; every internal diagonal has
+     * two opposite owners. Together with positive ears this certifies the
+     * prepared triangulation's attachment to the unchanged old boundary. */
+    for(i=0;i<out;i++)for(j=0;j<3;j++) {
+        int forward=0,reverse=0,boundary=0,ti,f,u=triangles[3*i+j],v=triangles[3*i+(j+1)%3];
+        for(ti=0;ti<out;ti++)for(f=0;f<3;f++) {
+            a=triangles[3*ti+f];b=triangles[3*ti+(f+1)%3];
+            forward+=a==u && b==v;reverse+=a==v && b==u;
+        }
+        for(k=0;k<n;k++) {
+            a=poly[k];b=poly[(k+1)%n];if(area<0){c=a;a=b;b=c;}
+            if(a==u && b==v)boundary=1;
+        }
+        if(forward!=1 || reverse!=(boundary?0:1))panic("native oxide cap attachment is invalid");
+    }
+    for(i=0;i<out;i++)mk_ele(3,&triangles[3*i],3,bc,region,FALSE);
+    free(poly);free(order);free(triangles);
+}
+
 NativeOxide(thick)
     double thick;		/* That's me */
 {
@@ -76,6 +291,9 @@ NativeOxide(thick)
     int join_existing, first_join, last_join;
     int closed_run, run_edges, run_vertex;
     int bsp, tsp;
+    const char *cap_option=suprem_option("SUPREM4_NATIVE_JOIN_CAP");
+    int cap=cap_option && !strcmp(cap_option,"1"),first_cap=-1,last_cap=-1;
+    struct native_cap first_chain={0},last_chain={0};
     int b[3];
     b[1] = b[2] = b[0] = BC_OFFSET;
 
@@ -133,7 +351,7 @@ restart_native_scan:
 		/* A one-edge bare gap with oxide at both ends needs an interior
 		 * seed vertex. Tapering both endpoints alone would add no oxide
 		 * and leave the same exposed edge to be processed forever. */
-		if (first_join && last_join && beg->next == ende) {
+		if (!cap && first_join && last_join && beg->next == ende) {
 		    float midpoint[MAXDIM];
 		    int point, k;
 		    for(k=0;k<mode;k++)
@@ -145,6 +363,10 @@ restart_native_scan:
 		    bd_connect("native oxide gap subdivision");
 		    goto restart_native_scan;
 		}
+                if(cap) {
+                    first_cap=first_join?native_join_cap(nB(beg),beg,thick,&first_chain):-1;
+                    last_cap=last_join?native_join_cap(nB(ende),ende->prev,thick,&last_chain):-1;
+                }
 		r = mk_reg(SiO2);
 
 		/*for every edge...*/
@@ -153,10 +375,9 @@ restart_native_scan:
                     bp=bp->next,run_vertex++) {
 		    tn = nF(bp);
 		    
-		    /* At a run endpoint, join the existing oxide without moving
-		     * it. Offsetting a thin residual oxide wedge by the full seed
-		     * thickness inverts its adjacent triangles. Taper the new
-		     * strip to this shared interface vertex instead. */
+                    /* A capped join retains the inner material vertex and
+                     * attaches to the noded old free boundary. The legacy
+                     * endpoint taper remains available for comparison. */
                     if(getenv("SUPREM4_MESH_DIAG"))fprintf(stderr,"[native-seed] node=%d point=%d x=%.17g y=%.17g begin=%d end=%d joins=%d,%d oxide=%d\n",tn,pt_nd(tn),(double)cordinate(pt_nd(tn),0),(double)cordinate(pt_nd(tn),1),nB(beg),nB(ende),first_join,last_join,node_mat(tn,SiO2));
 		    to = node_mat(tn,SiO2);
 		    join_existing = (first_join && tn == nB(beg)) ||
@@ -164,7 +385,10 @@ restart_native_scan:
 		    if( to < 0)
 			to = mk_nd( pt_nd(tn), SiO2);
 
-		    if (join_existing) tsp = to;
+		    if (join_existing) {
+                        tsp=to; /* existing inner Si/oxide node stays fixed */
+                        if(cap)to=tn==nB(beg)?first_cap:last_cap;
+                    }
 		    else {
 		        (void)local_normal( tn, -2, Normal);
 		        Normal[X] *= thick;
@@ -172,33 +396,48 @@ restart_native_scan:
 		        tsp = SplitNode( to, Normal, mat_reg(ir));
 		    }
 
+                    if(cap && first_join && run_vertex==1)native_cap_fill(&first_chain,to,r);
 		    /*make the connection to the prior node*/
-		    if ( !join_existing && (closed_run || (tn != nB(beg)) || native_covered(nB(bp),mat_reg(ir))) ) {
+		    if ((cap && last_join && run_vertex==run_edges) || (!join_existing && (closed_run || (tn != nB(beg)) || native_covered(nB(bp),mat_reg(ir))))) {
 			if ( (bsp = node_mat( nB(bp), SiO2 )) < 0 )
 			    bsp = mk_nd( pt_nd(nB(bp)), SiO2);
+                        if(cap && last_join && run_vertex==run_edges)native_cap_fill(&last_chain,bsp,r);
+                        else {
 			v[0] = to; v[1] = tsp; v[2] = bsp;
 			b[1] = b[2] = b[0] = BC_OFFSET;
 			(void)mk_ele( 3, v, 3, b, r, FALSE);
+                        }
 		    }
 
 		    if (!join_existing && (closed_run || (tn!=nB(ende)) || native_covered(nF(bp->next),mat_reg(ir)))) {
-			if ( (bsp = node_mat( nF(bp->next), SiO2 )) < 0 )
-			    bsp = mk_nd( pt_nd(nF(bp->next)), SiO2);
+                        /* Ordinary next vertices move their original oxide
+                         * node outward in SplitNode. Joined endpoints keep
+                         * that inner node, so use their pre-noded outer cap. */
+                        if(cap && last_join && nF(bp->next)==nB(ende))bsp=last_cap;
+                        else if((bsp=node_mat(nF(bp->next),SiO2))<0)
+                            bsp=mk_nd(pt_nd(nF(bp->next)),SiO2);
 			v[0] = to; v[1] = tsp; v[2] = bsp;
 			if (is_surf(pt_nd(bsp))) b[1] = EXPOSED;
 			(void)mk_ele( 3, v, 3, b, r, FALSE);
 		    }
 		}
+                free(first_chain.node);free(last_chain.node);
+                first_chain.node=last_chain.node=NULL;first_chain.count=last_chain.count=0;
 		g = 0; beg = bnd->prev;
 	    }
 	    if ( ende != NULL ) {
-		bd_connect("native oxide deposition");
+		if(cap && mode==TWOD)bd_connect_material("native oxide join union");
+            else bd_connect("native oxide deposition");
 		ir = -1;
 	    }
 	}
 	break;
     }
-    bd_connect("native oxide deposition");
+    if(cap && mode==TWOD) {
+        int bad;
+        bd_connect_material("native oxide join union");
+        if(!mesh_trial_validate_embedding(0,&bad))panic("invalid native oxide cap embedding");
+    } else bd_connect("native oxide deposition");
 }
 
 

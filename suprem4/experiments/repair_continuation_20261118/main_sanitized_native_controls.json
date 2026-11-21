@@ -1,0 +1,53 @@
+{
+  "scope": "native oxide bare/wedge/gap and exposed closed-loop controls; not full CMOS",
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e247k5pa/src/suprem4",
+  "binary_sha256": "79c94c046dc4ddb4fe99d152ea61d9450799a26c79445a8291c399347e6db73f",
+  "runtime_options": {
+    "SUPREM4_NATIVE_JOIN_CAP": "1",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1"
+  },
+  "runner_sha256": "f1870b2a50bc221365bb0c21e6f2c2072317615616b51a8fb6c69032ae189223",
+  "bare_wedge_gap": {
+    "passed": true,
+    "triangles": {
+      "bare": 12,
+      "wedge": 14,
+      "gap": 16
+    },
+    "evidence": "main_sanitized_native_join_controls"
+  },
+  "closed_loop": {
+    "passed": true,
+    "evidence": "main_sanitized_seed_loop/result.json"
+  },
+  "join_shifts": [
+    {
+      "join_x_um": 0.475,
+      "passed": true,
+      "exit": 0,
+      "evidence": "native_join_main_shift_0.475"
+    },
+    {
+      "join_x_um": 0.495,
+      "passed": true,
+      "exit": 0,
+      "evidence": "native_join_main_shift_0.495"
+    },
+    {
+      "join_x_um": 0.505,
+      "passed": true,
+      "exit": 0,
+      "evidence": "native_join_main_shift_0.505"
+    },
+    {
+      "join_x_um": 0.525,
+      "passed": true,
+      "exit": 0,
+      "evidence": "native_join_main_shift_0.525"
+    }
+  ],
+  "leak_check": false,
+  "accepted_full_cmos": false
+}

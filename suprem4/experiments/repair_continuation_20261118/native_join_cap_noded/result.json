@@ -1,0 +1,48 @@
+{
+  "accepted_full_cmos": false,
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_0fkneocj/src/suprem4",
+  "binary_sha256": "c81af49a914f93a7889290abe22af6a5583ce21a009e44d5d98debebdd850d29",
+  "input_sha256": "e62b6e0ebefec20589d0fb30fffe8e6ad73d0b4ebfb49e01fcb70e4f3b7f14df",
+  "runtime_options": {
+    "SUPREM4_NATIVE_JOIN_CAP": "1",
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1"
+  },
+  "errors": [],
+  "exit": 0,
+  "elapsed_seconds": 0.11441217828541994,
+  "mesh_audit": {
+    "sha256": "1368d7ad678ebd7dbf90ef88aad30948b57a5016e9550e9ddf4a5b397586ff4c",
+    "topology": {
+      "triangles": 3923,
+      "area_by_region_um2": {
+        "1": 0.4999999747377157,
+        "2": 0.010500003161635307,
+        "3": 0.1007580052698698
+      }
+    },
+    "partition": {
+      "triangle_pairs_checked": 9215,
+      "boundary_pairs_checked": 195,
+      "triangles": 3923,
+      "boundary_edges": 195
+    },
+    "chemistry": {
+      "species_checked": [
+        5
+      ],
+      "inventory_by_material_species": {
+        "3:5": 499999968147403.4,
+        "1:5": 2386848194922.0654,
+        "4:5": 3786139.9964030758
+      }
+    },
+    "points": 2060,
+    "minimum_quality": 0.12483790424010893
+  },
+  "poly_silicon_contacts": [],
+  "continuous_barrier": true,
+  "passed": true
+}

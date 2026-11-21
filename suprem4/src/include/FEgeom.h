@@ -28,6 +28,7 @@ struct FEnd_str {
     double sig[MAXSC];		/* Stress and strain */
     double eps[MAXSC];
     double garbage[20];		/* Normal vector, reaction rates, blah... */
+    int strain_count;          /* Active element contributions to averaged strain. */
     int valence;
     char *user;			/* Anything the user wants to put here */
     };
@@ -66,3 +67,6 @@ EXTERN FEdesc_typ FEdesc[20];
 #define M_ELASTIC 0
 #define M_VISCOUS 1
 #define M_PLASTIC 2
+
+/* Finite committed process fields available as a nonlinear initial guess. */
+EXTERN int FEwarm_start;

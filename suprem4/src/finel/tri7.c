@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include "triangle7.h"
 
 /************************************************************************
  *									*
@@ -33,60 +34,16 @@ tri7_shape( s,t, cord, xsj, shp)
 			   shp[i][0/1] = x,y derivative of shp[i][2] */
 {
     int i, j, k;
-    double lam0, lam1, lam2, xs[2][2], sx[2][2], tmpx, tmpy;
+    double xs[2][2], sx[2][2], tmpx, tmpy;
 
-    /* The linear shape functions...*/
-    lam0 = 1-s-t;
-    lam1 = s;
-    lam2 = t;
-
-    /* The parabolic shape functions...*/
-    shp[0][2] = lam0 * (2 * lam0 - 1);
-    shp[1][2] = lam1 * (2 * lam1 - 1);
-    shp[2][2] = lam2 * (2 * lam2 - 1);
-    shp[3][2] = 4 * lam1 * lam2;
-    shp[4][2] = 4 * lam2 * lam0;
-    shp[5][2] = 4 * lam0 * lam1;
-
-    /* The derivatives...*/
-    shp[0][0] = -1 * (4 * lam0 - 1);
-    shp[0][1] = -1 * (4 * lam0 - 1);
-
-    shp[1][0] = 4 * lam1 - 1;
-    shp[1][1] = 0;
-
-    shp[2][0] = 0;
-    shp[2][1] = 4 * lam2 - 1;
-
-    shp[3][0] = 4 * t;
-    shp[3][1] = 4 * s;
-
-    shp[4][0] = -4 * t;
-    shp[4][1] =  4 * (1 - s - 2 * t);
-
-    shp[5][0] =  4 * (1 - 2 * s - t);
-    shp[5][1] = -4 * s;
-
-    /* The bubble node */
-    shp[6][2] = 9*lam0*lam1*lam2;
-    shp[6][0] = 9*(lam1*lam2*(-1) + lam0*lam2*(1) + lam0*lam1*(0));
-    shp[6][1] = 9*(lam1*lam2*(-1) + lam0*lam2*(0) + lam0*lam1*(1));
-
-    /* Force other shape functions to zero here */
-    for (i = 0; i < 3; i++) {
-	for (j = 0; j < 3; j++) {
-	    shp[i  ][j] -=  -shp[6][j]/9;
-	    shp[i+3][j] -= 4*shp[6][j]/9;
-	}
-    }
-    
+    triangle7_basis(s,t,shp);
 
     /*The jacobian and its inverse*/
     for (i=0; i < 2; i++) {
 	for (j = 0; j < 2; j++) {
 	    xs[i][j] = 0;
 	    for (k = 0; k < 7; k++) {
-		xs[i][j] += cord[k][j] * shp[k][i];
+		xs[i][j] += (cord[k][j]-cord[0][j]) * shp[k][i];
     }}}
     *xsj = xs[0][0] * xs[1][1] - xs[0][1] * xs[1][0];
     if (*xsj < 1e-30) {
@@ -124,7 +81,7 @@ tri7_stiff( stiff, wrhs, xl, disp, coeff, mat)
      int (*coeff)();		/* A function to return material coefficients */
      int mat;
 {
-    static double sg[]={0.5,0,0.5}, tg[]={0.5,0.5,0}, wg=0.166666666666667;
+
     double d11,d12,d33,db00,db01,db10,db11,db20,db21;
     double shp[7][3];
     double xsj, dv, eps[3], sig[3];
@@ -132,10 +89,10 @@ tri7_stiff( stiff, wrhs, xl, disp, coeff, mat)
     int l, i, j;
 
     /*for each integration point compute contribution to stiffness*/
-    for (l=0; l < 3; l++) {
+    for (l=0; l < TRIANGLE7_NQ; l++) {
 
-	tri7_shape( sg[l], tg[l], xl, &xsj, shp);
-	dv = wg*xsj;
+	tri7_shape(triangle7_q[l][0],triangle7_q[l][1],xl,&xsj,shp);
+	dv = triangle7_q[l][2]*xsj;
 
 	/* Current strains */
 	eps[XX] = eps[YY] = eps[XY] = 0;
@@ -218,7 +175,7 @@ tri7_stress(  mat, coeff, xl, ul, where, eps, sig, xsj)
 }
 
 /*-----------------TRI7_NODAL_STRESS---------------------------------*
- * Compute the strains, stress at the corners by linear extrapolation.
+ * Evaluate the strains and stress at the actual element nodes.
  *--------------------------------------------------------------------*/
 tri7_nodal_stress( xl, ul, epsn, sign, coeff, mat, xsj)
      double xl[7][2];
@@ -229,29 +186,14 @@ tri7_nodal_stress( xl, ul, epsn, sign, coeff, mat, xsj)
      int mat;
     double *xsj;
 {
-    
-    static double locg[][2] = {{0.5,0.5},{0,0.5},{0.5,0}};
-    double epsg[3][3], sigg[3][3];
-    int j, l, c;
-
-    /* Compute at each of the gauss points */
-    for (l = 0; l < 3; l++) {
-	tri7_stress( mat, coeff, xl, ul, locg[l], epsg[l], sigg[l], xsj);
+    static const double position[7][2]={{0,0},{1,0},{0,1},{.5,.5},{0,.5},{.5,0},{1./3,1./3}};
+    int j;
+    /* The bubble makes strain quadratic. Evaluate the actual nodal
+     * traces; three-midpoint linear extrapolation gives false corners. */
+    for(j=0;j<7;j++) {
+        double where[2];where[0]=position[j][0];where[1]=position[j][1];
+        tri7_stress(mat,coeff,xl,ul,where,epsn[j],sign[j],xsj);
     }
-
-    /* Extrapolate to nodes */
-    for (j = 0; j < 3; j++) {
-	for (c = 0; c < 3; c++) {
-	    epsn[j+3][c] = epsg[j][c];
-	    sign[j+3][c] = sigg[j][c];
-	    epsn[j  ][c] = epsg[(j+1)%3][c] + epsg[(j+2)%3][c] - epsg[j][c];
-	    sign[j  ][c] = sigg[(j+1)%3][c] + sigg[(j+2)%3][c] - sigg[j][c];
-	}
-    }
-    for (c = 0; c < 3; c++) {
-	    epsn[ 6 ][c] = (epsg[0][c] + epsg[1][c] + epsg[2][c])/3;
-	    sign[ 6 ][c] = (sigg[0][c] + sigg[1][c] + sigg[2][c])/3;
-	}
 }
 
 

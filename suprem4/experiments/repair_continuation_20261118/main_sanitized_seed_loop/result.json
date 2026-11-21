@@ -1,0 +1,13 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_e247k5pa/src/suprem4",
+  "binary_sha256": "79c94c046dc4ddb4fe99d152ea61d9450799a26c79445a8291c399347e6db73f",
+  "errors": [],
+  "partition": {
+    "triangle_pairs_checked": 150,
+    "boundary_pairs_checked": 40,
+    "triangles": 280,
+    "boundary_edges": 40
+  },
+  "oxide_triangles": 80,
+  "passed": true
+}

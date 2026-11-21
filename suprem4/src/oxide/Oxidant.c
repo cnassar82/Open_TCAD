@@ -381,6 +381,9 @@ double KsFermiDep( noni, temp)
  * Turn on stress dependences one by one or all together?
  */
 static int byhalves=1;
+/* The homotopy path is numerical; both paths have the same coefficients
+ * at lambda=1. Keep the staged path available for the legacy solver. */
+void oxide_staged_homotopy(int staged) {byhalves=staged;}
 static int xjacob=1;
 /*-----------------FE_oxbulk--------------------------------------------
  * The bulk coefficients for the oxide finite element
@@ -726,8 +729,12 @@ exp_l( arg, f, dfda, lambda)
     eargl = exp( argLim);
     
     if (arg < -argLim) {
-	*f    = -1/(eargl*(arg + 1));
-	*dfda =  1/(eargl*(arg + 1)*(arg + 1));
+        /* Rational tail matched in value and slope to exp(-argLim).
+         * The old arg+1 denominator jumped by a factor 3.6 at the seam,
+         * making the constitutive residual discontinuous for Newton. */
+        double denominator=1-argLim-arg;
+        *f=1/(eargl*denominator);
+        *dfda=*f/denominator;
     }
     else {
 	*f = exp(arg);

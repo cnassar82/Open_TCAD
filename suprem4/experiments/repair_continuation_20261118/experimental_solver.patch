@@ -1,0 +1,5848 @@
+--- a/src/dbase/grid_upd.c
++++ b/src/dbase/grid_upd.c
+@@ -470,6 +470,24 @@
+     int ie, ip;
+     int test = FALSE, operation = 0;
+ 
++    {
++        const char *tx=getenv("SUPREM4_REMOVAL_TRACE_X"),*ty=getenv("SUPREM4_REMOVAL_TRACE_Y");
++        static int reports=0;
++        if(tx && ty && reports<40) {
++            int p,j,e,node;float x=strtod(tx,NULL),y=strtod(ty,NULL);
++            for(p=0;p<np;p++)if(!dead_pt(p) && xcord(p)==x && ycord(p)==y) {
++                fprintf(stderr,"[queue-probe] point=%d flags=%u owners=%d\n",p,(unsigned)pt[p]->flags,num_nd(p));
++                for(j=0;j<num_nd(p);j++) {
++                    int k;node=nd_pt(p,j);
++                    for(k=0;k<num_edge_nd(node);k++) {
++                        e=edge_nd(node,k);
++                        fprintf(stderr,"[queue-probe] edge=%d length=%.17g marked=%d material=%d\n",e,(double)len_edg(e),ask(edg[e],KILL_LATER)!=0,mat_nd(node));
++                    }
++                }
++                reports++;break;
++            }
++        }
++    }
+     audit_removal_ownership("grid_sub_entry", operation, -1);
+     mesh_embedding_trace("grid_sub entry");
+     if (dt >= preox_remesh_min_dt())
+--- a/src/dbase/mesh_trial.c
++++ b/src/dbase/mesh_trial.c
+@@ -133,34 +133,6 @@
+     return (float)((double)pt[p]->cord[axis] + pt[p]->vel[axis]*dt);
+ }
+ 
+-/* Read-only validation of the committed embedding (dt=0), or of rounded
+- * candidate coordinates. Callers establish positive element orientations. */
+-int mesh_trial_validate_embedding(double dt,int *bad_triangle)
+-{
+-    int p,k,t,j,count=0,valid;
+-    float (*xy)[3];
+-    struct embedding_triangle *elements;
+-    *bad_triangle=-1;
+-    if(!isfinite(dt))return 0;
+-    if(mode!=TWOD)return 1;
+-    xy=calloc((size_t)np,sizeof(*xy));
+-    elements=calloc((size_t)ne,sizeof(*elements));
+-    if(!xy || !elements){free(xy);free(elements);return 0;}
+-    for(p=0;p<np;p++)for(k=0;k<2;k++)xy[p][k]=dt==0?pt[p]->cord[k]:moved_coordinate(p,k,dt);
+-    for(t=0;t<ne;t++) {
+-        if(dead_tri(t) || !leaf(tri[t]))continue;
+-        elements[count].identity=t;
+-        for(j=0;j<3;j++) {
+-            elements[count].vertex[j]=pt_nd(vert_tri(t,j));
+-            if(tri[t]->nb[(j+2)%3]<0)elements[count].boundary|=1<<j;
+-        }
+-        count++;
+-    }
+-    valid=mesh_embedding_check((const float (*)[3])xy,count,elements,bad_triangle);
+-    free(xy);free(elements);
+-    return valid;
+-}
+-
+ int mesh_trial_move(double dt, int *bad_triangle)
+ {
+     int p,k,t,j;
+@@ -169,15 +141,7 @@
+     if(!isfinite(dt))return 0;
+     for(p=0;p<np;p++)for(k=0;k<mode;k++)
+         if(!isfinite(pt[p]->cord[k]) || !isfinite(pt[p]->vel[k]) ||
+-           !isfinite(moved_coordinate(p,k,dt))) {
+-            if(getenv("SUPREM4_MOTION_TRACE"))
+-                fprintf(stderr,"[motion-trace] nonfinite: p=%d axis=%d cord=%.17g vel=%.17g cand=%.17g x=%.17g y=%.17g nn=%d dt=%.17g\n",
+-                        p,k,(double)pt[p]->cord[k],(double)pt[p]->vel[k],
+-                        (double)moved_coordinate(p,k,dt),
+-                        (double)pt[p]->cord[0],(double)pt[p]->cord[1],
+-                        pt[p]->nn,dt);
+-            return 0;
+-        }
++           !isfinite(moved_coordinate(p,k,dt)))return 0;
+     for(t=0;t<ne;t++) {
+         if(dead_tri(t) || !leaf(tri[t]))continue;
+         for(j=0;j<num_vert(t);j++) {
+@@ -192,7 +156,25 @@
+     /* Validate the represented global embedding before committing any
+      * coordinate. A positive orientation test alone misses collisions of
+      * non-neighboring boundary fans, including the captured LOCOS corner. */
+-    if(mode==TWOD && dt!=0 && !mesh_trial_validate_embedding(dt,bad_triangle))return 0;
++    if(mode==TWOD && dt!=0) {
++        float (*xy)[3]=calloc((size_t)np,sizeof(*xy));
++        struct embedding_triangle *elements=calloc((size_t)ne,sizeof(*elements));
++        int count=0,valid;
++        if(!xy || !elements){free(xy);free(elements);return 0;}
++        for(p=0;p<np;p++)for(k=0;k<2;k++)xy[p][k]=moved_coordinate(p,k,dt);
++        for(t=0;t<ne;t++) {
++            if(dead_tri(t) || !leaf(tri[t]))continue;
++            elements[count].identity=t;
++            for(j=0;j<3;j++) {
++                elements[count].vertex[j]=pt_nd(vert_tri(t,j));
++                if(tri[t]->nb[(j+2)%3]<0)elements[count].boundary|=1<<j;
++            }
++            count++;
++        }
++        valid=mesh_embedding_check((const float (*)[3])xy,count,elements,bad_triangle);
++        free(xy);free(elements);
++        if(!valid)return 0;
++    }
+     if(getenv("SUPREM4_EMBED_TRACE") && dt!=0 && mode==TWOD) {
+         double lo,hi;
+         FILE *trace;
+--- a/src/dbase/new_layer.c
++++ b/src/dbase/new_layer.c
+@@ -20,14 +20,11 @@
+ #include <math.h>
+ #include <assert.h>
+ #include <stdlib.h>
+-#include <string.h>
+-#include <limits.h>
+ #include "global.h"
+ #include "constant.h"
+ #include "geom.h"
+ #include "material.h"
+ #include "impurity.h"
+-#include "mesh_trial.h"
+ #ifdef CONVEX
+ #define hypot(a,b) sqrt((a)*(a)+(b)*(b))
+ #endif
+@@ -71,10 +68,7 @@
+ struct native_cap {int *node,count;};
+ static void native_cap_append(struct native_cap *cap,int node)
+ {
+-    int *next;
+-    if(cap->count==INT_MAX || (size_t)cap->count+1>((size_t)-1)/sizeof(int))
+-        panic("native oxide cap allocation overflow");
+-    next=realloc(cap->node,((size_t)cap->count+1)*sizeof(int));
++    int *next=realloc(cap->node,(cap->count+1)*sizeof(int));
+     if(!next)panic("native oxide cap allocation failed");
+     cap->node=next;cap->node[cap->count++]=node;
+ }
+@@ -141,32 +135,12 @@
+ {
+     return orient2d_float_sign(cord_arr(pt_nd(a)),cord_arr(pt_nd(b)),cord_arr(pt_nd(c)));
+ }
+-static int native_cap_on_segment(int p,int a,int b)
+-{
+-    return native_cap_orient(a,b,p)==0 &&
+-        xcord(pt_nd(p))>=fmin(xcord(pt_nd(a)),xcord(pt_nd(b))) &&
+-        xcord(pt_nd(p))<=fmax(xcord(pt_nd(a)),xcord(pt_nd(b))) &&
+-        ycord(pt_nd(p))>=fmin(ycord(pt_nd(a)),ycord(pt_nd(b))) &&
+-        ycord(pt_nd(p))<=fmax(ycord(pt_nd(a)),ycord(pt_nd(b)));
+-}
+-static int native_cap_bad_segment(int a,int b,int c,int d)
+-{
+-    int ac=native_cap_orient(a,b,c),ad=native_cap_orient(a,b,d);
+-    int ca=native_cap_orient(c,d,a),cb=native_cap_orient(c,d,b);
+-    if(ac*ad<0 && ca*cb<0)return 1;
+-    return native_cap_on_segment(a,c,d) || native_cap_on_segment(b,c,d) ||
+-           native_cap_on_segment(c,a,b) || native_cap_on_segment(d,a,b);
+-}
+ /* Triangulate the complete cap polygon, retaining every old free-boundary
+  * subdivision. Prepare all ears before adding any cap element. */
+ static void native_cap_fill(struct native_cap *cap,int apex,int region)
+ {
+-    int n,*poly,*order,*triangles,i,j,k,count,out=0,a,b,c,ear;
+-    if(cap->count<2 || cap->count==INT_MAX ||
+-       (size_t)cap->count+1>((size_t)-1)/(3*sizeof(int)))panic("native oxide cap allocation overflow");
+-    n=cap->count+1;count=n;
+-    poly=malloc((size_t)n*sizeof(int));order=malloc((size_t)n*sizeof(int));
+-    triangles=malloc((size_t)3*(n-2)*sizeof(int));
++    int n=cap->count+1,*poly=malloc(n*sizeof(int)),*order=malloc(n*sizeof(int));
++    int *triangles=malloc(3*(n-2)*sizeof(int)),i,j,k,count=n,out=0,a,b,c,ear;
+     int bc[3]={BC_OFFSET,BC_OFFSET,BC_OFFSET};long double area=0;
+     double x0=xcord(pt_nd(apex)),y0=ycord(pt_nd(apex));
+     if(!poly || !order || !triangles)panic("native oxide cap allocation failed");
+@@ -176,11 +150,6 @@
+         area+=((long double)xcord(pt_nd(poly[i]))-x0)*(ycord(pt_nd(poly[j]))-y0)-
+               ((long double)ycord(pt_nd(poly[i]))-y0)*(xcord(pt_nd(poly[j]))-x0);
+         for(k=0;k<i;k++)if(pt_nd(poly[k])==pt_nd(poly[i]))panic("native oxide cap repeats a vertex");
+-    }
+-    for(i=0;i<n;i++)for(j=i+2;j<n;j++) {
+-        if(i==0 && j==n-1)continue;
+-        if(native_cap_bad_segment(poly[i],poly[(i+1)%n],poly[j],poly[(j+1)%n]))
+-            panic("native oxide cap boundary requires a global union");
+     }
+     if(area==0)panic("native oxide cap has zero area");
+     for(i=0;i<n;i++)order[i]=area>0?i:n-1-i;
+@@ -203,21 +172,6 @@
+     if(native_cap_orient(triangles[3*out],triangles[3*out+1],triangles[3*out+2])<=0)
+         panic("native oxide cap has a degenerate final ear");
+     out++;
+-    /* Every boundary segment has one owner; every internal diagonal has
+-     * two opposite owners. Together with positive ears this certifies the
+-     * prepared triangulation's attachment to the unchanged old boundary. */
+-    for(i=0;i<out;i++)for(j=0;j<3;j++) {
+-        int forward=0,reverse=0,boundary=0,ti,f,u=triangles[3*i+j],v=triangles[3*i+(j+1)%3];
+-        for(ti=0;ti<out;ti++)for(f=0;f<3;f++) {
+-            a=triangles[3*ti+f];b=triangles[3*ti+(f+1)%3];
+-            forward+=a==u && b==v;reverse+=a==v && b==u;
+-        }
+-        for(k=0;k<n;k++) {
+-            a=poly[k];b=poly[(k+1)%n];if(area<0){c=a;a=b;b=c;}
+-            if(a==u && b==v)boundary=1;
+-        }
+-        if(forward!=1 || reverse!=(boundary?0:1))panic("native oxide cap attachment is invalid");
+-    }
+     for(i=0;i<out;i++)mk_ele(3,&triangles[3*i],3,bc,region,FALSE);
+     free(poly);free(order);free(triangles);
+ }
+@@ -237,8 +191,7 @@
+     int join_existing, first_join, last_join;
+     int closed_run, run_edges, run_vertex;
+     int bsp, tsp;
+-    const char *cap_option=getenv("SUPREM4_NATIVE_JOIN_CAP");
+-    int cap=cap_option && !strcmp(cap_option,"1"),first_cap=-1,last_cap=-1;
++    int cap=getenv("SUPREM4_NATIVE_JOIN_CAP")!=NULL,first_cap=-1,last_cap=-1;
+     struct native_cap first_chain={0},last_chain={0};
+     int b[3];
+     b[1] = b[2] = b[0] = BC_OFFSET;
+@@ -321,9 +274,10 @@
+                     bp=bp->next,run_vertex++) {
+ 		    tn = nF(bp);
+ 		    
+-                    /* A capped join retains the inner material vertex and
+-                     * attaches to the noded old free boundary. The legacy
+-                     * endpoint taper remains available for comparison. */
++		    /* At a run endpoint, join the existing oxide without moving
++		     * it. Offsetting a thin residual oxide wedge by the full seed
++		     * thickness inverts its adjacent triangles. Taper the new
++		     * strip to this shared interface vertex instead. */
+                     if(getenv("SUPREM4_MESH_DIAG"))fprintf(stderr,"[native-seed] node=%d point=%d x=%.17g y=%.17g begin=%d end=%d joins=%d,%d oxide=%d\n",tn,pt_nd(tn),(double)cordinate(pt_nd(tn),0),(double)cordinate(pt_nd(tn),1),nB(beg),nB(ende),first_join,last_join,node_mat(tn,SiO2));
+ 		    to = node_mat(tn,SiO2);
+ 		    join_existing = (first_join && tn == nB(beg)) ||
+@@ -344,7 +298,7 @@
+ 
+                     if(cap && first_join && run_vertex==1)native_cap_fill(&first_chain,to,r);
+ 		    /*make the connection to the prior node*/
+-		    if ((cap && last_join && run_vertex==run_edges) || (!join_existing && (closed_run || (tn != nB(beg)) || native_covered(nB(bp),mat_reg(ir))))) {
++		    if (cap?(closed_run || run_vertex>0):(!join_existing && (closed_run || (tn != nB(beg)) || native_covered(nB(bp),mat_reg(ir))))) {
+ 			if ( (bsp = node_mat( nB(bp), SiO2 )) < 0 )
+ 			    bsp = mk_nd( pt_nd(nB(bp)), SiO2);
+                         if(cap && last_join && run_vertex==run_edges)native_cap_fill(&last_chain,bsp,r);
+@@ -355,7 +309,7 @@
+                         }
+ 		    }
+ 
+-		    if (!join_existing && (closed_run || (tn!=nB(ende)) || native_covered(nF(bp->next),mat_reg(ir)))) {
++		    if (cap?((closed_run || run_vertex<run_edges) && !(first_join && run_vertex==0)):(!join_existing && (closed_run || (tn!=nB(ende)) || native_covered(nF(bp->next),mat_reg(ir))))) {
+                         /* Ordinary next vertices move their original oxide
+                          * node outward in SplitNode. Joined endpoints keep
+                          * that inner node, so use their pre-noded outer cap. */
+@@ -379,11 +333,8 @@
+ 	}
+ 	break;
+     }
+-    if(cap && mode==TWOD) {
+-        int bad;
+-        bd_connect_material("native oxide join union");
+-        if(!mesh_trial_validate_embedding(0,&bad))panic("invalid native oxide cap embedding");
+-    } else bd_connect("native oxide deposition");
++    if(cap && mode==TWOD)bd_connect_material("native oxide join union");
++            else bd_connect("native oxide deposition");
+ }
+ 
+ 
+@@ -396,6 +347,18 @@
+  * Diagnostics:  abort on error
+  *
+  *----------------------------------------------------------------------*/
++/* Match point_vel's material priority using current nodal velocities. The
++ * point cache is refreshed only after grid_add in the historical driver. */
++static void normal_layer_velocity(int p,double *v)
++{
++    int n,k,slots[2];
++    n=node_mat(nd_pt(p,0),Si);
++    if(n<0)n=node_mat(nd_pt(p,0),Poly);
++    if(n<0)n=nd_pt(p,0);
++    slots[0]=imptosol[XVEL];slots[1]=imptosol[YVEL];
++    v[0]=v[1]=0;
++    for(k=0;k<mode;k++)if(slots[k]>=0)v[k]=sol_nd(n,slots[k]);
++}
+ new_layer(Msil, Mox, oxide_grid, dt )
+     int Msil, Mox;		/* Layer below, above interface */
+     double oxide_grid;
+@@ -412,6 +375,8 @@
+     float c[MAXDIM];
+     double dis;
+     int did_something = FALSE;
++    int normal_refine=getenv("SUPREM4_NORMAL_LAYERS")!=NULL;
++    double current_velocity[2],other_velocity[2],forecast_spacing;
+ 
+     /*
+      * Geometry pass:
+@@ -423,7 +388,9 @@
+ 	if( nd[ io]->mater != Mox) continue;
+ 	if( node_mat( io, Msil) < 0) continue;
+ 	p = pt_nd(io);
+-	magv = sqrt( dot(vel_arr(p), vel_arr(p)) );
++	if(normal_refine)normal_layer_velocity(p,current_velocity);
++        else {current_velocity[0]=xvel(p);current_velocity[1]=yvel(p);}
++        magv = sqrt(dot(current_velocity,current_velocity));
+ 	if ( magv == 0.0 ) continue;
+ 
+ 	/*find the edge that is the most perpindicular to the velocity*/
+@@ -439,7 +406,7 @@
+ 	    evec[0] = xcord(p) - xcord(pt_nd(noth));
+ 	    evec[1] = ycord(p) - ycord(pt_nd(noth));
+ 
+-	    dis = dot( evec, vel_arr(p) ) / (magv * len_edg(e));
++	    dis = dot(evec,current_velocity)/(magv*len_edg(e));
+ 
+ 	    if ( dis > fig ) {
+ 		fig = dis;
+@@ -450,8 +417,14 @@
+ 	/* All adjacent oxide edges can point along the velocity at a mask
+ 	 * corner. Then no edge opposes the motion, fig remains zero, and
+ 	 * there is no layer-spacing candidate to split. */
+-	if ( (eperp >= 0) && (fig * len_edg(eperp) >= oxide_grid) &&
+-	     (dt * magv > 20.0e-8) ) {
++	forecast_spacing=eperp<0?0:fig*len_edg(eperp);
++        if(normal_refine && eperp>=0) {
++            noth=nd_edg(eperp,nd_edg(eperp,0)==io?1:0);
++            normal_layer_velocity(pt_nd(noth),other_velocity);
++            for(i=0;i<mode;i++)forecast_spacing+=dt*(current_velocity[i]-other_velocity[i])*current_velocity[i]/magv;
++        }
++        if ( (eperp >= 0) && (forecast_spacing >= oxide_grid) &&
++	     (normal_refine || dt * magv > 20.0e-8) ) {
+ 	    /*split this edge*/
+ 	    if ( nd_edg(eperp,0) == io )
+ 		ei = 1;
+@@ -460,9 +433,37 @@
+ 	    noth = nd_edg(eperp,ei);
+ 	    evec[0] = xcord(pt_nd(noth)) - xcord(p);
+ 	    evec[1] = ycord(pt_nd(noth)) - ycord(p);
+-	    c[0] = 5.0e-8 * evec[0] / len_edg(eperp) + xcord(p);
+-	    c[1] = 5.0e-8 * evec[1] / len_edg(eperp) + ycord(p);
+-	    sp_edge(eperp, c, &p, FALSE);
++            {
++                double seed=normal_refine?fmin(.25*oxide_grid,.5*fig*len_edg(eperp))/fig:5e-8;
++                c[0]=seed*evec[0]/len_edg(eperp)+xcord(p);
++                c[1]=seed*evec[1]/len_edg(eperp)+ycord(p);c[2]=0;
++            }
++            if(normal_refine) {
++                int it,t,j,k,a,b,child;float v[3][MAXDIM],saved[MAXDIM];
++                if(mode==ONED) {
++                    if(!(c[0]>fmin(xcord(p),xcord(pt_nd(noth))) &&
++                         c[0]<fmax(xcord(p),xcord(pt_nd(noth)))))
++                        panic("oxide normal spacing cannot be represented");
++                } else for(it=0;it<num_tri_edg(eperp);it++) {
++                    t=tri_edg(eperp,it);if(dead_tri(t) || !leaf(tri[t]))continue;
++                    a=b=-1;
++                    for(j=0;j<3;j++) {
++                        if(vert_tri(t,j)==nd_edg(eperp,0))a=j;
++                        if(vert_tri(t,j)==nd_edg(eperp,1))b=j;
++                        for(k=0;k<MAXDIM;k++)v[j][k]=cordinate(pt_nd(vert_tri(t,j)),k);
++                    }
++                    if(a<0 || b<0)panic("oxide normal spacing: inconsistent edge");
++                    for(child=0;child<2;child++) {
++                        j=child?b:a;
++                        for(k=0;k<MAXDIM;k++){saved[k]=v[j][k];v[j][k]=c[k];}
++                        if(orient2d_float_sign(v[0],v[1],v[2])<=0)
++                            panic("oxide normal spacing would invert a rounded child");
++                        for(k=0;k<MAXDIM;k++)v[j][k]=saved[k];
++                    }
++                }
++                if(sp_edge_keep(eperp,c,&p,FALSE,nd_edg(eperp,0))<0)
++                    panic("oxide normal spacing split is not representable");
++            } else sp_edge(eperp,c,&p,FALSE);
+ 	    did_something=TRUE;
+ 	}
+     }
+--- a/src/dbase/point.c
++++ b/src/dbase/point.c
+@@ -78,28 +78,6 @@
+     char *err;
+     int i;
+ 
+-    if (getenv("SUPREM4_PT_TRACE")) {
+-	/* Mesh hygiene: a new point landing within ~tens of ULP of an
+-	 * existing one creates degenerate slivers that stall the FE
+-	 * Newton later.  Report creator address so the offender can be
+-	 * mapped with nm. */
+-	int i2, hit = -1;
+-	float bestd = 1e30f;
+-	for (i2 = 0; i2 < np; i2++) {
+-	    float dx = pt[i2]->cord[0] - cord[0];
+-	    float dy = (nc > 1) ? (pt[i2]->cord[1] - cord[1]) : 0.0f;
+-	    float d = sqrtf(dx*dx + dy*dy);
+-	    if (d < bestd) { bestd = d; hit = i2; }
+-	}
+-	if (hit >= 0 && bestd < 1e-10f) {
+-	    fprintf(stderr, "[ptdup] new=(%.9g,%.9g) existing pt=%d (%.9g,%.9g) d=%.3g cm caller=%+ld\n",
+-		    (double)cord[0], (double)cord[1], hit,
+-		    (double)pt[hit]->cord[0], (double)pt[hit]->cord[1],
+-		    (double)bestd,
+-		    (long)((char *)__builtin_return_address(0) - (char *)mk_pt));
+-	}
+-    }
+-
+     if ((err = alloc_pt()) != NULL) panic( err );
+ 
+     for(i = 0; i < nc; i++) pt[np-1]->cord[i] = cord[i];
+--- a/src/dbase/remove.c
++++ b/src/dbase/remove.c
+@@ -158,7 +158,13 @@
+ static int patch_remove(int point)
+ {
+     const char *reason;
++    const char *tx=getenv("SUPREM4_REMOVAL_TRACE_X"),*ty=getenv("SUPREM4_REMOVAL_TRACE_Y");
++    static unsigned long sequence=0;
++    int watch=tx && ty && point>=0 && point<np && !dead_pt(point) && xcord(point)==(float)strtod(tx,NULL) && ycord(point)==(float)strtod(ty,NULL);
++    unsigned flags=watch?pt[point]->flags:0;int owners=watch?num_nd(point):0;
+     int status=mesh_patch_remove_point(point,&reason);
++    sequence++;
++    if(watch)fprintf(stderr,"[removal-probe] operation=%lu point=%d flags=%u owners=%d status=%d reason=%s\n",sequence,point,flags,owners,status,reason);
+     if(status==MESH_PATCH_OK)patch_committed++;
+     else if(status==MESH_PATCH_PINNED)patch_pinned++;
+     else {
+--- a/src/dbase/vertical_constraints.c
++++ b/src/dbase/vertical_constraints.c
+@@ -8,10 +8,12 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <math.h>
++#include <limits.h>
+ #include "global.h"
+ #include "constant.h"
+ #include "geom.h"
+ #include "matrix.h"
++#include "material.h"
+ 
+ struct vc_face {int t,f,a,b,type;float xy[2][2];double lo,hi;};
+ static int face_order(const void *aa,const void *bb)
+@@ -36,7 +38,8 @@
+ 
+ static int vc_split(struct vc_face *face,int sample)
+ {
+-    int owner[2],edge[2],nodes[2][4],region[2],side,i,j,k,t,a,b,newpoint,newnode;
++    int owner[2],edge[2],nodes[2][4],region[2],side,i,j,k,t,a,b,newpoint,newnode,sides;
++    int gas_a=-1,gas_b=-1;double gas_fields[MAXIMP];
+     double oldw[2][4]={{0}},neww[2][4]={{0}},fields[2][4][MAXIMP],values[4];
+     double fractions[2][4][MAXIMP];
+     double ratio,area,wa,wb,velocity[2],start[2];float c[3]={0},v[3][3];
+@@ -44,15 +47,24 @@
+     int source=node_mat(nd_pt(sample,0),SiO2),xv=imptosol[XVEL],yv=imptosol[YVEL];
+     if(source<0 || xv<0 || yv<0)return vc_reject(__LINE__);
+     owner[0]=face->t;owner[1]=neigh_fc(face->t,face->f);
+-    if(owner[1]<0 || dead_tri(owner[1]) || !leaf(tri[owner[0]]) || !leaf(tri[owner[1]]))return vc_reject(__LINE__);
++    sides=owner[1]>=0?2:1;
++    if((sides==1 && owner[1]!=EXPOSED) || !leaf(tri[owner[0]]) ||
++       (sides==2 && (dead_tri(owner[1]) || !leaf(tri[owner[1]]))))return vc_reject(__LINE__);
+     a=face->a;b=face->b;
+     if(xcord(a)==xcord(b))return vc_reject(__LINE__);
+     ratio=((double)xcord(sample)-xcord(a))/((double)xcord(b)-xcord(a));
+     if(!(ratio>0 && ratio<1))return vc_reject(__LINE__);
+     c[0]=xcord(sample);c[1]=(double)ycord(a)+ratio*((double)ycord(b)-ycord(a));
+-    velocity[0]=pt[sample]->vel[0];velocity[1]=pt[sample]->vel[1];
++    /* A Si/oxide point moves with Si, but the shared scalar field is
++     * stored as the outward oxide velocity. Material signs differ. */
++    velocity[0]=sol_nd(source,xv);velocity[1]=sol_nd(source,yv);
++    if(sides==1) {
++        gas_a=node_mat(nd_pt(a,0),GAS);gas_b=node_mat(nd_pt(b,0),GAS);
++        if(gas_a<0 || gas_b<0)return vc_reject(__LINE__);
++        for(j=0;j<n_imp;j++)gas_fields[j]=(1-ratio)*sol_nd(gas_a,j)+ratio*sol_nd(gas_b,j);
++    }
+     start[0]=sol_nd(source,MAXIMP-5);start[1]=sol_nd(source,MAXIMP-6);
+-    for(side=0;side<2;side++) {
++    for(side=0;side<sides;side++) {
+         t=owner[side];region[side]=reg_tri(t);edge[side]=-1;
+         for(i=0;i<3;i++) {
+             int p=pt_nd(vert_tri(t,(i+1)%3)),q=pt_nd(vert_tri(t,(i+2)%3));
+@@ -128,15 +140,26 @@
+     int trace=getenv("SUPREM4_CONSTRAINT_TRACE") && !traced;
+     if(trace)ig2_write("constraint_before.str",0,1.0);
+     sp_gredg(edge[0],c,&newpoint);newpt=pt[newpoint];
+-    for(side=0;side<2;side++) {
++    for(side=0;side<sides;side++) {
+         newnode=node_mat(nd_pt(newpoint,0),mat_reg(region[side]));
+         if(newnode<0)panic("vertical constraint split lost a material owner");
+         for(i=0;i<3;i++)for(j=0;j<n_imp;j++)stable[side][i]->sol[j]=fields[side][i][j];
+         for(j=0;j<n_imp;j++)nd[newnode]->sol[j]=fields[side][3][j];
+-        nd[newnode]->sol[xv]=velocity[0];nd[newnode]->sol[yv]=velocity[1];
+-        nd[newnode]->sol[MAXIMP-5]=start[0];nd[newnode]->sol[MAXIMP-6]=start[1];
+-    }
+-    newpt->vel[0]=velocity[0];newpt->vel[1]=velocity[1];
++        {
++            double mult=mat_reg(region[side])==Si?-1/(alpha[SiO2][Si]-1):1;
++            nd[newnode]->sol[xv]=mult*velocity[0];nd[newnode]->sol[yv]=mult*velocity[1];
++            nd[newnode]->sol[MAXIMP-5]=mult*start[0];nd[newnode]->sol[MAXIMP-6]=mult*start[1];
++        }
++    }
++    if(sides==1) {
++        int gas=node_mat(nd_pt(newpoint,0),GAS);
++        if(gas<0)panic("vertical constraint split lost gas state");
++        for(j=0;j<n_imp;j++)nd[gas]->sol[j]=gas_fields[j];
++    }
++    {
++        double mult=node_mat(nd_pt(newpoint,0),Si)>=0?-1/(alpha[SiO2][Si]-1):1;
++        newpt->vel[0]=mult*velocity[0];newpt->vel[1]=mult*velocity[1];
++    }
+     if(trace)ig2_write("constraint_split.str",0,1.0);
+     bd_connect("synchronized vertical constraints");UpdateSymbolic++;
+     if(trace){ig2_write("constraint_after.str",0,1.0);traced=1;}
+@@ -144,10 +167,69 @@
+     return 1;
+ }
+ 
++struct vc_knot {float x;int point;};
++static int vc_knot_order(const void *aa,const void *bb)
++{
++    const struct vc_knot *a=aa,*b=bb;
++    return a->x<b->x?-1:a->x>b->x;
++}
++/* Construct one common lateral P1 trace on oxide constraints, instead of
++ * independently interpolating the same growth field on incompatible grids.
++ * The knot set is frozen, and each successful split consumes one missing
++ * (original face,knot) incidence. No collision-triggered point deletion. */
++static int vc_common_refine(void)
++{
++    struct vc_knot *knots;
++    struct vc_face face;int count=0,unique=0,t,f,n,k,i,j,p,changed=0,found;
++    size_t faces=0,work=0,limit;
++    if(ne<0 || ne>INT_MAX/6 || (size_t)ne>((size_t)-1)/(6*sizeof(*knots)))
++        panic("vertical common trace allocation overflow");
++    knots=malloc((size_t)6*ne*sizeof(*knots));
++    if(!knots)panic("vertical common trace allocation failed");
++    for(t=0;t<ne;t++) {
++        if(dead_tri(t) || !leaf(tri[t]) || mat_reg(reg_tri(t))!=SiO2)continue;
++        for(f=0;f<3;f++) {
++            n=neigh_fc(t,f);
++            if(n!=EXPOSED && (n<0 || mat_reg(reg_tri(n))==SiO2))continue;
++            faces++;
++            for(k=0;k<2;k++) {
++                p=pt_nd(nd_face_ele(t,k,f));knots[count].x=xcord(p);knots[count++].point=p;
++            }
++        }
++    }
++    qsort(knots,count,sizeof(*knots),vc_knot_order);
++    for(i=0;i<count;i++)if(!unique || knots[i].x!=knots[unique-1].x)knots[unique++]=knots[i];
++    if(unique && faces>((size_t)-1)/(size_t)unique)panic("vertical common trace work bound overflow");
++    limit=faces*(size_t)unique;
++    for(i=0;i<unique;i++)do {
++        found=0;
++        for(t=0;t<ne && !found;t++) {
++            if(dead_tri(t) || !leaf(tri[t]) || mat_reg(reg_tri(t))!=SiO2)continue;
++            for(f=0;f<3;f++) {
++                n=neigh_fc(t,f);
++                if(n!=EXPOSED && (n<0 || mat_reg(reg_tri(n))==SiO2))continue;
++                face.t=t;face.f=f;face.a=pt_nd(nd_face_ele(t,0,f));face.b=pt_nd(nd_face_ele(t,1,f));
++                if(!(knots[i].x>fmin(xcord(face.a),xcord(face.b)) &&
++                     knots[i].x<fmax(xcord(face.a),xcord(face.b))))continue;
++                if(pt[face.a]->vel[0]!=0 || pt[face.b]->vel[0]!=0)panic("nonvertical common-trace motion");
++                if(++work>limit)panic("vertical common trace lost monotone progress");
++                if(!vc_split(&face,knots[i].point))panic("cannot prepare conservative common-trace split");
++                if(changed==INT_MAX)panic("vertical common trace count overflow");
++                changed++;found=1;break;
++            }
++        }
++    }while(found);
++    free(knots);
++    if(changed)fprintf(stderr,"[vertical-common] inserted=%d unique_knots=%d\n",changed,unique);
++    return changed;
++}
++
+ int vertical_constraint_refine(double dt)
+ {
+     struct vc_face *faces;int count=0,t,f,n,i,j,k,point,changed=0,iteration;
+     const char *option=getenv("SUPREM4_VERTICAL_CONSTRAINTS");
++    const char *common=getenv("SUPREM4_VERTICAL_COMMON");
++    if(common && !strcmp(common,"1") && mode==TWOD)return vc_common_refine();
+     if(!option || strcmp(option,"1") || mode!=TWOD)return 0;
+     {
+     static int entry_reported=0;
+--- a/src/diffuse/block_set.c
++++ b/src/diffuse/block_set.c
+@@ -1,3 +1,5 @@
++#include <string.h>
++#include "charged_flux.h"
+ /*************************************************************************
+  *									 *
+  *     Copyright c 1984 The board of trustees of the Leland Stanford 	 *
+@@ -27,8 +29,6 @@
+ #include "material.h"
+ #include "diffuse.h"
+ #include "matrix.h"
+-#include <string.h>
+-#include "charged_flux.h"
+ 
+ #ifndef ardent
+ #define pragma define
+--- a/src/diffuse/diffuse.c
++++ b/src/diffuse/diffuse.c
+@@ -139,18 +139,6 @@
+     init_pseudo( temp );
+ 
+     /*initialize the diffusion code*/
+-    if(getenv("SUPREM4_MOTION_TRACE")) {
+-        int ip, ix, bad = -1;
+-        for(ip = 0; ip < np && bad < 0; ip++)
+-            for(ix = 0; ix < mode; ix++)
+-                if(!isfinite(pt[ip]->vel[ix])) { bad = ip; break; }
+-        fprintf(stderr, "[DIAG] pre-init_diffuse: n_imp=%d vx=%d vy=%d np=%d vel_bad_point=%d\n",
+-                n_imp, imptosol[XVEL], imptosol[YVEL], np, bad);
+-        if(bad >= 0)
+-            fprintf(stderr, "[DIAG] vel_bad: x=%.17g y=%.17g vx=%.17g vy=%.17g\n",
+-                    (double)pt[bad]->cord[0], (double)pt[bad]->cord[1],
+-                    (double)pt[bad]->vel[0], (double)pt[bad]->vel[1]);
+-    }
+     init_diffuse();
+ 
+     if ( methdata.defmodel == FULLCPL ) {
+--- a/src/diffuse/solve.c
++++ b/src/diffuse/solve.c
+@@ -272,6 +272,37 @@
+  *  Original:	MEL	5/88						*
+  *									*
+  ************************************************************************/
++/* Read-only capture before block elimination for independent solver checks. */
++static int chemical_captured;
++static void chemical_capture(void)
++{
++    FILE *f=fopen("chemical_matrix.bin","wb");
++    int header[3]={0x43484d31,0,0},bi,bj,si,sj,meta[4],imp;
++    if(!f)panic("cannot open chemical matrix diagnostic");
++    header[1]=nn;header[2]=cs.nsol;fwrite(header,sizeof(int),3,f);
++    for(bi=0;bi<cs.nsol;bi++){imp=soltoimp[cs.sol[bi]];fwrite(&imp,sizeof(int),1,f);}
++    for(bi=0;bi<cs.nsol;bi++)fwrite(rhs[cs.sol[bi]],sizeof(double),nn,f);
++    for(bi=0;bi<cs.nsol;bi++)fwrite(cs.new[cs.sol[bi]],sizeof(double),nn,f);
++    for(bi=0;bi<cs.nsol;bi++)for(bj=0;bj<cs.nsol;bj++) {
++        si=cs.sol[bi];sj=cs.sol[bj];meta[0]=blktype[si][sj];meta[1]=meta[2]=meta[3]=0;
++        if(meta[0]!=B_NONE) {
++            meta[1]=nn;
++            if(meta[0]!=B_DIAG){meta[2]=baoff[si][sj];meta[3]=bia[si][sj][nn];meta[1]=meta[3]+meta[2];}
++        }
++        fwrite(meta,sizeof(int),4,f);
++        if(meta[3])fwrite(bia[si][sj],sizeof(int),meta[3],f);
++        if(meta[1])fwrite(a[si][sj],sizeof(double),meta[1],f);
++    }
++    fclose(f);
++}
++static void chemical_capture_update(double **update)
++{
++    FILE *f=fopen("chemical_legacy_update.bin","wb");int bi;
++    if(!f)panic("cannot open chemical update diagnostic");
++    for(bi=0;bi<cs.nsol;bi++)fwrite(update[cs.sol[bi]],sizeof(double),nn,f);
++    fclose(f);
++}
++
+ soldif( init, label, do_setup )
+ int init;
+ char *label;
+@@ -287,6 +318,7 @@
+     double scrhs, lstnm = 1.0e37;
+     int negat = FALSE;
+     int factor = TRUE;
++    int capture=0;
+     double t1, norm2();
+     double absrhserr = (mode==ONED)?(1.0e5):(10);
+     char *ans = "  %c%-4d    %-11.5g  %-6.4g  %-6.4g  %-7.5g  %4d\n";
+@@ -324,7 +356,10 @@
+         /* alway do LU factor, CPU is faster now. fix by gongding 2013.03.18 */
+ 
+ 	/*solve it with the appropriate method*/
++        capture=!chemical_captured && getenv("SUPREM4_CHEM_MATRIX") && cs.type!=SS && cs.nsol>1;
++        if(capture){chemical_capture();chemical_captured=1;}
+ 	solve_blocks(nn, cs.sol, cs.nsol, cs.elim, cs.il, cs.l, cs.loff, newb, factor );
++        if(capture)chemical_capture_update(newb);
+ 	times(&after);
+         tsol = (after.tms_utime - before.tms_utime) / (HZ * 1.0);
+ 
+--- a/src/finel/FEsolve.c
++++ b/src/finel/FEsolve.c
+@@ -126,42 +126,8 @@
+ 
+     /* Solve the initial linear problem */
+     noderiv = 0;     a[0] = 0;
+-    if(getenv("SUPREM4_FE_TRACE")) {
+-        int i2,j2,nfix0=0,nleft=0,nnear=0;
+-        double dxmin=1e30;
+-        VECTOR2 if(FEnd[i]->fixity[j]==1) nfix0 += (j==0);
+-        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3) {
+-            nleft++;
+-            if(nleft<=40)
+-                fprintf(stderr,"[FE] left node %d cord=(%.6g,%.6g) fix=(%d,%d,%d) sol=(%.4g,%.4g,%.4g)\n",
+-                        i2,FEnd[i2]->cord[0],FEnd[i2]->cord[1],
+-                        FEnd[i2]->fixity[0],FEnd[i2]->fixity[1],FEnd[i2]->fixity[2],
+-                        FEnd[i2]->sol[0],FEnd[i2]->sol[1],FEnd[i2]->sol[2]);
+-        }
+-        /* nearest-neighbor spacing among left-edge nodes only */
+-        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3)
+-            for(j2=i2+1;j2<FEnn;j2++) if(FEnd[j2]->cord[0]<1e-3) {
+-                double ddx=FEnd[i2]->cord[0]-FEnd[j2]->cord[0];
+-                double ddy=FEnd[i2]->cord[1]-FEnd[j2]->cord[1];
+-                double dd=sqrt(ddx*ddx+ddy*ddy);
+-                if(dd<dxmin)dxmin=dd;
+-            }
+-        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3)
+-            for(j2=0;j2<FEnn;j2++) if(FEnd[j2]->cord[0]>=1e-3) {
+-                double ddx=FEnd[i2]->cord[0]-FEnd[j2]->cord[0];
+-                double ddy=FEnd[i2]->cord[1]-FEnd[j2]->cord[1];
+-                double dd=sqrt(ddx*ddx+ddy*ddy);
+-                if(dd<1e-3)nnear++;
+-            }
+-        fprintf(stderr,"[FE] solve start: FEnn=%d FEdf=%d fix0count=%d left(x<1e-3)=%d minleftspacing=%.6g nearpairs=%d\n",
+-                FEnn,FEdf,nfix0,nleft,dxmin,nnear);
+-    }
+-    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0) {
+-        if(getenv("SUPREM4_FE_TRACE"))
+-            fprintf(stderr,"[FE] initial solve failed: FEnn=%d FEdf=%d neq=%d lambda=%g\n",
+-                    FEnn,FEdf,neq,lambda);
++    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0)
+         panic("initial finite element solve failed");
+-    }
+     if (FEnonloop == 1) goto done;
+ 
+     /*
+@@ -414,6 +380,80 @@
+  * the Jacobian; backtrack with an Armijo decrease rather than an arbitrary
+  * one-percent minimum step or a synthetic zero residual after a small update.
+  */
++#include "dogleg.h"
++static void FEtrust_product(struct suprem_pivoted *p,double *row,double *x,double *out)
++{
++    int j,k;for(j=0;j<p->n;j++)out[j]=0;
++    for(j=0;j<p->n;j++)for(k=p->ap[j];k<p->ap[j+1];k++)out[p->ai[k]]+=p->ax[k]*x[j];
++    for(j=0;j<p->n;j++)out[j]*=row[j];
++}
++static int FEnewton_trust(int *ia,int aoff,double *a,double *rhs)
++{
++    struct suprem_pivoted solver={0};
++    double *memory=calloc((size_t)neq*13,sizeof(double));
++    double *old,*step,*cols,*weight,*row,*b,*yn,*yc,*g,*ag,*direction,*product,*unused;
++    double before,after,update,radius=0,norm,prednorm,predicted,rho,gn,an,scale;
++    long double gg,aa;
++    int i,j,k,index,iteration,search,status,accepted,success=0,changed;
++    if(!memory)panic("trust-region allocation failed");
++    old=memory;step=old+neq;cols=step+neq;weight=cols+neq;row=weight+neq;
++    b=row+neq;yn=b+neq;yc=yn+neq;g=yc+neq;ag=g+neq;direction=ag+neq;product=direction+neq;unused=product+neq;
++    for(iteration=0;iteration<FEnonloop;iteration++) {
++        VECTOR2 {old[k]=FEnd[i]->sol[j];cols[k]=FEabe[j]+fabs(old[k]);}
++        noderiv=0;FEassmb(ia,aoff,a,rhs);
++        status=suprem_pivoted_factor(&solver,neq,ia,aoff,a,cols);
++        if(status!=UMFPACK_OK)break;
++        if(iteration==0)for(k=0;k<neq;k++)weight[k]=solver.row_scale[k];
++        before=FEweightednorm(neq,weight,rhs);if(!isfinite(before))break;
++        status=suprem_pivoted_solve(&solver,rhs);if(status!=UMFPACK_OK)break;
++        VECTOR2 {
++            step[k]=rhs[k];yn[k]=FEnd[i]->fixity[j]==1?0:step[k]/cols[k];
++            row[k]=FEnd[i]->fixity[j]==1?0:weight[k]/solver.row_scale[k];
++            b[k]=row[k]*solver.rhs[k];g[k]=0;
++        }
++        update=FEupdnorm(step);if(!isfinite(update))break;
++        /* The current point itself can satisfy both tests. No synthetic
++         * residual or small damped-step convergence criterion is used. */
++        if(before<=FErel && update<=FErel){success=1;break;}
++        for(j=0;j<neq;j++)if(FEnd[j/FEdf]->fixity[j%FEdf]!=1)
++            for(index=solver.ap[j];index<solver.ap[j+1];index++) {
++                k=solver.ai[index];g[j]+=solver.ax[index]*row[k]*b[k];
++            }
++        FEtrust_product(&solver,row,g,ag);gg=aa=0;
++        for(k=0;k<neq;k++){gg+=(long double)g[k]*g[k];aa+=(long double)ag[k]*ag[k];}
++        if(!(aa>0) || !isfinite((double)(gg/aa)))break;
++        scale=(double)(gg/aa);for(k=0;k<neq;k++)yc[k]=g[k]*scale;
++        if(radius==0)radius=suprem_vector_norm(neq,yn);
++        accepted=0;rho=-HUGE_VAL;after=before;
++        for(search=0;search<60;search++) {
++            if(!suprem_dogleg(neq,yn,yc,radius,direction))break;
++            norm=suprem_vector_norm(neq,direction);
++            FEtrust_product(&solver,row,direction,product);
++            for(k=0;k<neq;k++)product[k]=b[k]-product[k];
++            prednorm=suprem_vector_norm(neq,product);
++            predicted=(before-prednorm)*(before+prednorm);
++            if(!(predicted>0)){radius=.25*norm;continue;}
++            changed=0;
++            VECTOR2 if(FEnd[i]->fixity[j]!=1) {
++                double candidate=old[k]+cols[k]*direction[k];
++                if(candidate!=old[k])changed=1;FEnd[i]->sol[j]=candidate;
++            }
++            noderiv=1;FEassmb(ia,aoff,a,rhs);after=FEweightednorm(neq,weight,rhs);
++            if(FEnonloop==1 && isfinite(after) && after<=FErel){success=accepted=1;break;}
++            rho=(before-after)*(before+after)/predicted;
++            if(!isfinite(rho) || rho<.25)radius=.25*norm;
++            else if(rho>.75 && norm>.9*radius)radius*=2;
++            if(isfinite(after) && after<before && rho>.001){accepted=1;break;}
++            if(!changed)break;
++        }
++        if(FEverbose){printf("Trust %d lambda=%g radius=%g ratio=%g update=%g residual=%g -> %g\n",iteration,lambda,radius,rho,update,before,after);fflush(stdout);}
++        if(!accepted){VECTOR2 FEnd[i]->sol[j]=old[k];break;}
++        if(success)break;
++    }
++    suprem_pivoted_free(&solver);free(memory);noderiv=0;
++    return success?1:-1;
++}
++
+ static int FEnewton_pivoted(int *ia,int aoff,double *a,double *rhs)
+ {
+     struct suprem_pivoted solver={0};
+@@ -432,6 +472,41 @@
+          * LU equilibration may change with the Jacobian; freeze only the
+          * nonlinear residual weights at the start of this Newton solve. */
+         if(iteration==0)for(k=0;k<neq;k++)weight[k]=solver.row_scale[k];
++        /* Read-only derivative diagnostic on an actual stalled state. */
++        if(getenv("SUPREM4_FE_JCHECK") && iteration==3 && fabs(lambda-.125)<1e-12) {
++            double *plus=salloc(double,neq),*minus=salloc(double,neq);
++            double *direction=salloc(double,neq),*product=salloc(double,neq);
++            int probe,row,col,ix;
++            VECTOR2 {
++                old[k]=FEnd[i]->sol[j];
++                direction[k]=FEnd[i]->fixity[j]==1?0:FEabe[j]*sin(.37*(k+1));
++                product[k]=a[k]*direction[k];
++            }
++            for(row=0;row<neq;row++)for(ix=ia[row];ix<ia[row+1];ix++) {
++                col=ia[ix];product[col]+=a[ix]*direction[row];
++                product[row]+=a[ix+aoff]*direction[col];
++            }
++            fprintf(stderr,"STALLED_SCALES %g %g %g\n",FEabe[0],FEabe[1],FEabe[2]);
++            for(probe=0;probe<7;probe++) {
++                double h=pow(10.,-6-2*probe),error[3]={0},reference[3]={0};
++                noderiv=1;
++                VECTOR2 FEnd[i]->sol[j]=old[k]+h*direction[k];
++                FEassmb(ia,aoff,a,plus);
++                VECTOR2 FEnd[i]->sol[j]=old[k]-h*direction[k];
++                FEassmb(ia,aoff,a,minus);
++                VECTOR2 {
++                    double fd=-(plus[k]-minus[k])/(2*h),d;
++                    FEnd[i]->sol[j]=old[k];
++                    if(FEnd[i]->fixity[j]==1)continue;
++                    d=(fd-product[k])*solver.row_scale[k];
++                    error[j]+=d*d;reference[j]+=pow(fd*solver.row_scale[k],2);
++                }
++                for(j=0;j<FEdf;j++)fprintf(stderr,"STALLED_JCHECK lambda=%g h=%g dof=%d relative=%g\n",lambda,h,j,sqrt(error[j]/reference[j]));
++                noderiv=0;FEassmb(ia,aoff,a,rhs);
++            }
++            free(plus);free(minus);free(direction);free(product);
++            panic("stalled Jacobian diagnostic complete");
++        }
+         before=FEweightednorm(neq,weight,rhs);
+         if(!isfinite(before))break;
+         status=suprem_pivoted_solve(&solver,rhs);
+@@ -439,6 +514,21 @@
+         VECTOR2 {old[k]=FEnd[i]->sol[j];step[k]=rhs[k];}
+         update=FEupdnorm(step);
+         if(!isfinite(update))break;
++        if(getenv("SUPREM4_FE_LINEAR_CHECK") && iteration<3) {
++            long double *res=calloc(neq,sizeof(long double)),error=0,reference=0;
++            double worst=0;int col,ix,idx=0;
++            if(!res)panic("linear residual allocation failed");
++            for(k=0;k<neq;k++)res[k]=-solver.rhs[k];
++            for(col=0;col<neq;col++)for(ix=solver.ap[col];ix<solver.ap[col+1];ix++)
++                res[solver.ai[ix]]+=(long double)solver.ax[ix]*solver.solution[col];
++            VECTOR2 if(FEnd[i]->fixity[j]!=1) {
++                double u=fabs(step[k])/(FEabe[j]+fabs(old[k]));
++                if(u>worst){worst=u;idx=k;}
++                error+=res[k]*res[k];reference+=(long double)solver.rhs[k]*solver.rhs[k];
++            }
++            fprintf(stderr,"FE_LINEAR lambda=%g iteration=%d relative=%Lg worst_dof=%d fix=%d xy=(%g,%g) delta=%g sol=%g\n",lambda,iteration,sqrtl(error/reference),idx%FEdf,FEnd[idx/FEdf]->fixity[idx%FEdf],FEnd[idx/FEdf]->cord[0],FEnd[idx/FEdf]->cord[1],step[idx],old[idx]);
++            free(res);
++        }
+         alpha=1;accepted=0;
+         for(search=0;search<60;search++,alpha*=.5) {
+             changed=0;
+@@ -460,6 +550,32 @@
+             }
+             if(!changed || 1-1e-4*alpha==1)break;
+         }
++        if(getenv("SUPREM4_FE_DIRECTION_CHECK") && lambda>0 && iteration==5 && alpha<.01) {
++            static int checked=0;
++            if(!checked) {
++                double *saved=salloc(double,neq),*base=salloc(double,neq),*plus=salloc(double,neq),*minus=salloc(double,neq);
++                int probe,idx;
++                checked=1;
++                VECTOR2 {saved[k]=FEnd[i]->sol[j];FEnd[i]->sol[j]=old[k];}
++                noderiv=1;FEassmb(ia,aoff,a,base);
++                for(probe=0;probe<5;probe++) {
++                    double h=pow(10.,-2-2*probe),error=0,ref=0,worst=0;int worstk=0;
++                    VECTOR2 FEnd[i]->sol[j]=old[k]+(FEnd[i]->fixity[j]==1?0:h*step[k]);
++                    FEassmb(ia,aoff,a,plus);
++                    VECTOR2 FEnd[i]->sol[j]=old[k]-(FEnd[i]->fixity[j]==1?0:h*step[k]);
++                    FEassmb(ia,aoff,a,minus);
++                    for(idx=0;idx<neq;idx++)if(FEnd[idx/FEdf]->fixity[idx%FEdf]!=1) {
++                        double d=(-(plus[idx]-minus[idx])/(2*h)-base[idx])*weight[idx];
++                        double b=base[idx]*weight[idx];error+=d*d;ref+=b*b;
++                        if(fabs(d)>worst){worst=fabs(d);worstk=idx;}
++                    }
++                    fprintf(stderr,"FE_DIRECTION lambda=%g h=%g relative=%g worst=%g dof=%d fix=%d xy=(%g,%g) analytic=%g numeric=%g\n",lambda,h,sqrt(error/ref),worst,worstk%FEdf,FEnd[worstk/FEdf]->fixity[worstk%FEdf],FEnd[worstk/FEdf]->cord[0],FEnd[worstk/FEdf]->cord[1],base[worstk],-(plus[worstk]-minus[worstk])/(2*h));
++                }
++                VECTOR2 FEnd[i]->sol[j]=saved[k];
++                noderiv=1;FEassmb(ia,aoff,a,rhs);
++                free(saved);free(base);free(plus);free(minus);
++            }
++        }
+         if(FEverbose)printf("Newton %d lambda=%g alpha=%g update=%g residual=%g -> %g\n",
+                             iteration,lambda,alpha,update,before,after);
+         if(!accepted) {
+@@ -479,6 +595,7 @@
+     double *a, *l, *rhs;
+ {
+ #ifdef SUPREM_FE_UMFPACK
++    if(getenv("SUPREM4_FE_TRUST_REGION"))return FEnewton_trust(ia,aoff,a,rhs);
+     return FEnewton_pivoted(ia,aoff,a,rhs);
+ #endif
+     int loop, converge;
+@@ -550,6 +667,48 @@
+                 converge=-1;break;
+             }
+         }
++        {
++          static int checked=0;
++          int probe;
++          if(getenv("SUPREM4_FE_JCHECK") && lambda>.25 && loop==0 && !checked) {
++           checked=1;
++           for(probe=0;probe<4;probe++) {
++            double *plus=salloc(double,neq),*minus=salloc(double,neq);
++            double *direction=salloc(double,neq),*product=salloc(double,neq);
++            double e=pow(10.,-6-2*probe),err[3]={0},ref[3]={0},maxerr[3]={0};
++            int ii,jj,idx,old=noderiv,worst[3]={0};
++            VECTOR2 {
++                sol0[k]=FEnd[i]->sol[j];
++                direction[k]=FEnd[i]->fixity[j]==1?0:FEabe[j]*sin(.37*(k+1));
++                product[k]=a[k]*direction[k];
++            }
++            for(ii=0;ii<neq;ii++)for(idx=ia[ii];idx<ia[ii+1];idx++) {
++                jj=ia[idx];product[jj]+=a[idx]*direction[ii];
++                product[ii]+=a[idx+aoff]*direction[jj];
++            }
++            noderiv=1;
++            VECTOR2 FEnd[i]->sol[j]=sol0[k]+e*direction[k];
++            FEassmb(ia,aoff,a,plus);
++            VECTOR2 FEnd[i]->sol[j]=sol0[k]-e*direction[k];
++            FEassmb(ia,aoff,a,minus);
++            VECTOR2 {
++                double fd=-(plus[k]-minus[k])/(2*e),d;
++                FEnd[i]->sol[j]=sol0[k];
++                if(FEnd[i]->fixity[j]==1)continue;
++                d=(fd-product[k])*pivoted.row_scale[k];
++                err[j]+=d*d;ref[j]+=pow(fd*pivoted.row_scale[k],2);
++                if(fabs(d)>maxerr[j]){maxerr[j]=fabs(d);worst[j]=k;}
++            }
++            FEassmb(ia,aoff,a,rhs);noderiv=old;
++            for(ii=0;ii<FEdf;ii++) {
++                int w=worst[ii];
++                fprintf(stderr,"FE_JCHECK lambda=%g h=%g dof=%d rel=%g max=%g worst=%d fix=%d analytic=%g numeric=%g xy=(%g,%g)\n",lambda,e,ii,sqrt(err[ii]/ref[ii]),maxerr[ii],w,FEnd[w/FEdf]->fixity[ii],product[w],-(plus[w]-minus[w])/(2*e),FEnd[w/FEdf]->cord[0],FEnd[w/FEdf]->cord[1]);
++            }
++            free(plus);free(minus);free(direction);free(product);
++           }
++           if(!strcmp(getenv("SUPREM4_FE_JCHECK"),"stop"))panic("Jacobian diagnostic complete");
++          }
++        }
+         onorm=FEscalednorm(&pivoted,rhs);
+         linear_status=suprem_pivoted_solve(&pivoted,rhs);
+         if(linear_status!=UMFPACK_OK) {
+@@ -564,38 +723,7 @@
+ 	VECTOR2 sol0[ k] = FEnd[i]->sol[j];
+ 	VECTOR updv[k] = rhs[k];
+ 	upd = FEupdnorm( updv);
+-        if(!isfinite(upd)) {
+-            if(getenv("SUPREM4_FE_TRACE")) {
+-                int bi=-1;double bv=0;
+-                VECTOR if(!isfinite(rhs[k]) && bi<0){bi=k;bv=rhs[k];}
+-                fprintf(stderr,"[FE] nonfinite update at loop=%d lambda=%g upd=%g first_bad_eqn=%d rhs=%g\n",
+-                        loop,lambda,upd,bi,bv);
+-            }
+-            converge=-1;break;
+-        }
+-        if(getenv("SUPREM4_FE_TRACE") && upd>0 && upd<1e19) {
+-            /* rank equations by the same per-eq metric FEupdnorm uses */
+-            int rank, worst[4];double worstv[4];
+-            for(rank=0;rank<4;rank++){worst[rank]=-1;worstv[rank]=-1;}
+-            VECTOR2 if (FEnd[i]->fixity[j] != 1) {
+-                double s = FEnd[i]->sol[j]; if (s < 0) s = -s;
+-                double u = updv[k]/(FEabe[j]+s); if (u < 0) u = -u;
+-                for(rank=3;rank>=0;rank--) {
+-                    if(u>worstv[rank]) {
+-                        if(rank<3){worst[rank+1]=worst[rank];worstv[rank+1]=worstv[rank];}
+-                        worst[rank]=k;worstv[rank]=u;
+-                    }
+-                }
+-            }
+-            for(rank=0;rank<4;rank++) {
+-                int k2=worst[rank];
+-                if(k2<0)continue;
+-                fprintf(stderr,"[FE] loop=%d upd=%.6g rank%d eqn=%d node=%d dof=%d fix=%d delta=%.6g sol=%.6g abe=%.6g cord=(%.6g,%.6g)\n",
+-                        loop,upd,rank,k2,k2/FEdf,k2%FEdf,FEnd[k2/FEdf]->fixity[k2%FEdf],
+-                        updv[k2],FEnd[k2/FEdf]->sol[k2%FEdf],FEabe[k2%FEdf],
+-                        (double)FEnd[k2/FEdf]->cord[0],(double)FEnd[k2/FEdf]->cord[1]);
+-            }
+-        }
++        if(!isfinite(upd)) {converge=-1;break;}
+ 
+ 	/* Use upd, not cutback upd, to decide on convergence */
+ 	/* Don't break because haven't added that last little update yet */
+@@ -679,9 +807,6 @@
+ #ifdef SUPREM_FE_UMFPACK
+     suprem_pivoted_free(&pivoted);free(scales);
+ #endif
+-    if(converge<=0 && getenv("SUPREM4_FE_TRACE"))
+-        fprintf(stderr,"[FE] newton failed: converge=%d loop=%d upd=%.6g FErel=%.6g norm=%.6g onorm=%.6g noderiv=%d\n",
+-                converge,loop,upd,FErel,norm,onorm,noderiv);
+     return( converge);
+ }
+ 
+--- a/src/include/mesh_trial.h
++++ b/src/include/mesh_trial.h
+@@ -11,9 +11,6 @@
+  * Static rezoning must transfer nd[].sol; an active implicit trial must not. */
+ int mesh_trial_active(void);
+ 
+-/* Read-only embedding check; dt=0 checks committed coordinates. */
+-int mesh_trial_validate_embedding(double dt, int *bad_triangle);
+-
+ /* Returns zero without mutation if rounded motion is invalid. */
+ int mesh_trial_move(double dt, int *bad_triangle);
+ 
+--- a/src/keyread/expand.c
++++ /dev/null
+@@ -1,250 +0,0 @@
+-
+-/*************************************************************************
+- *									 *
+- *   Original : MEL         Stanford University        Sept, 1984	 *
+- *									 *
+- *     Copyright c 1984 The board of trustees of the Leland Stanford 	 *
+- *                      Junior University. All rights reserved.		 *
+- *     This subroutine may not be used outside of the SUPREM4 computer	 *
+- *     program without the prior written consent of Stanford University. *
+- *									 *
+- *************************************************************************/
+-/*   expand.c                Version 4.1     */
+-/*   Last Modification : 8/18/89  16:35:50 */
+-
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include "check.h"
+-#include "key.h"
+-
+-/************************************************************************
+- *									*
+- *	This file contains the routines that parse down the references  *
+- *  to other variables in the boolean expressions.  The routines follow *
+- *  a recursive path to check all the parameters and to check each valid*
+- *  boolean expression.  The parameters are modified from the 		*
+- *  name.subname form to a string of numbers.  Each character in the    *
+- *  string represents the ith paramater at that level.  For example,	*
+- *  "\005\008\002\000" represents the second parameter of the sub 	*
+- *  parameters of the eighth sub parameter of the fifth card.		*
+- *  Or the record could be referenced by :				*
+- *  (cards[4].param[7]->param[1]) C requires a -1 to the indices	*
+- *									*
+- ************************************************************************/
+-
+-
+-/************************************************************************
+- *									*
+- *	expand( par ) - This routine recursivly travels throughout the  *
+- *  parameters and calls bool_expand on each boolean expression.	*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-expand(param)
+-struct par_str **param;
+-{
+-
+-    while ( param[0]->name[0] != '\0' ) {
+-	/*process this parameter*/
+-	if ( param[0]->bexp != NULL )
+-	    bool_expand( param[0]->bexp );
+-
+-	/*does this sucker have sub parameters??*/
+-	if (param[0]->param != NULL) {
+-	    depth++;
+-	    expand( param[0]->param );
+-	    depth--;
+-	}
+-
+-	param++;
+-	if (depth == 0)
+-	    cardnum++;
+-    }
+-}
+-
+-
+-
+-/************************************************************************
+- *									*
+- *	bool_expand( bexp ) - this routine does postfix traversal of 	*
+- *  the tree and examines each parameter.  If it needs to be expanded,  *
+- *  it calls par_expand.						*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-bool_expand( bexp )
+-struct bool_exp *bexp;
+-{
+-    /*check the type to see if it needs expansion*/
+-    if ( bexp->type == PARVAL )
+-	if (par_expand( bexp ) == -1) {
+-	    fprintf(stderr, "can not expand parameter %s\n", bexp->value.sval);
+-	}
+-
+-    /*do the sons and daughters*/
+-    if ( bexp->left != NULL )
+-	bool_expand( bexp->left );
+-    if ( bexp->right != NULL )
+-	bool_expand( bexp->right );
+-}
+-
+-
+-
+-/************************************************************************
+- *									*
+- *	compare(s1, s2) - this routine returns the number of characters *
+- *  s1 and s2 have in common.  						*
+- *									*
+- *	Original	Mark E. Law		Sept, 1984		*
+- *									*
+- ************************************************************************/
+-compare(s1, s2)
+-char *s1, *s2;
+-{
+-    int i;
+-
+-    for(i = 0;  (*s1 == *s2) && (*s1) && (*s2); s1++, s2++, i++);
+-    return(i);
+-}
+-
+-
+-/************************************************************************
+- *									*
+- *	par_expand(bexp) - this routine checks the card deck for the    *
+- *  list of parameters to try and expand the parameter name given.	*
+- *  A number of things are tried.  First, if no period is in the name,  *
+- *  the parameters in the current card are checked.  Then the card names*
+- *  are checked.  If there is a period, then the path is attempted.	*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-par_expand(bexp)
+-struct bool_exp *bexp;
+-{
+-    char *s;
+-    struct par_str *temp;
+-    int best;
+-    struct par_str *match;
+-
+-    /*check to see if there is a . in the name*/
+-    for ( s = bexp->value.sval; ( *s != '%' ) && ( *s ); s++ );
+-
+-    /*if there is no period, handle by checking locals*/
+-    if ( *s == '\0' ) {
+-	/*check all of the cards below this one*/
+-	best = compare( bexp->value.sval, cards[ cardnum ]);
+-	match = (best > 0) ? cards[ cardnum ] : NULL;
+-	/*check all the sub pointers*/
+-	s = bexp->value.sval;
+-	if (check_list(s, cards[cardnum]->param, &best, &match, TRUE)==-1)
+-	    return(-1);
+-	/*match is a pointer to the fit*/
+-	strcpy( bexp->value.sval, match->value.sval );
+-    }
+-    else {
+-	/*check all the top cards for the first part, etc*/
+-	match = NULL;
+-	s = (char *)strtok(bexp->value.sval, "%");
+-	do {
+-	    best = 0;
+-	    if ( match == NULL ) {
+-		/*search the top levels*/
+-		if ( check_list (s, cards, &best, &match, FALSE ) == -1)
+-		    return( -1 );
+-	    }
+-	    else {
+-		if ( check_list(s, match->param, &best, &match, FALSE ) == -1)
+-		    return( -1 );
+-	    }
+-	} while ((match != NULL) && (( s = (char *)strtok(NULL,".")) != NULL));
+-	if (match == NULL)
+-	    return(-1);
+-	/*match is a pointer to the fit*/
+-	strcpy( bexp->value.sval, match->value.sval );
+-    }
+-    return( 0 );
+-}
+-
+-
+-/************************************************************************
+- *									*
+- *	check_list(s, pars, best, match) - this routine checks the list *
+- *  parameters for the name s and returns the length of the match and   *
+- *  the best fit fo the match.						*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-check_list(s, pars, best, match, recurs)
+-char *s;		/*pattern to be matched*/
+-struct par_str **pars;  /*parameters to check*/
+-int *best;		/*length of the match*/
+-struct par_str **match; /*the best fit pointer*/
+-int recurs;
+-{
+-    int temp;
+-    static int ambig;
+-
+-    /*loop through all the parameters*/
+-    for( ; pars[0]->name[0] != '\0'; pars++) {
+-
+-	temp = compare( s, pars[0]->name );
+-	if (temp > *best) {
+-	    match[0] = pars[0];
+-	    *best = temp;
+-	    ambig = FALSE;
+-	}
+-	else if (temp == *best)
+-		ambig = TRUE;
+-
+-	/*does this sucker have sub params?*/
+-	if (recurs)
+-	    if (pars[0]->param != NULL)
+-		check_list(s, pars[0]->param, best, match, TRUE);
+-    }
+-    if ((ambig == TRUE) || (*best == 0))
+-	return( -1 );
+-    return(0);
+-}
+-
+-
+-
+-
+-
+-
+-/************************************************************************
+- *									*
+- *	make_depth( param ) - this builds the depth string for each  	*
+- *  parameter.  							*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-make_depth(param)
+-struct par_str **param;
+-{
+-
+-    while ( param[0]->name[0] != '\0' ) {
+-	/*process this parameter*/
+-	param[0]->value.sval = (char *)malloc( 20 );
+-	strcpy( param[0]->value.sval, depthstr);
+-
+-	/*does this sucker have sub parameters??*/
+-	if (param[0]->param != NULL) {
+-	    depth++;
+-	    *(depthstr + depth) = '\001';
+-	    make_depth( param[0]->param );
+-	    *(depthstr + depth) = '\000';
+-	    depth--;
+-	}
+-
+-	/*increment the depthstr characters along*/
+-	(*(depthstr + depth))++;
+-	param++;
+-    }
+-}
+-
+--- a/src/keyread/lexical.c
++++ /dev/null
+@@ -1,1836 +0,0 @@
+-# include <stdio.h>
+-# include <stdlib.h>
+-
+-# define U(x) x
+-# define NLSTATE yyprevious=YYNEWLINE
+-# define BEGIN yybgin = yysvec + 1 +
+-# define INITIAL 0
+-# define YYLERR yysvec
+-# define YYSTATE (yyestate-yysvec-1)
+-# define YYOPTIM 1
+-# define YYLMAX BUFSIZ
+-# define output(c) putc(c,yyout)
+-# define input() (((yytchar=yysptr>yysbuf?U(*--yysptr):getc(yyin))==10?(yylineno++,yytchar):yytchar)==EOF?0:yytchar)
+-# define unput(c) {yytchar= (c);if(yytchar=='\n')yylineno--;*yysptr++=yytchar;}
+-# define yymore() (yymorfg=1)
+-# define ECHO fprintf(yyout, "%s",yytext)
+-# define REJECT { nstr = yyreject(); goto yyfussy;}
+-int yyleng; extern char yytext[];
+-int yymorfg;
+-extern char *yysptr, yysbuf[];
+-int yytchar;
+-FILE *yyin, *yyout;
+-extern int yylineno;
+-struct yysvf {
+-	struct yywork *yystoff;
+-	struct yysvf *yyother;
+-	int *yystops;};
+-struct yysvf *yyestate;
+-extern struct yysvf yysvec[], *yybgin;
+-
+-/*************************************************************************
+- *									 *
+- *   Original : MEL         Stanford University        Sept, 1984	 *
+- *									 *
+- *     Copyright c 1984 The board of trustees of the Leland Stanford 	 *
+- *                      Junior University. All rights reserved.		 *
+- *     This subroutine may not be used outside of the SUPREM4 computer	 *
+- *     program without the prior written consent of Stanford University. *
+- *									 *
+- *************************************************************************/
+-/*   lexical.l                Version 4.1     */
+-/*   Last Modification : 8/18/89  16:35:44 */
+-
+-
+-#undef input
+-#define input() (((yytchar=yysptr>yysbuf?U(*--yysptr):getc(stdin))==10?(yylineno++,yytchar):yytchar)==EOF?1:yytchar)
+-
+-
+-# define bool 2
+-# define init 4
+-# define YYNEWLINE 10
+-yylex(){
+-int nstr; extern int yyprevious;
+-while((nstr = yylook()) >= 0)
+-yyfussy: switch(nstr){
+-case 0:
+-if(yywrap()) return(0); break;
+-case 1:
+-{
+-#ifdef DEBUG
+-	printf("returning begin group char\n");
+-#endif
+-	BEGIN 0;
+-	return( BG_GRP );
+-	}
+-break;
+-case 2:
+-{
+-#ifdef DEBUG
+-	printf("returning end group char\n");
+-#endif
+-	BEGIN 0;
+-	return( END_GRP );
+-	}
+-break;
+-case 3:
+-{
+-	/*do nothing*/
+-	}
+-break;
+-case 4:
+-{
+-#ifdef DEBUG
+-	printf("returning comment\n");
+-#endif
+-	return(COMMENT);
+-	}
+-break;
+-case 5:
+-{
+-#ifdef DEBUG
+-	printf("returning semi colon\n");
+-#endif
+-	BEGIN 0;
+-	return(EOL);
+-	}
+-break;
+-case 6:
+-{
+-#ifdef DEBUG
+-	printf("returning card id\n");
+-#endif
+-	BEGIN 0;
+-	return(CARD);
+-	}
+-break;
+-case 7:
+-{
+-#ifdef DEBUG
+-	printf("returning integer type parameter\n");
+-#endif
+-	BEGIN 0;
+-	yylval.ival = INT;
+-	return(PARTYPE);
+-	}
+-break;
+-case 8:
+-{
+-#ifdef DEBUG
+-	printf("returning choice type parameter\n");
+-#endif
+-	BEGIN 0;
+-	yylval.ival = CHOICE;
+-	return(PARTYPE);
+-	}
+-break;
+-case 9:
+-{
+-#ifdef DEBUG
+-	printf("returning real number parameter type\n");
+-#endif
+-	BEGIN 0;
+-	yylval.ival = REAL;
+-	return(PARTYPE);
+-	}
+-break;
+-case 10:
+- {
+-#ifdef DEBUG
+-	printf("returning string parameter type\n");
+-#endif
+-	BEGIN 0;
+-	yylval.ival = STR;
+-	return(PARTYPE);
+-	}
+-break;
+-case 11:
+-{
+-#ifdef DEBUG
+-	printf("returning boolean parameter type\n");
+-#endif
+-	BEGIN 0;
+-	yylval.ival = BOOL;
+-	return(PARTYPE);
+-	}
+-break;
+-case 12:
+-     {
+-	char *s;
+-
+-	/*skip past equal*/
+-	for(s = yytext; ! isdigit( *s ); s++ );
+-
+-	/*read in number*/
+-	sscanf(s, "%d", &yylval.ival);
+-#ifdef DEBUG
+-	printf("the number return is %d\n", yylval.ival);
+-#endif
+-	BEGIN 0;
+-	return( NUMB );
+-	}
+-break;
+-case 13:
+-{
+-	char *s;
+-	/*eat this to get the string portion*/
+-	s = yytext;
+-	s += 5;
+-	while( isspace( *s ) || ( *s == '=') ) s++;
+-	/*advance past " char*/
+-	s++;
+-	yytext[yyleng-1] = '\0';
+-	yylval.sval = (char *)malloc( strlen(s) + 1 );
+-	strcpy(yylval.sval, s);
+-#ifdef DEBUG
+-	printf("units return is %s\n", yylval.sval);
+-#endif
+-	BEGIN 0;
+-	return(UNITS);
+-	}
+-break;
+-case 14:
+-{
+-	char *s;
+-	s = yytext;
+-	s += 7;
+-	while( isspace( *s ) || ( *s == '=') ) s++;
+-	/*advance past " char*/
+-	s++;
+-	yytext[yyleng-1] = '\0';
+-	yylval.sval = (char *)malloc( strlen(s) + 1 );
+-	strcpy(yylval.sval, s);
+-#ifdef DEBUG
+-	printf("error message return is %s\n", yylval.sval);
+-#endif
+-	BEGIN 0;
+-	return(ERR_MSG);
+-	}
+-break;
+-case 15:
+-{
+-	sscanf(yytext, "%d", &yylval.ival);
+-#ifdef DEBUG
+-	printf("integer value found %d\n", yylval.ival);
+-#endif
+-	return(INTEGER);
+-	}
+-break;
+-case 16:
+-{
+-#ifdef DEBUG
+-	printf("boolean true value found\n");
+-#endif
+-	yylval.ival = TRUE;
+-	return(INTEGER);
+-	}
+-break;
+-case 17:
+-{
+-#ifdef DEBUG
+-	printf("boolean false value found\n");
+-#endif
+-	yylval.ival = FALSE;
+-	return(INTEGER);
+-	}
+-break;
+-case 18:
+-case 19:
+-case 20:
+-	{
+-	    sscanf(yytext, "%f", &yylval.dval);
+-#ifdef DEBUG
+-	    printf("real number return %f\n", yylval.dval);
+-#endif
+-	    return(RCONST);
+-	    }
+-break;
+-case 21:
+-{
+-	/*send into boolean mode, ignore*/
+-#ifdef DEBUG
+-	printf("returning start of boolean expression\n");
+-#endif
+-	BEGIN bool;
+-	return(BOOLSTART);
+-	}
+-break;
+-case 22:
+-{
+-#ifdef DEBUG
+-	printf("returning equal sign in default mode\n");
+-#endif
+-	return('=');
+-	}
+-break;
+-case 23:
+-{
+-#ifdef DEBUG
+-	printf("returning paran %c\n", yytext[0]);
+-#endif
+-	return(yytext[0]);
+-	}
+-break;
+-case 24:
+-	{
+-#ifdef DEBUG
+-	printf("returning greater than\n");
+-#endif
+-	return(GRT);
+-	}
+-break;
+-case 25:
+-	{
+-#ifdef DEBUG
+-	printf("returning less than\n");
+-#endif
+-	return(LES);
+-	}
+-break;
+-case 26:
+-	{
+-#ifdef DEBUG
+-	printf("returning greater than or equal\n");
+-#endif
+-	return(GRTE);
+-	}
+-break;
+-case 27:
+-	{
+-#ifdef DEBUG
+-	printf("returning less than or equal\n");
+-#endif
+-	return(LESE);
+-	}
+-break;
+-case 28:
+-	{
+-#ifdef DEBUG
+-	printf("returning or\n");
+-#endif
+-	return(OR);
+-	}
+-break;
+-case 29:
+-	{
+-#ifdef DEBUG
+-	printf("returning and\n");
+-#endif
+-	return(AND);
+-	}
+-break;
+-case 30:
+-	{
+-#ifdef DEBUG
+-	printf("returning equal\n");
+-#endif
+-	return(EQU);
+-	}
+-break;
+-case 31:
+-	{
+-#ifdef DEBUG
+-	printf("returning not equal\n");
+-#endif
+-	return(NOTEQU);
+-	}
+-break;
+-case 32:
+-	{
+-#ifdef DEBUG
+-	printf("returning not\n");
+-#endif
+-	return(NOT);
+-	}
+-break;
+-case 33:
+-	{
+-#ifdef DEBUG
+-	printf("returning plus\n");
+-#endif
+-	return(PLUS);
+-	}
+-break;
+-case 34:
+-	{
+-#ifdef DEBUG
+-	printf("returning times\n");
+-#endif
+-	return(TIMES);
+-	}
+-break;
+-case 35:
+-	{
+-#ifdef DEBUG
+-	printf("returning par name %s\n", yytext);
+-#endif
+-	yylval.sval = (char *)malloc( strlen(yytext) + 1 );
+-	strcpy(yylval.sval, yytext);
+-	return(PARNAME);
+-	}
+-break;
+-case 36:
+-{
+-#ifdef DEBUG
+-	printf("returning Name %s\n", yytext);
+-#endif
+-	yylval.sval = (char *)malloc( yyleng + 1 );
+-	strcpy(yylval.sval, yytext);
+-	BEGIN init;
+-	return(NAME);
+-	}
+-break;
+-case -1:
+-break;
+-default:
+-fprintf(yyout,"bad switch yylook %d",nstr);
+-} return(0); }
+-/* end of yylex */
+-int yyvstop[] = {
+-0,
+-
+-3,
+-0,
+-
+-4,
+-0,
+-
+-36,
+-0,
+-
+-15,
+-0,
+-
+-5,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-17,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-16,
+-17,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-16,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-1,
+-0,
+-
+-2,
+-0,
+-
+-32,
+-0,
+-
+-23,
+-0,
+-
+-34,
+-0,
+-
+-33,
+-0,
+-
+-25,
+-0,
+-
+-30,
+-0,
+-
+-24,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-17,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-16,
+-17,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-16,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-22,
+-0,
+-
+-19,
+-0,
+-
+-18,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-17,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-17,
+-36,
+-0,
+-
+-16,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-16,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-31,
+-0,
+-
+-29,
+-0,
+-
+-27,
+-0,
+-
+-26,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-17,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-17,
+-35,
+-36,
+-0,
+-
+-16,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-16,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-28,
+-0,
+-
+-18,
+-19,
+-0,
+-
+-20,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-2,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-17,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-7,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-17,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-16,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-2,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-17,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-7,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-17,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-16,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-19,
+-0,
+-
+-18,
+-0,
+-
+-36,
+-0,
+-
+-6,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-17,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-6,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-17,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-18,
+-19,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-9,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-12,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-9,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-21,
+-0,
+-
+-36,
+-0,
+-
+-36,
+-0,
+-
+-12,
+-0,
+-
+-10,
+-36,
+-0,
+-
+-8,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-10,
+-35,
+-36,
+-0,
+-
+-8,
+-35,
+-36,
+-0,
+-
+-11,
+-36,
+-0,
+-
+-7,
+-36,
+-0,
+-
+-36,
+-0,
+-
+-11,
+-35,
+-36,
+-0,
+-
+-7,
+-35,
+-36,
+-0,
+-
+-35,
+-36,
+-0,
+-
+-13,
+-0,
+-
+-14,
+-0,
+-0};
+-# define YYTYPE int
+-struct yywork { YYTYPE verify, advance; } yycrank[] = {
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	1,7,	1,7,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-9,50,	1,7,	0,0,	0,0,
+-1,8,	0,0,	0,0,	0,0,
+-1,9,	7,7,	7,7,	0,0,
+-1,10,	0,0,	1,10,	1,11,
+-1,12,	1,13,	1,13,	1,13,
+-1,13,	1,13,	1,13,	1,13,
+-1,13,	1,13,	1,13,	0,0,
+-1,14,	0,0,	0,0,	0,0,
+-7,7,	0,0,	1,12,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-5,49,	6,49,	0,0,	0,0,
+-0,0,	0,0,	1,12,	1,15,
+-1,16,	1,12,	1,17,	1,18,
+-1,12,	1,12,	1,19,	1,12,
+-1,12,	1,12,	1,20,	1,21,
+-1,22,	1,12,	1,12,	1,12,
+-1,23,	1,24,	1,25,	1,12,
+-1,12,	1,12,	1,12,	1,12,
+-1,26,	0,0,	1,27,	3,0,
+-3,0,	3,0,	3,0,	3,0,
+-3,0,	3,0,	3,0,	3,7,
+-3,7,	3,0,	3,0,	3,0,
+-3,0,	3,0,	3,0,	3,0,
+-3,0,	3,0,	3,0,	3,0,
+-3,0,	3,0,	3,0,	3,0,
+-3,0,	3,0,	3,0,	3,0,
+-3,0,	3,0,	15,54,	3,28,
+-3,0,	3,8,	3,0,	3,0,
+-3,29,	3,9,	3,30,	16,55,
+-3,31,	3,32,	3,0,	3,10,
+-3,11,	3,12,	3,13,	17,56,
+-19,60,	20,61,	21,62,	17,57,
+-23,65,	18,58,	24,67,	23,66,
+-3,0,	3,14,	3,33,	3,34,
+-3,35,	3,0,	3,0,	3,36,
+-18,59,	10,11,	3,36,	10,13,
+-10,13,	10,13,	10,13,	10,13,
+-10,13,	10,13,	10,13,	10,13,
+-10,13,	11,51,	11,51,	11,51,
+-11,51,	11,51,	11,51,	11,51,
+-11,51,	11,51,	11,51,	22,63,
+-25,68,	3,0,	3,0,	3,0,
+-3,0,	3,0,	3,0,	22,64,
+-3,37,	3,38,	28,69,	3,39,
+-3,40,	29,70,	33,71,	3,41,
+-35,72,	37,73,	38,74,	3,42,
+-3,43,	3,44,	41,79,	42,80,
+-39,75,	3,45,	3,46,	3,47,
+-39,76,	43,81,	46,86,	47,87,
+-48,88,	3,26,	3,48,	3,27,
+-3,0,	3,0,	4,0,	4,0,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	4,0,	50,27,	54,94,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	40,77,	4,28,	4,0,
+-4,8,	4,0,	4,0,	4,29,
+-4,9,	8,8,	55,95,	4,31,
+-40,78,	4,0,	4,10,	4,11,
+-44,82,	8,8,	8,0,	45,84,
+-51,89,	51,89,	45,85,	56,96,
+-44,83,	57,97,	58,98,	4,0,
+-4,14,	4,33,	4,34,	4,35,
+-4,0,	4,0,	59,99,	60,100,
+-61,101,	62,102,	63,103,	65,104,
+-66,105,	67,106,	8,8,	68,107,
+-73,108,	8,8,	74,109,	75,110,
+-8,8,	76,111,	77,112,	8,8,
+-51,89,	51,89,	78,113,	8,8,
+-8,8,	79,114,	80,115,	13,52,
+-4,0,	4,0,	4,0,	4,0,
+-4,0,	4,0,	81,116,	4,37,
+-4,38,	82,117,	4,39,	4,40,
+-84,118,	8,8,	4,41,	85,119,
+-8,8,	86,120,	4,42,	4,43,
+-4,44,	13,53,	13,53,	87,121,
+-4,45,	4,46,	4,47,	12,12,
+-94,127,	95,128,	12,12,	97,129,
+-4,26,	4,48,	4,27,	4,0,
+-4,0,	98,130,	99,131,	12,12,
+-100,132,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	101,133,
+-102,134,	13,53,	13,53,	104,135,
+-105,136,	106,64,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-107,137,	90,124,	90,124,	108,138,
+-12,12,	109,139,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-12,12,	12,12,	12,12,	12,12,
+-36,36,	90,124,	90,124,	36,36,
+-111,140,	112,141,	113,142,	114,143,
+-115,144,	116,145,	118,146,	119,147,
+-36,36,	120,83,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-121,148,	127,151,	129,152,	130,103,
+-131,153,	132,154,	133,155,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	135,158,	136,159,	137,160,
+-138,161,	36,36,	140,162,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	36,36,	36,36,	36,36,
+-36,36,	52,90,	52,90,	52,90,
+-52,90,	52,90,	52,90,	52,90,
+-52,90,	52,90,	52,90,	141,117,
+-142,163,	143,164,	144,165,	146,166,
+-147,167,	148,168,	53,92,	151,169,
+-53,92,	52,91,	52,91,	53,93,
+-53,93,	53,93,	53,93,	53,93,
+-53,93,	53,93,	53,93,	53,93,
+-53,93,	89,122,	154,172,	89,122,
+-155,173,	158,175,	89,123,	89,123,
+-89,123,	89,123,	89,123,	89,123,
+-89,123,	89,123,	89,123,	89,123,
+-159,176,	161,179,	91,125,	164,180,
+-91,125,	52,91,	52,91,	91,126,
+-91,126,	91,126,	91,126,	91,126,
+-91,126,	91,126,	91,126,	91,126,
+-91,126,	92,93,	92,93,	92,93,
+-92,93,	92,93,	92,93,	92,93,
+-92,93,	92,93,	92,93,	122,123,
+-122,123,	122,123,	122,123,	122,123,
+-122,123,	122,123,	122,123,	122,123,
+-122,123,	124,149,	165,181,	124,149,
+-166,182,	167,183,	124,150,	124,150,
+-124,150,	124,150,	124,150,	124,150,
+-124,150,	124,150,	124,150,	124,150,
+-125,126,	125,126,	125,126,	125,126,
+-125,126,	125,126,	125,126,	125,126,
+-125,126,	125,126,	134,0,	134,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	134,0,	134,156,	134,156,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	169,184,	134,0,	134,12,
+-134,0,	134,0,	134,12,	134,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	134,0,	134,0,	172,185,
+-134,0,	134,12,	173,186,	179,188,
+-180,189,	181,190,	0,0,	0,0,
+-0,0,	156,156,	156,156,	134,0,
+-134,0,	134,0,	134,157,	134,0,
+-134,0,	134,0,	134,12,	170,170,
+-170,170,	134,12,	149,150,	149,150,
+-149,150,	149,150,	149,150,	149,150,
+-149,150,	149,150,	149,150,	149,150,
+-156,156,	0,0,	0,0,	0,0,
+-0,0,	177,177,	177,177,	178,178,
+-178,178,	0,0,	170,170,	0,0,
+-134,0,	134,0,	134,0,	134,0,
+-0,0,	134,0,	174,174,	174,174,
+-174,174,	174,174,	174,174,	174,174,
+-174,174,	174,174,	174,174,	174,174,
+-177,177,	156,157,	178,178,	0,0,
+-178,187,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	170,171,
+-0,0,	0,0,	0,0,	0,0,
+-134,0,	134,0,	134,0,	134,0,
+-134,0,	145,0,	145,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-145,0,	177,178,	0,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-0,0,	145,0,	145,36,	145,0,
+-145,0,	145,36,	145,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-145,0,	145,0,	0,0,	145,0,
+-145,36,	191,191,	191,191,	192,192,
+-192,192,	0,0,	0,0,	0,0,
+-0,0,	0,0,	145,0,	145,0,
+-145,0,	145,157,	145,0,	145,0,
+-145,0,	145,36,	157,157,	157,157,
+-145,36,	0,0,	0,0,	0,0,
+-191,191,	0,0,	192,192,	0,0,
+-192,194,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	157,157,	0,0,	145,0,
+-145,0,	145,0,	145,0,	0,0,
+-145,0,	0,0,	0,0,	0,0,
+-0,0,	191,192,	0,0,	0,0,
+-0,0,	157,174,	157,174,	157,174,
+-157,174,	157,174,	157,174,	157,174,
+-157,174,	157,174,	157,174,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	145,0,
+-145,0,	145,0,	145,0,	145,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,170,	152,170,	152,0,	152,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	0,0,
+-152,0,	0,0,	152,0,	152,0,
+-0,0,	152,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	152,0,
+-152,0,	0,0,	152,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	152,0,	152,0,	152,0,
+-152,171,	152,0,	152,0,	152,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	152,0,	152,0,
+-152,0,	152,0,	0,0,	152,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	152,0,	152,0,
+-152,0,	152,0,	152,0,	160,0,
+-160,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	160,0,	160,177,
+-160,177,	160,0,	160,0,	160,0,
+-160,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	0,0,	160,0,
+-0,0,	160,0,	160,0,	0,0,
+-160,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	160,0,	160,0,
+-0,0,	160,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-160,0,	160,0,	160,0,	160,178,
+-160,0,	160,0,	160,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	160,0,	160,0,	160,0,
+-160,0,	0,0,	160,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	160,0,	160,0,	160,0,
+-160,0,	160,0,	162,0,	162,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	162,0,	162,170,	162,170,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	0,0,	162,0,	162,36,
+-162,0,	162,0,	162,36,	162,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	162,0,	162,0,	0,0,
+-162,0,	162,36,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	162,0,
+-162,0,	162,0,	162,171,	162,0,
+-162,0,	162,0,	162,36,	0,0,
+-0,0,	162,36,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-162,0,	162,0,	162,0,	162,0,
+-0,0,	162,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-162,0,	162,0,	162,0,	162,0,
+-162,0,	168,0,	168,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-168,0,	168,177,	168,177,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-0,0,	168,0,	0,0,	168,0,
+-168,0,	0,0,	168,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-168,0,	168,0,	0,0,	168,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	168,0,	168,0,
+-168,0,	168,178,	168,0,	168,0,
+-168,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	168,0,
+-168,0,	168,0,	168,0,	0,0,
+-168,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	168,0,
+-168,0,	168,0,	168,0,	168,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,191,	186,191,	186,0,	186,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	0,0,
+-186,0,	0,0,	186,0,	186,0,
+-0,0,	186,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	186,0,
+-186,0,	0,0,	186,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	186,0,	186,0,	186,0,
+-186,192,	186,0,	186,0,	186,0,
+-187,187,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-187,187,	187,187,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	186,0,	186,0,
+-186,0,	186,0,	0,0,	186,0,
+-0,0,	187,193,	0,0,	0,0,
+-187,187,	0,0,	0,0,	187,187,
+-0,0,	0,0,	187,187,	0,0,
+-0,0,	0,0,	187,187,	187,187,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	186,0,	186,0,
+-186,0,	186,0,	186,0,	0,0,
+-187,187,	0,0,	0,0,	187,187,
+-190,0,	190,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	190,0,
+-190,191,	190,191,	190,0,	190,0,
+-190,0,	190,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	0,0,
+-190,0,	0,0,	190,0,	190,0,
+-0,0,	190,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	190,0,
+-190,0,	0,0,	190,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	190,0,	190,0,	190,0,
+-190,192,	190,0,	190,0,	190,0,
+-194,194,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-194,194,	194,194,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	190,0,	190,0,
+-190,0,	190,0,	0,0,	190,0,
+-0,0,	194,195,	0,0,	0,0,
+-194,194,	0,0,	0,0,	194,194,
+-0,0,	0,0,	194,194,	0,0,
+-0,0,	0,0,	194,194,	194,194,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	0,0,	0,0,
+-0,0,	0,0,	190,0,	190,0,
+-190,0,	190,0,	190,0,	0,0,
+-194,194,	0,0,	0,0,	194,194,
+-0,0};
+-struct yysvf yysvec[] = {
+-0,	0,	0,
+-yycrank+1,	0,		0,
+-yycrank+0,	yysvec+1,	0,
+-yycrank+-126,	0,		0,
+-yycrank+-253,	yysvec+3,	0,
+-yycrank+31,	yysvec+1,	0,
+-yycrank+32,	yysvec+1,	0,
+-yycrank+32,	0,		yyvstop+1,
+-yycrank+-292,	0,		yyvstop+3,
+-yycrank+31,	0,		0,
+-yycrank+147,	0,		0,
+-yycrank+157,	0,		0,
+-yycrank+337,	0,		yyvstop+5,
+-yycrank+297,	yysvec+10,	yyvstop+7,
+-yycrank+0,	0,		yyvstop+9,
+-yycrank+47,	yysvec+12,	yyvstop+11,
+-yycrank+70,	yysvec+12,	yyvstop+13,
+-yycrank+65,	yysvec+12,	yyvstop+15,
+-yycrank+84,	yysvec+12,	yyvstop+17,
+-yycrank+66,	yysvec+12,	yyvstop+20,
+-yycrank+76,	yysvec+12,	yyvstop+22,
+-yycrank+61,	yysvec+12,	yyvstop+24,
+-yycrank+113,	yysvec+12,	yyvstop+26,
+-yycrank+64,	yysvec+12,	yyvstop+30,
+-yycrank+68,	yysvec+12,	yyvstop+32,
+-yycrank+106,	yysvec+12,	yyvstop+35,
+-yycrank+0,	0,		yyvstop+37,
+-yycrank+0,	0,		yyvstop+39,
+-yycrank+165,	0,		yyvstop+41,
+-yycrank+191,	0,		0,
+-yycrank+0,	0,		yyvstop+43,
+-yycrank+0,	0,		yyvstop+45,
+-yycrank+0,	yysvec+10,	yyvstop+47,
+-yycrank+169,	0,		yyvstop+49,
+-yycrank+0,	0,		yyvstop+51,
+-yycrank+171,	0,		yyvstop+53,
+-yycrank+426,	0,		yyvstop+55,
+-yycrank+122,	yysvec+36,	yyvstop+58,
+-yycrank+137,	yysvec+36,	yyvstop+61,
+-yycrank+130,	yysvec+36,	yyvstop+64,
+-yycrank+188,	yysvec+36,	yyvstop+67,
+-yycrank+128,	yysvec+36,	yyvstop+71,
+-yycrank+138,	yysvec+36,	yyvstop+74,
+-yycrank+128,	yysvec+36,	yyvstop+77,
+-yycrank+198,	yysvec+36,	yyvstop+80,
+-yycrank+187,	yysvec+36,	yyvstop+85,
+-yycrank+132,	yysvec+36,	yyvstop+88,
+-yycrank+137,	yysvec+36,	yyvstop+92,
+-yycrank+124,	0,		0,
+-yycrank+0,	0,		yyvstop+95,
+-yycrank+223,	0,		0,
+-yycrank+236,	yysvec+11,	yyvstop+97,
+-yycrank+501,	0,		yyvstop+99,
+-yycrank+523,	0,		0,
+-yycrank+152,	yysvec+12,	yyvstop+101,
+-yycrank+180,	yysvec+12,	yyvstop+103,
+-yycrank+207,	yysvec+12,	yyvstop+105,
+-yycrank+195,	yysvec+12,	yyvstop+107,
+-yycrank+202,	yysvec+12,	yyvstop+109,
+-yycrank+207,	yysvec+12,	yyvstop+112,
+-yycrank+203,	yysvec+12,	yyvstop+114,
+-yycrank+205,	yysvec+12,	yyvstop+116,
+-yycrank+212,	yysvec+12,	yyvstop+118,
+-yycrank+220,	yysvec+12,	yyvstop+120,
+-yycrank+0,	yysvec+12,	yyvstop+123,
+-yycrank+209,	yysvec+12,	yyvstop+126,
+-yycrank+219,	yysvec+12,	yyvstop+128,
+-yycrank+208,	yysvec+12,	yyvstop+130,
+-yycrank+222,	yysvec+12,	yyvstop+133,
+-yycrank+0,	0,		yyvstop+135,
+-yycrank+0,	0,		yyvstop+137,
+-yycrank+0,	0,		yyvstop+139,
+-yycrank+0,	0,		yyvstop+141,
+-yycrank+217,	yysvec+36,	yyvstop+143,
+-yycrank+216,	yysvec+36,	yyvstop+146,
+-yycrank+231,	yysvec+36,	yyvstop+149,
+-yycrank+219,	yysvec+36,	yyvstop+152,
+-yycrank+226,	yysvec+36,	yyvstop+155,
+-yycrank+227,	yysvec+36,	yyvstop+159,
+-yycrank+225,	yysvec+36,	yyvstop+162,
+-yycrank+227,	yysvec+36,	yyvstop+165,
+-yycrank+241,	yysvec+36,	yyvstop+168,
+-yycrank+251,	yysvec+36,	yyvstop+171,
+-yycrank+0,	yysvec+36,	yyvstop+175,
+-yycrank+242,	yysvec+36,	yyvstop+179,
+-yycrank+254,	yysvec+36,	yyvstop+182,
+-yycrank+244,	yysvec+36,	yyvstop+185,
+-yycrank+262,	yysvec+36,	yyvstop+189,
+-yycrank+0,	0,		yyvstop+192,
+-yycrank+538,	0,		0,
+-yycrank+361,	yysvec+52,	yyvstop+194,
+-yycrank+555,	0,		0,
+-yycrank+565,	0,		0,
+-yycrank+0,	yysvec+92,	yyvstop+197,
+-yycrank+264,	yysvec+12,	yyvstop+199,
+-yycrank+273,	yysvec+12,	yyvstop+201,
+-yycrank+0,	yysvec+12,	yyvstop+203,
+-yycrank+264,	yysvec+12,	yyvstop+206,
+-yycrank+266,	yysvec+12,	yyvstop+208,
+-yycrank+285,	yysvec+12,	yyvstop+211,
+-yycrank+283,	yysvec+12,	yyvstop+213,
+-yycrank+280,	yysvec+12,	yyvstop+216,
+-yycrank+298,	yysvec+12,	yyvstop+218,
+-yycrank+0,	yysvec+12,	yyvstop+220,
+-yycrank+294,	yysvec+12,	yyvstop+223,
+-yycrank+284,	yysvec+12,	yyvstop+225,
+-yycrank+300,	yysvec+12,	yyvstop+227,
+-yycrank+312,	yysvec+12,	yyvstop+230,
+-yycrank+323,	yysvec+36,	yyvstop+232,
+-yycrank+333,	yysvec+36,	yyvstop+235,
+-yycrank+0,	yysvec+36,	yyvstop+238,
+-yycrank+353,	yysvec+36,	yyvstop+242,
+-yycrank+350,	yysvec+36,	yyvstop+245,
+-yycrank+369,	yysvec+36,	yyvstop+249,
+-yycrank+366,	yysvec+36,	yyvstop+252,
+-yycrank+353,	yysvec+36,	yyvstop+256,
+-yycrank+371,	yysvec+36,	yyvstop+259,
+-yycrank+0,	yysvec+36,	yyvstop+262,
+-yycrank+365,	yysvec+36,	yyvstop+266,
+-yycrank+355,	yysvec+36,	yyvstop+269,
+-yycrank+372,	yysvec+36,	yyvstop+272,
+-yycrank+368,	yysvec+36,	yyvstop+276,
+-yycrank+575,	0,		0,
+-yycrank+0,	yysvec+122,	yyvstop+279,
+-yycrank+590,	0,		0,
+-yycrank+600,	0,		0,
+-yycrank+0,	yysvec+125,	yyvstop+281,
+-yycrank+384,	yysvec+12,	yyvstop+283,
+-yycrank+0,	yysvec+12,	yyvstop+285,
+-yycrank+372,	yysvec+12,	yyvstop+288,
+-yycrank+386,	yysvec+12,	yyvstop+290,
+-yycrank+372,	yysvec+12,	yyvstop+293,
+-yycrank+386,	yysvec+12,	yyvstop+295,
+-yycrank+393,	yysvec+12,	yyvstop+297,
+-yycrank+-657,	0,		yyvstop+299,
+-yycrank+407,	yysvec+12,	yyvstop+301,
+-yycrank+419,	yysvec+12,	yyvstop+303,
+-yycrank+404,	yysvec+12,	yyvstop+305,
+-yycrank+419,	yysvec+36,	yyvstop+307,
+-yycrank+0,	yysvec+36,	yyvstop+310,
+-yycrank+408,	yysvec+36,	yyvstop+314,
+-yycrank+458,	yysvec+36,	yyvstop+317,
+-yycrank+444,	yysvec+36,	yyvstop+321,
+-yycrank+458,	yysvec+36,	yyvstop+324,
+-yycrank+465,	yysvec+36,	yyvstop+327,
+-yycrank+-784,	yysvec+134,	yyvstop+330,
+-yycrank+453,	yysvec+36,	yyvstop+333,
+-yycrank+465,	yysvec+36,	yyvstop+336,
+-yycrank+450,	yysvec+36,	yyvstop+339,
+-yycrank+678,	0,		0,
+-yycrank+0,	yysvec+149,	yyvstop+342,
+-yycrank+470,	yysvec+12,	yyvstop+345,
+-yycrank+-911,	yysvec+134,	yyvstop+347,
+-yycrank+0,	yysvec+12,	yyvstop+349,
+-yycrank+481,	yysvec+12,	yyvstop+352,
+-yycrank+481,	yysvec+12,	yyvstop+354,
+-yycrank+704,	0,		0,
+-yycrank+841,	0,		yyvstop+356,
+-yycrank+482,	yysvec+12,	yyvstop+358,
+-yycrank+492,	yysvec+12,	yyvstop+360,
+-yycrank+-1038,	yysvec+134,	yyvstop+362,
+-yycrank+500,	yysvec+36,	yyvstop+364,
+-yycrank+-1165,	0,		yyvstop+367,
+-yycrank+0,	yysvec+36,	yyvstop+370,
+-yycrank+498,	yysvec+36,	yyvstop+374,
+-yycrank+531,	yysvec+36,	yyvstop+377,
+-yycrank+533,	yysvec+36,	yyvstop+380,
+-yycrank+533,	yysvec+36,	yyvstop+383,
+-yycrank+-1292,	yysvec+162,	yyvstop+386,
+-yycrank+579,	yysvec+12,	yyvstop+389,
+-yycrank+714,	0,		0,
+-yycrank+0,	0,		yyvstop+391,
+-yycrank+589,	yysvec+12,	yyvstop+393,
+-yycrank+605,	yysvec+12,	yyvstop+395,
+-yycrank+706,	0,		yyvstop+397,
+-yycrank+0,	yysvec+12,	yyvstop+399,
+-yycrank+0,	yysvec+12,	yyvstop+402,
+-yycrank+732,	0,		0,
+-yycrank+734,	0,		0,
+-yycrank+597,	yysvec+36,	yyvstop+405,
+-yycrank+594,	yysvec+36,	yyvstop+408,
+-yycrank+608,	yysvec+36,	yyvstop+411,
+-yycrank+0,	yysvec+36,	yyvstop+414,
+-yycrank+0,	yysvec+36,	yyvstop+418,
+-yycrank+0,	yysvec+12,	yyvstop+422,
+-yycrank+0,	yysvec+12,	yyvstop+425,
+-yycrank+-1419,	yysvec+134,	yyvstop+428,
+-yycrank+-1483,	0,		0,
+-yycrank+0,	yysvec+36,	yyvstop+430,
+-yycrank+0,	yysvec+36,	yyvstop+434,
+-yycrank+-1551,	yysvec+162,	yyvstop+438,
+-yycrank+824,	0,		0,
+-yycrank+826,	0,		0,
+-yycrank+0,	0,		yyvstop+441,
+-yycrank+-1615,	0,		0,
+-yycrank+0,	0,		yyvstop+443,
+-0,	0,	0};
+-struct yywork *yytop = yycrank+1683;
+-struct yysvf *yybgin = yysvec+1;
+-char yymatch[] = {
+-00  ,01  ,01  ,01  ,01  ,01  ,01  ,01  ,
+-01  ,011 ,012 ,01  ,01  ,01  ,01  ,01  ,
+-01  ,01  ,01  ,01  ,01  ,01  ,01  ,01  ,
+-01  ,01  ,01  ,01  ,01  ,01  ,01  ,01  ,
+-011 ,01  ,'"' ,01  ,01  ,'%' ,01  ,01  ,
+-'(' ,'(' ,01  ,'+' ,01  ,'+' ,'%' ,'/' ,
+-'0' ,'0' ,'0' ,'0' ,'0' ,'0' ,'0' ,'0' ,
+-'0' ,'0' ,01  ,01  ,01  ,01  ,01  ,01  ,
+-01  ,'A' ,'A' ,'A' ,'D' ,'D' ,'A' ,'A' ,
+-'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,
+-'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,
+-'A' ,'A' ,'A' ,01  ,01  ,01  ,01  ,'%' ,
+-01  ,'A' ,'A' ,'A' ,'D' ,'D' ,'A' ,'A' ,
+-'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,
+-'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,'A' ,
+-'A' ,'A' ,'A' ,01  ,01  ,01  ,01  ,01  ,
+-0};
+-char yyextra[] = {
+-0,0,0,0,0,0,0,0,
+-0,0,0,0,0,0,0,0,
+-0,0,0,0,0,0,0,0,
+-0,0,0,0,0,0,0,0,
+-0,0,0,0,0,0,0,0,
+-0};
+-#ifndef lint
+-static	char ncform_sccsid[] = "@(#)ncform 1.6 88/02/08 SMI"; /* from S5R2 1.2 */
+-#endif
+-
+-int yylineno =1;
+-# define YYU(x) x
+-# define NLSTATE yyprevious=YYNEWLINE
+-char yytext[YYLMAX];
+-struct yysvf *yylstate [YYLMAX], **yylsp, **yyolsp;
+-char yysbuf[YYLMAX];
+-char *yysptr = yysbuf;
+-int *yyfnd;
+-extern struct yysvf *yyestate;
+-int yyprevious = YYNEWLINE;
+-yylook(){
+-	register struct yysvf *yystate, **lsp;
+-	register struct yywork *yyt;
+-	struct yysvf *yyz;
+-	int yych, yyfirst;
+-	struct yywork *yyr;
+-# ifdef LEXDEBUG
+-	int debug;
+-# endif
+-	char *yylastch;
+-	/* start off machines */
+-# ifdef LEXDEBUG
+-	debug = 0;
+-# endif
+-	yyfirst=1;
+-	if (!yymorfg)
+-		yylastch = yytext;
+-	else {
+-		yymorfg=0;
+-		yylastch = yytext+yyleng;
+-		}
+-	for(;;){
+-		lsp = yylstate;
+-		yyestate = yystate = yybgin;
+-		if (yyprevious==YYNEWLINE) yystate++;
+-		for (;;){
+-# ifdef LEXDEBUG
+-			if(debug)fprintf(yyout,"state %d\n",yystate-yysvec-1);
+-# endif
+-			yyt = yystate->yystoff;
+-			if(yyt == yycrank && !yyfirst){  /* may not be any transitions */
+-				yyz = yystate->yyother;
+-				if(yyz == 0)break;
+-				if(yyz->yystoff == yycrank)break;
+-				}
+-			*yylastch++ = yych = input();
+-			yyfirst=0;
+-		tryagain:
+-# ifdef LEXDEBUG
+-			if(debug){
+-				fprintf(yyout,"char ");
+-				allprint(yych);
+-				putchar('\n');
+-				}
+-# endif
+-			yyr = yyt;
+-			if ( yyt > yycrank){
+-				yyt = yyr + yych;
+-				if (yyt <= yytop && yyt->verify+yysvec == yystate){
+-					if(yyt->advance+yysvec == YYLERR)	/* error transitions */
+-						{unput(*--yylastch);break;}
+-					*lsp++ = yystate = yyt->advance+yysvec;
+-					goto contin;
+-					}
+-				}
+-# ifdef YYOPTIM
+-			else if(yyt < yycrank) {		/* r < yycrank */
+-				yyt = yyr = yycrank+(yycrank-yyt);
+-# ifdef LEXDEBUG
+-				if(debug)fprintf(yyout,"compressed state\n");
+-# endif
+-				yyt = yyt + yych;
+-				if(yyt <= yytop && yyt->verify+yysvec == yystate){
+-					if(yyt->advance+yysvec == YYLERR)	/* error transitions */
+-						{unput(*--yylastch);break;}
+-					*lsp++ = yystate = yyt->advance+yysvec;
+-					goto contin;
+-					}
+-				yyt = yyr + YYU(yymatch[yych]);
+-# ifdef LEXDEBUG
+-				if(debug){
+-					fprintf(yyout,"try fall back character ");
+-					allprint(YYU(yymatch[yych]));
+-					putchar('\n');
+-					}
+-# endif
+-				if(yyt <= yytop && yyt->verify+yysvec == yystate){
+-					if(yyt->advance+yysvec == YYLERR)	/* error transition */
+-						{unput(*--yylastch);break;}
+-					*lsp++ = yystate = yyt->advance+yysvec;
+-					goto contin;
+-					}
+-				}
+-			if ((yystate = yystate->yyother) && (yyt= yystate->yystoff) != yycrank){
+-# ifdef LEXDEBUG
+-				if(debug)fprintf(yyout,"fall back to state %d\n",yystate-yysvec-1);
+-# endif
+-				goto tryagain;
+-				}
+-# endif
+-			else
+-				{unput(*--yylastch);break;}
+-		contin:
+-# ifdef LEXDEBUG
+-			if(debug){
+-				fprintf(yyout,"state %d char ",yystate-yysvec-1);
+-				allprint(yych);
+-				putchar('\n');
+-				}
+-# endif
+-			;
+-			}
+-# ifdef LEXDEBUG
+-		if(debug){
+-			fprintf(yyout,"stopped at %d with ",*(lsp-1)-yysvec-1);
+-			allprint(yych);
+-			putchar('\n');
+-			}
+-# endif
+-		while (lsp-- > yylstate){
+-			*yylastch-- = 0;
+-			if (*lsp != 0 && (yyfnd= (*lsp)->yystops) && *yyfnd > 0){
+-				yyolsp = lsp;
+-				if(yyextra[*yyfnd]){		/* must backup */
+-					while(yyback((*lsp)->yystops,-*yyfnd) != 1 && lsp > yylstate){
+-						lsp--;
+-						unput(*yylastch--);
+-						}
+-					}
+-				yyprevious = YYU(*yylastch);
+-				yylsp = lsp;
+-				yyleng = yylastch-yytext+1;
+-				yytext[yyleng] = 0;
+-# ifdef LEXDEBUG
+-				if(debug){
+-					fprintf(yyout,"\nmatch ");
+-					sprint(yytext);
+-					fprintf(yyout," action %d\n",*yyfnd);
+-					}
+-# endif
+-				return(*yyfnd++);
+-				}
+-			unput(*yylastch);
+-			}
+-		if (yytext[0] == 0  /* && feof(yyin) */)
+-			{
+-			yysptr=yysbuf;
+-			return(0);
+-			}
+-		yyprevious = yytext[0] = input();
+-		if (yyprevious>0)
+-			output(yyprevious);
+-		yylastch=yytext;
+-# ifdef LEXDEBUG
+-		if(debug)putchar('\n');
+-# endif
+-		}
+-	}
+-yyback(p, m)
+-	int *p;
+-{
+-if (p==0) return(0);
+-while (*p)
+-	{
+-	if (*p++ == m)
+-		return(1);
+-	}
+-return(0);
+-}
+-	/* the following are only used in the lex library */
+-yyinput(){
+-	return(input());
+-	}
+-yyoutput(c)
+-  int c; {
+-	output(c);
+-	}
+-yyunput(c)
+-   int c; {
+-	unput(c);
+-	}
+--- a/src/keyread/main.c
++++ /dev/null
+@@ -1,126 +0,0 @@
+-
+-/*************************************************************************
+- *									 *
+- *   Original : MEL         Stanford University        Sept, 1984	 *
+- *									 *
+- *     Copyright c 1984 The board of trustees of the Leland Stanford 	 *
+- *                      Junior University. All rights reserved.		 *
+- *     This subroutine may not be used outside of the SUPREM4 computer	 *
+- *     program without the prior written consent of Stanford University. *
+- *									 *
+- *************************************************************************/
+-/*   main.c                Version 4.1     */
+-/*   Last Modification : 8/18/89  16:35:41 */
+-
+-#include <stdio.h>
+-#include <stdlib.h>
+-
+-#define STATIC_ALLOCATION_TIME
+-#include "sysdep.h"
+-#include "check.h"
+-#include "key.h"
+-
+-struct par_str **current;
+-struct par_str **stack[10];
+-int depth ;
+-int cardnum;
+-char depthstr[20];
+-
+-
+-
+-/************************************************************************
+- *									*
+- *	push(par) - push par on the stack and return a pointer to pars  *
+- * sub parameters.							*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-struct par_str **push(par)
+-struct par_str **par;
+-{
+-    int i;
+-
+-    stack[ depth++ ] = par;
+-
+-    /*we really want to set this up at the previous command*/
+-    par--;
+-    par[0]->param = (struct par_str **)malloc((NUMPAR + 1)*sizeof(struct par_str *) );
+-
+-    /*malloc off the space for the sub params*/
+-    for (i = 0; i < NUMPAR; i++)
+-	par[0]->param[i] = (struct par_str *)calloc(1, sizeof(struct par_str));
+-    par[0]->param[NUMPAR] = NULL;
+-
+-    return( (par[0]->param) );
+-}
+-
+-
+-/************************************************************************
+- *									*
+- *	pop() - this routine pops off a stack level			*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-struct par_str **pop()
+-{
+-    depth--;
+-    return( stack[ depth ] );
+-}
+-
+-
+-main(argc, argv)
+-int argc;
+-char **argv;
+-{
+-    int i;
+-    int fd;
+-
+-    /*malloc off the space for the sub params*/
+-    for (i = 0; i < NUMPAR; i++)
+-	cards[i] = (struct par_str *)calloc(1, sizeof( struct par_str ) );
+-    cards[NUMPAR] = NULL;
+-    current = cards;
+-    stack[ depth++ ] = NULL;
+-    yyparse();
+-
+-    /*make the parameter value of all params = the depth string used in bools*/
+-    depth = 0;
+-    depthstr[0] = '\001';
+-    depthstr[1] = '\000';
+-    make_depth( cards );
+-
+-    /*now expand the parameter references in the boolean expressions*/
+-    depth = 0;
+-    cardnum = 0;
+-    expand( cards );
+-
+-    /*open a file, test it, and then write the unformatted key file*/
+-    if (argc >= 2) {
+-	/*open the file and try to write it*/
+-	fd = open(argv[1], O_WRONLY | O_TRUNC | O_CREAT, 0666);
+-	if (fd == -1) {
+-	    fprintf(stderr, "unable to open unformatted keyfile %s\n", argv[1]);
+-	    exit(-1);
+-	}
+-	depth = 0;
+-	if (write_list( cards, fd ) == -1)
+-	    fprintf(stderr, "unsuccessful write of unformatted key file\n");
+-    }
+-    else {
+-	/*try to open a default*/
+-	fd = open("suprem.uk", O_WRONLY | O_TRUNC | O_CREAT, 0666);
+-	if (fd == -1) {
+-	    fprintf(stderr, "unable to open unformatted keyfile %s\n", argv[1]);
+-	    exit(-1);
+-	}
+-	depth = 0;
+-	if (write_list( cards, fd ) == -1)
+-	    fprintf(stderr, "unsuccessful write of unformatted key file\n");
+-    }
+-
+-    return(0);
+-
+-}
+-
+--- a/src/keyread/parser.c
++++ /dev/null
+@@ -1,2072 +0,0 @@
+-
+-/* A Bison parser, made by GNU Bison 2.4.  */
+-
+-/* Skeleton implementation for Bison's Yacc-like parsers in C
+-   
+-      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+-   Free Software Foundation, Inc.
+-   
+-   This program is free software: you can redistribute it and/or modify
+-   it under the terms of the GNU General Public License as published by
+-   the Free Software Foundation, either version 3 of the License, or
+-   (at your option) any later version.
+-   
+-   This program is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-   GNU General Public License for more details.
+-   
+-   You should have received a copy of the GNU General Public License
+-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+-
+-/* As a special exception, you may create a larger work that contains
+-   part or all of the Bison parser skeleton and distribute that work
+-   under terms of your choice, so long as that work isn't itself a
+-   parser generator using the skeleton or a modified version thereof
+-   as a parser skeleton.  Alternatively, if you modify or redistribute
+-   the parser skeleton itself, you may (at your option) remove this
+-   special exception, which will cause the skeleton and the resulting
+-   Bison output files to be licensed under the GNU General Public
+-   License without this special exception.
+-   
+-   This special exception was added by the Free Software Foundation in
+-   version 2.2 of Bison.  */
+-
+-/* C LALR(1) parser skeleton written by Richard Stallman, by
+-   simplifying the original so-called "semantic" parser.  */
+-
+-/* All symbols defined below should begin with yy or YY, to avoid
+-   infringing on user name space.  This should be done even for local
+-   variables, as they might otherwise be expanded by user macros.
+-   There are some unavoidable exceptions within include files to
+-   define necessary library symbols; they are noted "INFRINGES ON
+-   USER NAME SPACE" below.  */
+-
+-/* Identify Bison output.  */
+-#define YYBISON 1
+-
+-/* Bison version.  */
+-#define YYBISON_VERSION "2.4"
+-
+-/* Skeleton name.  */
+-#define YYSKELETON_NAME "yacc.c"
+-
+-/* Pure parsers.  */
+-#define YYPURE 0
+-
+-/* Push parsers.  */
+-#define YYPUSH 0
+-
+-/* Pull parsers.  */
+-#define YYPULL 1
+-
+-/* Using locations.  */
+-#define YYLSP_NEEDED 0
+-
+-
+-
+-/* Copy the first part of user declarations.  */
+-
+-/* Line 189 of yacc.c  */
+-#line 1 "parser.y"
+-
+-
+-/*************************************************************************
+- *									 *
+- *   Original : MEL         Stanford University        Sept, 1984	 *
+- *									 *
+- *     Copyright c 1984 The board of trustees of the Leland Stanford 	 *
+- *                      Junior University. All rights reserved.		 *
+- *     This subroutine may not be used outside of the SUPREM4 computer	 *
+- *     program without the prior written consent of Stanford University. *
+- *									 *
+- *************************************************************************/
+-/*   parser.y                Version 4.2     */
+-/*   Last Modification : 3/20/91  09:25:42 */
+-
+-#include <stdio.h>
+-#include <string.h>
+-#include <ctype.h>
+-#include "check.h"
+-#include "key.h"
+-
+-#ifdef MEMDEB
+-#define malloc MALLOC
+-#endif
+-
+-#define FALSE 0
+-#define TRUE 1
+-
+-
+-
+-/* Line 189 of yacc.c  */
+-#line 104 "y.tab.c"
+-
+-/* Enabling traces.  */
+-#ifndef YYDEBUG
+-# define YYDEBUG 0
+-#endif
+-
+-/* Enabling verbose error messages.  */
+-#ifdef YYERROR_VERBOSE
+-# undef YYERROR_VERBOSE
+-# define YYERROR_VERBOSE 1
+-#else
+-# define YYERROR_VERBOSE 0
+-#endif
+-
+-/* Enabling the token table.  */
+-#ifndef YYTOKEN_TABLE
+-# define YYTOKEN_TABLE 0
+-#endif
+-
+-
+-/* Tokens.  */
+-#ifndef YYTOKENTYPE
+-# define YYTOKENTYPE
+-   /* Put the tokens into the symbol table, so that GDB and other debuggers
+-      know about them.  */
+-   enum yytokentype {
+-     CARD = 258,
+-     BG_GRP = 259,
+-     END_GRP = 260,
+-     PARTYPE = 261,
+-     EOL = 262,
+-     BOOLSTART = 263,
+-     GRT = 264,
+-     LES = 265,
+-     GRTE = 266,
+-     LESE = 267,
+-     OR = 268,
+-     AND = 269,
+-     EQU = 270,
+-     NOTEQU = 271,
+-     NOT = 272,
+-     PLUS = 273,
+-     TIMES = 274,
+-     RCONST = 275,
+-     STRING = 276,
+-     INTEGER = 277,
+-     NUMB = 278,
+-     NAME = 279,
+-     UNITS = 280,
+-     ERR_MSG = 281,
+-     COMMENT = 282,
+-     PARNAME = 283
+-   };
+-#endif
+-/* Tokens.  */
+-#define CARD 258
+-#define BG_GRP 259
+-#define END_GRP 260
+-#define PARTYPE 261
+-#define EOL 262
+-#define BOOLSTART 263
+-#define GRT 264
+-#define LES 265
+-#define GRTE 266
+-#define LESE 267
+-#define OR 268
+-#define AND 269
+-#define EQU 270
+-#define NOTEQU 271
+-#define NOT 272
+-#define PLUS 273
+-#define TIMES 274
+-#define RCONST 275
+-#define STRING 276
+-#define INTEGER 277
+-#define NUMB 278
+-#define NAME 279
+-#define UNITS 280
+-#define ERR_MSG 281
+-#define COMMENT 282
+-#define PARNAME 283
+-
+-
+-
+-
+-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+-typedef union YYSTYPE
+-{
+-
+-/* Line 214 of yacc.c  */
+-#line 33 "parser.y"
+-
+-    int ival;
+-    float dval;
+-    char *sval;
+-    struct bool_exp *bval;
+-    
+-
+-
+-/* Line 214 of yacc.c  */
+-#line 205 "y.tab.c"
+-} YYSTYPE;
+-# define YYSTYPE_IS_TRIVIAL 1
+-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
+-# define YYSTYPE_IS_DECLARED 1
+-#endif
+-
+-
+-/* Copy the second part of user declarations.  */
+-
+-
+-/* Line 264 of yacc.c  */
+-#line 217 "y.tab.c"
+-
+-#ifdef short
+-# undef short
+-#endif
+-
+-#ifdef YYTYPE_UINT8
+-typedef YYTYPE_UINT8 yytype_uint8;
+-#else
+-typedef unsigned char yytype_uint8;
+-#endif
+-
+-#ifdef YYTYPE_INT8
+-typedef YYTYPE_INT8 yytype_int8;
+-#elif (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-typedef signed char yytype_int8;
+-#else
+-typedef short int yytype_int8;
+-#endif
+-
+-#ifdef YYTYPE_UINT16
+-typedef YYTYPE_UINT16 yytype_uint16;
+-#else
+-typedef unsigned short int yytype_uint16;
+-#endif
+-
+-#ifdef YYTYPE_INT16
+-typedef YYTYPE_INT16 yytype_int16;
+-#else
+-typedef short int yytype_int16;
+-#endif
+-
+-#ifndef YYSIZE_T
+-# ifdef __SIZE_TYPE__
+-#  define YYSIZE_T __SIZE_TYPE__
+-# elif defined size_t
+-#  define YYSIZE_T size_t
+-# elif ! defined YYSIZE_T && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-#  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+-#  define YYSIZE_T size_t
+-# else
+-#  define YYSIZE_T unsigned int
+-# endif
+-#endif
+-
+-#define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
+-
+-#ifndef YY_
+-# if YYENABLE_NLS
+-#  if ENABLE_NLS
+-#   include <libintl.h> /* INFRINGES ON USER NAME SPACE */
+-#   define YY_(msgid) dgettext ("bison-runtime", msgid)
+-#  endif
+-# endif
+-# ifndef YY_
+-#  define YY_(msgid) msgid
+-# endif
+-#endif
+-
+-/* Suppress unused-variable warnings by "using" E.  */
+-#if ! defined lint || defined __GNUC__
+-# define YYUSE(e) ((void) (e))
+-#else
+-# define YYUSE(e) /* empty */
+-#endif
+-
+-/* Identity function, used to suppress warnings about constant conditions.  */
+-#ifndef lint
+-# define YYID(n) (n)
+-#else
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static int
+-YYID (int yyi)
+-#else
+-static int
+-YYID (yyi)
+-    int yyi;
+-#endif
+-{
+-  return yyi;
+-}
+-#endif
+-
+-#if ! defined yyoverflow || YYERROR_VERBOSE
+-
+-/* The parser invokes alloca or malloc; define the necessary symbols.  */
+-
+-# ifdef YYSTACK_USE_ALLOCA
+-#  if YYSTACK_USE_ALLOCA
+-#   ifdef __GNUC__
+-#    define YYSTACK_ALLOC __builtin_alloca
+-#   elif defined __BUILTIN_VA_ARG_INCR
+-#    include <alloca.h> /* INFRINGES ON USER NAME SPACE */
+-#   elif defined _AIX
+-#    define YYSTACK_ALLOC __alloca
+-#   elif defined _MSC_VER
+-#    include <malloc.h> /* INFRINGES ON USER NAME SPACE */
+-#    define alloca _alloca
+-#   else
+-#    define YYSTACK_ALLOC alloca
+-#    if ! defined _ALLOCA_H && ! defined _STDLIB_H && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-#     include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+-#     ifndef _STDLIB_H
+-#      define _STDLIB_H 1
+-#     endif
+-#    endif
+-#   endif
+-#  endif
+-# endif
+-
+-# ifdef YYSTACK_ALLOC
+-   /* Pacify GCC's `empty if-body' warning.  */
+-#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (YYID (0))
+-#  ifndef YYSTACK_ALLOC_MAXIMUM
+-    /* The OS might guarantee only one guard page at the bottom of the stack,
+-       and a page size can be as small as 4096 bytes.  So we cannot safely
+-       invoke alloca (N) if N exceeds 4096.  Use a slightly smaller number
+-       to allow for a few compiler-allocated temporary stack slots.  */
+-#   define YYSTACK_ALLOC_MAXIMUM 4032 /* reasonable circa 2006 */
+-#  endif
+-# else
+-#  define YYSTACK_ALLOC YYMALLOC
+-#  define YYSTACK_FREE YYFREE
+-#  ifndef YYSTACK_ALLOC_MAXIMUM
+-#   define YYSTACK_ALLOC_MAXIMUM YYSIZE_MAXIMUM
+-#  endif
+-#  if (defined __cplusplus && ! defined _STDLIB_H \
+-       && ! ((defined YYMALLOC || defined malloc) \
+-	     && (defined YYFREE || defined free)))
+-#   include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+-#   ifndef _STDLIB_H
+-#    define _STDLIB_H 1
+-#   endif
+-#  endif
+-#  ifndef YYMALLOC
+-#   define YYMALLOC malloc
+-#   if ! defined malloc && ! defined _STDLIB_H && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-void *malloc (YYSIZE_T); /* INFRINGES ON USER NAME SPACE */
+-#   endif
+-#  endif
+-#  ifndef YYFREE
+-#   define YYFREE free
+-#   if ! defined free && ! defined _STDLIB_H && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-void free (void *); /* INFRINGES ON USER NAME SPACE */
+-#   endif
+-#  endif
+-# endif
+-#endif /* ! defined yyoverflow || YYERROR_VERBOSE */
+-
+-
+-#if (! defined yyoverflow \
+-     && (! defined __cplusplus \
+-	 || (defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
+-
+-/* A type that is properly aligned for any stack member.  */
+-union yyalloc
+-{
+-  yytype_int16 yyss_alloc;
+-  YYSTYPE yyvs_alloc;
+-};
+-
+-/* The size of the maximum gap between one aligned stack and the next.  */
+-# define YYSTACK_GAP_MAXIMUM (sizeof (union yyalloc) - 1)
+-
+-/* The size of an array large to enough to hold all stacks, each with
+-   N elements.  */
+-# define YYSTACK_BYTES(N) \
+-     ((N) * (sizeof (yytype_int16) + sizeof (YYSTYPE)) \
+-      + YYSTACK_GAP_MAXIMUM)
+-
+-/* Copy COUNT objects from FROM to TO.  The source and destination do
+-   not overlap.  */
+-# ifndef YYCOPY
+-#  if defined __GNUC__ && 1 < __GNUC__
+-#   define YYCOPY(To, From, Count) \
+-      __builtin_memcpy (To, From, (Count) * sizeof (*(From)))
+-#  else
+-#   define YYCOPY(To, From, Count)		\
+-      do					\
+-	{					\
+-	  YYSIZE_T yyi;				\
+-	  for (yyi = 0; yyi < (Count); yyi++)	\
+-	    (To)[yyi] = (From)[yyi];		\
+-	}					\
+-      while (YYID (0))
+-#  endif
+-# endif
+-
+-/* Relocate STACK from its old location to the new one.  The
+-   local variables YYSIZE and YYSTACKSIZE give the old and new number of
+-   elements in the stack, and YYPTR gives the new location of the
+-   stack.  Advance YYPTR to a properly aligned location for the next
+-   stack.  */
+-# define YYSTACK_RELOCATE(Stack_alloc, Stack)				\
+-    do									\
+-      {									\
+-	YYSIZE_T yynewbytes;						\
+-	YYCOPY (&yyptr->Stack_alloc, Stack, yysize);			\
+-	Stack = &yyptr->Stack_alloc;					\
+-	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
+-	yyptr += yynewbytes / sizeof (*yyptr);				\
+-      }									\
+-    while (YYID (0))
+-
+-#endif
+-
+-/* YYFINAL -- State number of the termination state.  */
+-#define YYFINAL  12
+-/* YYLAST -- Last index in YYTABLE.  */
+-#define YYLAST   88
+-
+-/* YYNTOKENS -- Number of terminals.  */
+-#define YYNTOKENS  32
+-/* YYNNTS -- Number of nonterminals.  */
+-#define YYNNTS  10
+-/* YYNRULES -- Number of rules.  */
+-#define YYNRULES  38
+-/* YYNRULES -- Number of states.  */
+-#define YYNSTATES  58
+-
+-/* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
+-#define YYUNDEFTOK  2
+-#define YYMAXUTOK   283
+-
+-#define YYTRANSLATE(YYX)						\
+-  ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+-
+-/* YYTRANSLATE[YYLEX] -- Bison symbol number corresponding to YYLEX.  */
+-static const yytype_uint8 yytranslate[] =
+-{
+-       0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-      30,    31,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,    29,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+-       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
+-       5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
+-      15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
+-      25,    26,    27,    28
+-};
+-
+-#if YYDEBUG
+-/* YYPRHS[YYN] -- Index of the first RHS symbol of rule number YYN in
+-   YYRHS.  */
+-static const yytype_uint8 yyprhs[] =
+-{
+-       0,     0,     3,     5,     8,    13,    15,    17,    19,    22,
+-      26,    31,    36,    42,    44,    46,    49,    52,    55,    56,
+-      58,    59,    62,    63,    67,    71,    75,    79,    83,    87,
+-      91,    95,    99,   102,   106,   110,   112,   114,   116
+-};
+-
+-/* YYRHS -- A `-1'-separated list of the rules' RHS.  */
+-static const yytype_int8 yyrhs[] =
+-{
+-      33,     0,    -1,    34,    -1,    33,    34,    -1,    35,    38,
+-      39,     7,    -1,    27,    -1,     4,    -1,     5,    -1,     1,
+-       7,    -1,    36,    24,    37,    -1,    36,    24,    37,    25,
+-      -1,    36,    24,    37,    23,    -1,    36,    24,    37,    25,
+-      23,    -1,     3,    -1,     6,    -1,    29,    20,    -1,    29,
+-      21,    -1,    29,    22,    -1,    -1,    26,    -1,    -1,     8,
+-      40,    -1,    -1,    30,    40,    31,    -1,    40,     9,    40,
+-      -1,    40,    10,    40,    -1,    40,    11,    40,    -1,    40,
+-      12,    40,    -1,    40,    13,    40,    -1,    40,    14,    40,
+-      -1,    40,    15,    40,    -1,    40,    16,    40,    -1,    17,
+-      40,    -1,    40,    18,    40,    -1,    40,    19,    40,    -1,
+-      41,    -1,    20,    -1,    28,    -1,    22,    -1
+-};
+-
+-/* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
+-static const yytype_uint16 yyrline[] =
+-{
+-       0,    64,    64,    65,    69,    77,    81,    86,    94,   104,
+-     112,   120,   128,   140,   144,   152,   156,   160,   165,   172,
+-     177,   183,   188,   195,   199,   205,   211,   217,   223,   229,
+-     235,   241,   247,   253,   259,   265,   273,   279,   285
+-};
+-#endif
+-
+-#if YYDEBUG || YYERROR_VERBOSE || YYTOKEN_TABLE
+-/* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
+-   First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
+-static const char *const yytname[] =
+-{
+-  "$end", "error", "$undefined", "CARD", "BG_GRP", "END_GRP", "PARTYPE",
+-  "EOL", "BOOLSTART", "GRT", "LES", "GRTE", "LESE", "OR", "AND", "EQU",
+-  "NOTEQU", "NOT", "PLUS", "TIMES", "RCONST", "STRING", "INTEGER", "NUMB",
+-  "NAME", "UNITS", "ERR_MSG", "COMMENT", "PARNAME", "'='", "'('", "')'",
+-  "$accept", "keyfile", "parameter", "identifier", "id", "deflt",
+-  "err_msg", "boolean", "bexp", "term", 0
+-};
+-#endif
+-
+-# ifdef YYPRINT
+-/* YYTOKNUM[YYLEX-NUM] -- Internal token number corresponding to
+-   token YYLEX-NUM.  */
+-static const yytype_uint16 yytoknum[] =
+-{
+-       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+-     265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
+-     275,   276,   277,   278,   279,   280,   281,   282,   283,    61,
+-      40,    41
+-};
+-# endif
+-
+-/* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+-static const yytype_uint8 yyr1[] =
+-{
+-       0,    32,    33,    33,    34,    34,    34,    34,    34,    35,
+-      35,    35,    35,    36,    36,    37,    37,    37,    37,    38,
+-      38,    39,    39,    40,    40,    40,    40,    40,    40,    40,
+-      40,    40,    40,    40,    40,    40,    41,    41,    41
+-};
+-
+-/* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
+-static const yytype_uint8 yyr2[] =
+-{
+-       0,     2,     1,     2,     4,     1,     1,     1,     2,     3,
+-       4,     4,     5,     1,     1,     2,     2,     2,     0,     1,
+-       0,     2,     0,     3,     3,     3,     3,     3,     3,     3,
+-       3,     3,     2,     3,     3,     1,     1,     1,     1
+-};
+-
+-/* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
+-   STATE-NUM when YYTABLE doesn't specify something else to do.  Zero
+-   means the default is an error.  */
+-static const yytype_uint8 yydefact[] =
+-{
+-       0,     0,    13,     6,     7,    14,     5,     0,     2,    20,
+-       0,     8,     1,     3,    19,    22,    18,     0,     0,     0,
+-       9,     0,    36,    38,    37,     0,    21,    35,     4,    15,
+-      16,    17,    11,    10,    32,     0,     0,     0,     0,     0,
+-       0,     0,     0,     0,     0,     0,    12,    23,    24,    25,
+-      26,    27,    28,    29,    30,    31,    33,    34
+-};
+-
+-/* YYDEFGOTO[NTERM-NUM].  */
+-static const yytype_int8 yydefgoto[] =
+-{
+-      -1,     7,     8,     9,    10,    20,    15,    18,    26,    27
+-};
+-
+-/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+-   STATE-NUM.  */
+-#define YYPACT_NINF -19
+-static const yytype_int8 yypact[] =
+-{
+-       6,    -5,   -19,   -19,   -19,   -19,   -19,     0,   -19,   -18,
+-     -10,   -19,   -19,   -19,   -19,    12,    -7,    -4,    14,    66,
+-      -8,    -4,   -19,   -19,   -19,    -4,    46,   -19,   -19,   -19,
+-     -19,   -19,   -19,     2,   -19,    35,    -4,    -4,    -4,    -4,
+-      -4,    -4,    -4,    -4,    -4,    -4,   -19,   -19,   -19,   -19,
+-     -19,   -19,    58,    69,    19,    19,    58,    69
+-};
+-
+-/* YYPGOTO[NTERM-NUM].  */
+-static const yytype_int8 yypgoto[] =
+-{
+-     -19,   -19,    25,   -19,   -19,   -19,   -19,   -19,    -2,   -19
+-};
+-
+-/* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
+-   positive, shift that token.  If negative, reduce the rule which
+-   number is the opposite.  If zero, do what YYDEFACT says.
+-   If YYTABLE_NINF, syntax error.  */
+-#define YYTABLE_NINF -1
+-static const yytype_uint8 yytable[] =
+-{
+-      12,     1,    11,     2,     3,     4,     5,     1,    14,     2,
+-       3,     4,     5,    21,    16,    32,    22,    33,    23,    34,
+-      17,    28,    19,    35,    24,    46,    25,     6,    36,    37,
+-      38,    39,    13,     6,    48,    49,    50,    51,    52,    53,
+-      54,    55,    56,    57,    36,    37,    38,    39,    40,    41,
+-      42,    43,     0,    44,    45,    36,    37,    38,    39,    40,
+-      41,    42,    43,     0,    44,    45,    47,    36,    37,    38,
+-      39,     0,    41,    42,    43,     0,     0,    45,    36,    37,
+-      38,    39,     0,     0,    42,    43,    29,    30,    31
+-};
+-
+-static const yytype_int8 yycheck[] =
+-{
+-       0,     1,     7,     3,     4,     5,     6,     1,    26,     3,
+-       4,     5,     6,    17,    24,    23,    20,    25,    22,    21,
+-       8,     7,    29,    25,    28,    23,    30,    27,     9,    10,
+-      11,    12,     7,    27,    36,    37,    38,    39,    40,    41,
+-      42,    43,    44,    45,     9,    10,    11,    12,    13,    14,
+-      15,    16,    -1,    18,    19,     9,    10,    11,    12,    13,
+-      14,    15,    16,    -1,    18,    19,    31,     9,    10,    11,
+-      12,    -1,    14,    15,    16,    -1,    -1,    19,     9,    10,
+-      11,    12,    -1,    -1,    15,    16,    20,    21,    22
+-};
+-
+-/* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+-   symbol of state STATE-NUM.  */
+-static const yytype_uint8 yystos[] =
+-{
+-       0,     1,     3,     4,     5,     6,    27,    33,    34,    35,
+-      36,     7,     0,    34,    26,    38,    24,     8,    39,    29,
+-      37,    17,    20,    22,    28,    30,    40,    41,     7,    20,
+-      21,    22,    23,    25,    40,    40,     9,    10,    11,    12,
+-      13,    14,    15,    16,    18,    19,    23,    31,    40,    40,
+-      40,    40,    40,    40,    40,    40,    40,    40
+-};
+-
+-#define yyerrok		(yyerrstatus = 0)
+-#define yyclearin	(yychar = YYEMPTY)
+-#define YYEMPTY		(-2)
+-#define YYEOF		0
+-
+-#define YYACCEPT	goto yyacceptlab
+-#define YYABORT		goto yyabortlab
+-#define YYERROR		goto yyerrorlab
+-
+-
+-/* Like YYERROR except do call yyerror.  This remains here temporarily
+-   to ease the transition to the new meaning of YYERROR, for GCC.
+-   Once GCC version 2 has supplanted version 1, this can go.  */
+-
+-#define YYFAIL		goto yyerrlab
+-
+-#define YYRECOVERING()  (!!yyerrstatus)
+-
+-#define YYBACKUP(Token, Value)					\
+-do								\
+-  if (yychar == YYEMPTY && yylen == 1)				\
+-    {								\
+-      yychar = (Token);						\
+-      yylval = (Value);						\
+-      yytoken = YYTRANSLATE (yychar);				\
+-      YYPOPSTACK (1);						\
+-      goto yybackup;						\
+-    }								\
+-  else								\
+-    {								\
+-      yyerror (YY_("syntax error: cannot back up")); \
+-      YYERROR;							\
+-    }								\
+-while (YYID (0))
+-
+-
+-#define YYTERROR	1
+-#define YYERRCODE	256
+-
+-
+-/* YYLLOC_DEFAULT -- Set CURRENT to span from RHS[1] to RHS[N].
+-   If N is 0, then set CURRENT to the empty location which ends
+-   the previous symbol: RHS[0] (always defined).  */
+-
+-#define YYRHSLOC(Rhs, K) ((Rhs)[K])
+-#ifndef YYLLOC_DEFAULT
+-# define YYLLOC_DEFAULT(Current, Rhs, N)				\
+-    do									\
+-      if (YYID (N))                                                    \
+-	{								\
+-	  (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;	\
+-	  (Current).first_column = YYRHSLOC (Rhs, 1).first_column;	\
+-	  (Current).last_line    = YYRHSLOC (Rhs, N).last_line;		\
+-	  (Current).last_column  = YYRHSLOC (Rhs, N).last_column;	\
+-	}								\
+-      else								\
+-	{								\
+-	  (Current).first_line   = (Current).last_line   =		\
+-	    YYRHSLOC (Rhs, 0).last_line;				\
+-	  (Current).first_column = (Current).last_column =		\
+-	    YYRHSLOC (Rhs, 0).last_column;				\
+-	}								\
+-    while (YYID (0))
+-#endif
+-
+-
+-/* YY_LOCATION_PRINT -- Print the location on the stream.
+-   This macro was not mandated originally: define only if we know
+-   we won't break user code: when these are the locations we know.  */
+-
+-#ifndef YY_LOCATION_PRINT
+-# if YYLTYPE_IS_TRIVIAL
+-#  define YY_LOCATION_PRINT(File, Loc)			\
+-     fprintf (File, "%d.%d-%d.%d",			\
+-	      (Loc).first_line, (Loc).first_column,	\
+-	      (Loc).last_line,  (Loc).last_column)
+-# else
+-#  define YY_LOCATION_PRINT(File, Loc) ((void) 0)
+-# endif
+-#endif
+-
+-
+-/* YYLEX -- calling `yylex' with the right arguments.  */
+-
+-#ifdef YYLEX_PARAM
+-# define YYLEX yylex (YYLEX_PARAM)
+-#else
+-# define YYLEX yylex ()
+-#endif
+-
+-/* Enable debugging if requested.  */
+-#if YYDEBUG
+-
+-# ifndef YYFPRINTF
+-#  include <stdio.h> /* INFRINGES ON USER NAME SPACE */
+-#  define YYFPRINTF fprintf
+-# endif
+-
+-# define YYDPRINTF(Args)			\
+-do {						\
+-  if (yydebug)					\
+-    YYFPRINTF Args;				\
+-} while (YYID (0))
+-
+-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)			  \
+-do {									  \
+-  if (yydebug)								  \
+-    {									  \
+-      YYFPRINTF (stderr, "%s ", Title);					  \
+-      yy_symbol_print (stderr,						  \
+-		  Type, Value); \
+-      YYFPRINTF (stderr, "\n");						  \
+-    }									  \
+-} while (YYID (0))
+-
+-
+-/*--------------------------------.
+-| Print this symbol on YYOUTPUT.  |
+-`--------------------------------*/
+-
+-/*ARGSUSED*/
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static void
+-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+-#else
+-static void
+-yy_symbol_value_print (yyoutput, yytype, yyvaluep)
+-    FILE *yyoutput;
+-    int yytype;
+-    YYSTYPE const * const yyvaluep;
+-#endif
+-{
+-  if (!yyvaluep)
+-    return;
+-# ifdef YYPRINT
+-  if (yytype < YYNTOKENS)
+-    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+-# else
+-  YYUSE (yyoutput);
+-# endif
+-  switch (yytype)
+-    {
+-      default:
+-	break;
+-    }
+-}
+-
+-
+-/*--------------------------------.
+-| Print this symbol on YYOUTPUT.  |
+-`--------------------------------*/
+-
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static void
+-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep)
+-#else
+-static void
+-yy_symbol_print (yyoutput, yytype, yyvaluep)
+-    FILE *yyoutput;
+-    int yytype;
+-    YYSTYPE const * const yyvaluep;
+-#endif
+-{
+-  if (yytype < YYNTOKENS)
+-    YYFPRINTF (yyoutput, "token %s (", yytname[yytype]);
+-  else
+-    YYFPRINTF (yyoutput, "nterm %s (", yytname[yytype]);
+-
+-  yy_symbol_value_print (yyoutput, yytype, yyvaluep);
+-  YYFPRINTF (yyoutput, ")");
+-}
+-
+-/*------------------------------------------------------------------.
+-| yy_stack_print -- Print the state stack from its BOTTOM up to its |
+-| TOP (included).                                                   |
+-`------------------------------------------------------------------*/
+-
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static void
+-yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
+-#else
+-static void
+-yy_stack_print (yybottom, yytop)
+-    yytype_int16 *yybottom;
+-    yytype_int16 *yytop;
+-#endif
+-{
+-  YYFPRINTF (stderr, "Stack now");
+-  for (; yybottom <= yytop; yybottom++)
+-    {
+-      int yybot = *yybottom;
+-      YYFPRINTF (stderr, " %d", yybot);
+-    }
+-  YYFPRINTF (stderr, "\n");
+-}
+-
+-# define YY_STACK_PRINT(Bottom, Top)				\
+-do {								\
+-  if (yydebug)							\
+-    yy_stack_print ((Bottom), (Top));				\
+-} while (YYID (0))
+-
+-
+-/*------------------------------------------------.
+-| Report that the YYRULE is going to be reduced.  |
+-`------------------------------------------------*/
+-
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static void
+-yy_reduce_print (YYSTYPE *yyvsp, int yyrule)
+-#else
+-static void
+-yy_reduce_print (yyvsp, yyrule)
+-    YYSTYPE *yyvsp;
+-    int yyrule;
+-#endif
+-{
+-  int yynrhs = yyr2[yyrule];
+-  int yyi;
+-  unsigned long int yylno = yyrline[yyrule];
+-  YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
+-	     yyrule - 1, yylno);
+-  /* The symbols being reduced.  */
+-  for (yyi = 0; yyi < yynrhs; yyi++)
+-    {
+-      YYFPRINTF (stderr, "   $%d = ", yyi + 1);
+-      yy_symbol_print (stderr, yyrhs[yyprhs[yyrule] + yyi],
+-		       &(yyvsp[(yyi + 1) - (yynrhs)])
+-		       		       );
+-      YYFPRINTF (stderr, "\n");
+-    }
+-}
+-
+-# define YY_REDUCE_PRINT(Rule)		\
+-do {					\
+-  if (yydebug)				\
+-    yy_reduce_print (yyvsp, Rule); \
+-} while (YYID (0))
+-
+-/* Nonzero means print parse trace.  It is left uninitialized so that
+-   multiple parsers can coexist.  */
+-int yydebug;
+-#else /* !YYDEBUG */
+-# define YYDPRINTF(Args)
+-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)
+-# define YY_STACK_PRINT(Bottom, Top)
+-# define YY_REDUCE_PRINT(Rule)
+-#endif /* !YYDEBUG */
+-
+-
+-/* YYINITDEPTH -- initial size of the parser's stacks.  */
+-#ifndef	YYINITDEPTH
+-# define YYINITDEPTH 200
+-#endif
+-
+-/* YYMAXDEPTH -- maximum size the stacks can grow to (effective only
+-   if the built-in stack extension method is used).
+-
+-   Do not make this value too large; the results are undefined if
+-   YYSTACK_ALLOC_MAXIMUM < YYSTACK_BYTES (YYMAXDEPTH)
+-   evaluated with infinite-precision integer arithmetic.  */
+-
+-#ifndef YYMAXDEPTH
+-# define YYMAXDEPTH 10000
+-#endif
+-
+--
+-
+-#if YYERROR_VERBOSE
+-
+-# ifndef yystrlen
+-#  if defined __GLIBC__ && defined _STRING_H
+-#   define yystrlen strlen
+-#  else
+-/* Return the length of YYSTR.  */
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static YYSIZE_T
+-yystrlen (const char *yystr)
+-#else
+-static YYSIZE_T
+-yystrlen (yystr)
+-    const char *yystr;
+-#endif
+-{
+-  YYSIZE_T yylen;
+-  for (yylen = 0; yystr[yylen]; yylen++)
+-    continue;
+-  return yylen;
+-}
+-#  endif
+-# endif
+-
+-# ifndef yystpcpy
+-#  if defined __GLIBC__ && defined _STRING_H && defined _GNU_SOURCE
+-#   define yystpcpy stpcpy
+-#  else
+-/* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
+-   YYDEST.  */
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static char *
+-yystpcpy (char *yydest, const char *yysrc)
+-#else
+-static char *
+-yystpcpy (yydest, yysrc)
+-    char *yydest;
+-    const char *yysrc;
+-#endif
+-{
+-  char *yyd = yydest;
+-  const char *yys = yysrc;
+-
+-  while ((*yyd++ = *yys++) != '\0')
+-    continue;
+-
+-  return yyd - 1;
+-}
+-#  endif
+-# endif
+-
+-# ifndef yytnamerr
+-/* Copy to YYRES the contents of YYSTR after stripping away unnecessary
+-   quotes and backslashes, so that it's suitable for yyerror.  The
+-   heuristic is that double-quoting is unnecessary unless the string
+-   contains an apostrophe, a comma, or backslash (other than
+-   backslash-backslash).  YYSTR is taken from yytname.  If YYRES is
+-   null, do not copy; instead, return the length of what the result
+-   would have been.  */
+-static YYSIZE_T
+-yytnamerr (char *yyres, const char *yystr)
+-{
+-  if (*yystr == '"')
+-    {
+-      YYSIZE_T yyn = 0;
+-      char const *yyp = yystr;
+-
+-      for (;;)
+-	switch (*++yyp)
+-	  {
+-	  case '\'':
+-	  case ',':
+-	    goto do_not_strip_quotes;
+-
+-	  case '\\':
+-	    if (*++yyp != '\\')
+-	      goto do_not_strip_quotes;
+-	    /* Fall through.  */
+-	  default:
+-	    if (yyres)
+-	      yyres[yyn] = *yyp;
+-	    yyn++;
+-	    break;
+-
+-	  case '"':
+-	    if (yyres)
+-	      yyres[yyn] = '\0';
+-	    return yyn;
+-	  }
+-    do_not_strip_quotes: ;
+-    }
+-
+-  if (! yyres)
+-    return yystrlen (yystr);
+-
+-  return yystpcpy (yyres, yystr) - yyres;
+-}
+-# endif
+-
+-/* Copy into YYRESULT an error message about the unexpected token
+-   YYCHAR while in state YYSTATE.  Return the number of bytes copied,
+-   including the terminating null byte.  If YYRESULT is null, do not
+-   copy anything; just return the number of bytes that would be
+-   copied.  As a special case, return 0 if an ordinary "syntax error"
+-   message will do.  Return YYSIZE_MAXIMUM if overflow occurs during
+-   size calculation.  */
+-static YYSIZE_T
+-yysyntax_error (char *yyresult, int yystate, int yychar)
+-{
+-  int yyn = yypact[yystate];
+-
+-  if (! (YYPACT_NINF < yyn && yyn <= YYLAST))
+-    return 0;
+-  else
+-    {
+-      int yytype = YYTRANSLATE (yychar);
+-      YYSIZE_T yysize0 = yytnamerr (0, yytname[yytype]);
+-      YYSIZE_T yysize = yysize0;
+-      YYSIZE_T yysize1;
+-      int yysize_overflow = 0;
+-      enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
+-      char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
+-      int yyx;
+-
+-# if 0
+-      /* This is so xgettext sees the translatable formats that are
+-	 constructed on the fly.  */
+-      YY_("syntax error, unexpected %s");
+-      YY_("syntax error, unexpected %s, expecting %s");
+-      YY_("syntax error, unexpected %s, expecting %s or %s");
+-      YY_("syntax error, unexpected %s, expecting %s or %s or %s");
+-      YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s");
+-# endif
+-      char *yyfmt;
+-      char const *yyf;
+-      static char const yyunexpected[] = "syntax error, unexpected %s";
+-      static char const yyexpecting[] = ", expecting %s";
+-      static char const yyor[] = " or %s";
+-      char yyformat[sizeof yyunexpected
+-		    + sizeof yyexpecting - 1
+-		    + ((YYERROR_VERBOSE_ARGS_MAXIMUM - 2)
+-		       * (sizeof yyor - 1))];
+-      char const *yyprefix = yyexpecting;
+-
+-      /* Start YYX at -YYN if negative to avoid negative indexes in
+-	 YYCHECK.  */
+-      int yyxbegin = yyn < 0 ? -yyn : 0;
+-
+-      /* Stay within bounds of both yycheck and yytname.  */
+-      int yychecklim = YYLAST - yyn + 1;
+-      int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
+-      int yycount = 1;
+-
+-      yyarg[0] = yytname[yytype];
+-      yyfmt = yystpcpy (yyformat, yyunexpected);
+-
+-      for (yyx = yyxbegin; yyx < yyxend; ++yyx)
+-	if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR)
+-	  {
+-	    if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
+-	      {
+-		yycount = 1;
+-		yysize = yysize0;
+-		yyformat[sizeof yyunexpected - 1] = '\0';
+-		break;
+-	      }
+-	    yyarg[yycount++] = yytname[yyx];
+-	    yysize1 = yysize + yytnamerr (0, yytname[yyx]);
+-	    yysize_overflow |= (yysize1 < yysize);
+-	    yysize = yysize1;
+-	    yyfmt = yystpcpy (yyfmt, yyprefix);
+-	    yyprefix = yyor;
+-	  }
+-
+-      yyf = YY_(yyformat);
+-      yysize1 = yysize + yystrlen (yyf);
+-      yysize_overflow |= (yysize1 < yysize);
+-      yysize = yysize1;
+-
+-      if (yysize_overflow)
+-	return YYSIZE_MAXIMUM;
+-
+-      if (yyresult)
+-	{
+-	  /* Avoid sprintf, as that infringes on the user's name space.
+-	     Don't have undefined behavior even if the translation
+-	     produced a string with the wrong number of "%s"s.  */
+-	  char *yyp = yyresult;
+-	  int yyi = 0;
+-	  while ((*yyp = *yyf) != '\0')
+-	    {
+-	      if (*yyp == '%' && yyf[1] == 's' && yyi < yycount)
+-		{
+-		  yyp += yytnamerr (yyp, yyarg[yyi++]);
+-		  yyf += 2;
+-		}
+-	      else
+-		{
+-		  yyp++;
+-		  yyf++;
+-		}
+-	    }
+-	}
+-      return yysize;
+-    }
+-}
+-#endif /* YYERROR_VERBOSE */
+--
+-
+-/*-----------------------------------------------.
+-| Release the memory associated to this symbol.  |
+-`-----------------------------------------------*/
+-
+-/*ARGSUSED*/
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static void
+-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep)
+-#else
+-static void
+-yydestruct (yymsg, yytype, yyvaluep)
+-    const char *yymsg;
+-    int yytype;
+-    YYSTYPE *yyvaluep;
+-#endif
+-{
+-  YYUSE (yyvaluep);
+-
+-  if (!yymsg)
+-    yymsg = "Deleting";
+-  YY_SYMBOL_PRINT (yymsg, yytype, yyvaluep, yylocationp);
+-
+-  switch (yytype)
+-    {
+-
+-      default:
+-	break;
+-    }
+-}
+-
+-/* Prevent warnings from -Wmissing-prototypes.  */
+-#ifdef YYPARSE_PARAM
+-#if defined __STDC__ || defined __cplusplus
+-int yyparse (void *YYPARSE_PARAM);
+-#else
+-int yyparse ();
+-#endif
+-#else /* ! YYPARSE_PARAM */
+-#if defined __STDC__ || defined __cplusplus
+-int yyparse (void);
+-#else
+-int yyparse ();
+-#endif
+-#endif /* ! YYPARSE_PARAM */
+-
+-
+-/* The lookahead symbol.  */
+-int yychar;
+-
+-/* The semantic value of the lookahead symbol.  */
+-YYSTYPE yylval;
+-
+-/* Number of syntax errors so far.  */
+-int yynerrs;
+-
+-
+-
+-/*-------------------------.
+-| yyparse or yypush_parse.  |
+-`-------------------------*/
+-
+-#ifdef YYPARSE_PARAM
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-int
+-yyparse (void *YYPARSE_PARAM)
+-#else
+-int
+-yyparse (YYPARSE_PARAM)
+-    void *YYPARSE_PARAM;
+-#endif
+-#else /* ! YYPARSE_PARAM */
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-int
+-yyparse (void)
+-#else
+-int
+-yyparse ()
+-
+-#endif
+-#endif
+-{
+-
+-
+-    int yystate;
+-    /* Number of tokens to shift before error messages enabled.  */
+-    int yyerrstatus;
+-
+-    /* The stacks and their tools:
+-       `yyss': related to states.
+-       `yyvs': related to semantic values.
+-
+-       Refer to the stacks thru separate pointers, to allow yyoverflow
+-       to reallocate them elsewhere.  */
+-
+-    /* The state stack.  */
+-    yytype_int16 yyssa[YYINITDEPTH];
+-    yytype_int16 *yyss;
+-    yytype_int16 *yyssp;
+-
+-    /* The semantic value stack.  */
+-    YYSTYPE yyvsa[YYINITDEPTH];
+-    YYSTYPE *yyvs;
+-    YYSTYPE *yyvsp;
+-
+-    YYSIZE_T yystacksize;
+-
+-  int yyn;
+-  int yyresult;
+-  /* Lookahead token as an internal (translated) token number.  */
+-  int yytoken;
+-  /* The variables used to return semantic value and location from the
+-     action routines.  */
+-  YYSTYPE yyval;
+-
+-#if YYERROR_VERBOSE
+-  /* Buffer for error messages, and its allocated size.  */
+-  char yymsgbuf[128];
+-  char *yymsg = yymsgbuf;
+-  YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
+-#endif
+-
+-#define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
+-
+-  /* The number of symbols on the RHS of the reduced rule.
+-     Keep to zero when no symbol should be popped.  */
+-  int yylen = 0;
+-
+-  yytoken = 0;
+-  yyss = yyssa;
+-  yyvs = yyvsa;
+-  yystacksize = YYINITDEPTH;
+-
+-  YYDPRINTF ((stderr, "Starting parse\n"));
+-
+-  yystate = 0;
+-  yyerrstatus = 0;
+-  yynerrs = 0;
+-  yychar = YYEMPTY; /* Cause a token to be read.  */
+-
+-  /* Initialize stack pointers.
+-     Waste one element of value and location stack
+-     so that they stay on the same level as the state stack.
+-     The wasted elements are never initialized.  */
+-  yyssp = yyss;
+-  yyvsp = yyvs;
+-
+-  goto yysetstate;
+-
+-/*------------------------------------------------------------.
+-| yynewstate -- Push a new state, which is found in yystate.  |
+-`------------------------------------------------------------*/
+- yynewstate:
+-  /* In all cases, when you get here, the value and location stacks
+-     have just been pushed.  So pushing a state here evens the stacks.  */
+-  yyssp++;
+-
+- yysetstate:
+-  *yyssp = yystate;
+-
+-  if (yyss + yystacksize - 1 <= yyssp)
+-    {
+-      /* Get the current used size of the three stacks, in elements.  */
+-      YYSIZE_T yysize = yyssp - yyss + 1;
+-
+-#ifdef yyoverflow
+-      {
+-	/* Give user a chance to reallocate the stack.  Use copies of
+-	   these so that the &'s don't force the real ones into
+-	   memory.  */
+-	YYSTYPE *yyvs1 = yyvs;
+-	yytype_int16 *yyss1 = yyss;
+-
+-	/* Each stack pointer address is followed by the size of the
+-	   data in use in that stack, in bytes.  This used to be a
+-	   conditional around just the two extra args, but that might
+-	   be undefined if yyoverflow is a macro.  */
+-	yyoverflow (YY_("memory exhausted"),
+-		    &yyss1, yysize * sizeof (*yyssp),
+-		    &yyvs1, yysize * sizeof (*yyvsp),
+-		    &yystacksize);
+-
+-	yyss = yyss1;
+-	yyvs = yyvs1;
+-      }
+-#else /* no yyoverflow */
+-# ifndef YYSTACK_RELOCATE
+-      goto yyexhaustedlab;
+-# else
+-      /* Extend the stack our own way.  */
+-      if (YYMAXDEPTH <= yystacksize)
+-	goto yyexhaustedlab;
+-      yystacksize *= 2;
+-      if (YYMAXDEPTH < yystacksize)
+-	yystacksize = YYMAXDEPTH;
+-
+-      {
+-	yytype_int16 *yyss1 = yyss;
+-	union yyalloc *yyptr =
+-	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+-	if (! yyptr)
+-	  goto yyexhaustedlab;
+-	YYSTACK_RELOCATE (yyss_alloc, yyss);
+-	YYSTACK_RELOCATE (yyvs_alloc, yyvs);
+-#  undef YYSTACK_RELOCATE
+-	if (yyss1 != yyssa)
+-	  YYSTACK_FREE (yyss1);
+-      }
+-# endif
+-#endif /* no yyoverflow */
+-
+-      yyssp = yyss + yysize - 1;
+-      yyvsp = yyvs + yysize - 1;
+-
+-      YYDPRINTF ((stderr, "Stack size increased to %lu\n",
+-		  (unsigned long int) yystacksize));
+-
+-      if (yyss + yystacksize - 1 <= yyssp)
+-	YYABORT;
+-    }
+-
+-  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+-
+-  if (yystate == YYFINAL)
+-    YYACCEPT;
+-
+-  goto yybackup;
+-
+-/*-----------.
+-| yybackup.  |
+-`-----------*/
+-yybackup:
+-
+-  /* Do appropriate processing given the current state.  Read a
+-     lookahead token if we need one and don't already have one.  */
+-
+-  /* First try to decide what to do without reference to lookahead token.  */
+-  yyn = yypact[yystate];
+-  if (yyn == YYPACT_NINF)
+-    goto yydefault;
+-
+-  /* Not known => get a lookahead token if don't already have one.  */
+-
+-  /* YYCHAR is either YYEMPTY or YYEOF or a valid lookahead symbol.  */
+-  if (yychar == YYEMPTY)
+-    {
+-      YYDPRINTF ((stderr, "Reading a token: "));
+-      yychar = YYLEX;
+-    }
+-
+-  if (yychar <= YYEOF)
+-    {
+-      yychar = yytoken = YYEOF;
+-      YYDPRINTF ((stderr, "Now at end of input.\n"));
+-    }
+-  else
+-    {
+-      yytoken = YYTRANSLATE (yychar);
+-      YY_SYMBOL_PRINT ("Next token is", yytoken, &yylval, &yylloc);
+-    }
+-
+-  /* If the proper action on seeing token YYTOKEN is to reduce or to
+-     detect an error, take that action.  */
+-  yyn += yytoken;
+-  if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken)
+-    goto yydefault;
+-  yyn = yytable[yyn];
+-  if (yyn <= 0)
+-    {
+-      if (yyn == 0 || yyn == YYTABLE_NINF)
+-	goto yyerrlab;
+-      yyn = -yyn;
+-      goto yyreduce;
+-    }
+-
+-  /* Count tokens shifted since error; after three, turn off error
+-     status.  */
+-  if (yyerrstatus)
+-    yyerrstatus--;
+-
+-  /* Shift the lookahead token.  */
+-  YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
+-
+-  /* Discard the shifted token.  */
+-  yychar = YYEMPTY;
+-
+-  yystate = yyn;
+-  *++yyvsp = yylval;
+-
+-  goto yynewstate;
+-
+-
+-/*-----------------------------------------------------------.
+-| yydefault -- do the default action for the current state.  |
+-`-----------------------------------------------------------*/
+-yydefault:
+-  yyn = yydefact[yystate];
+-  if (yyn == 0)
+-    goto yyerrlab;
+-  goto yyreduce;
+-
+-
+-/*-----------------------------.
+-| yyreduce -- Do a reduction.  |
+-`-----------------------------*/
+-yyreduce:
+-  /* yyn is the number of a rule to reduce with.  */
+-  yylen = yyr2[yyn];
+-
+-  /* If YYLEN is nonzero, implement the default value of the action:
+-     `$$ = $1'.
+-
+-     Otherwise, the following line sets YYVAL to garbage.
+-     This behavior is undocumented and Bison
+-     users should not rely upon it.  Assigning to YYVAL
+-     unconditionally makes the parser a bit smaller, and it avoids a
+-     GCC warning that YYVAL may be used uninitialized.  */
+-  yyval = yyvsp[1-yylen];
+-
+-
+-  YY_REDUCE_PRINT (yyn);
+-  switch (yyn)
+-    {
+-        case 4:
+-
+-/* Line 1455 of yacc.c  */
+-#line 70 "parser.y"
+-    {
+-	    /*add the pointer to the top of the boolean tree*/
+-	    current[0]->bexp = (yyvsp[(3) - (4)].bval);
+-
+-	    /*everything has parsed okey-dokey, bump the pointer*/
+-	    current++;
+-	}
+-    break;
+-
+-  case 5:
+-
+-/* Line 1455 of yacc.c  */
+-#line 78 "parser.y"
+-    {
+-	    /*ignore the sucker*/
+-	}
+-    break;
+-
+-  case 6:
+-
+-/* Line 1455 of yacc.c  */
+-#line 82 "parser.y"
+-    {
+-	    /*push everything down on the stack*/
+-	    current = (struct par_str **)push(current);
+-	}
+-    break;
+-
+-  case 7:
+-
+-/* Line 1455 of yacc.c  */
+-#line 87 "parser.y"
+-    {
+-	    /*pop a layer off and finish off the pointer list*/
+-	    current = (struct par_str **)pop();
+-	    /*if we pop a NULL, it is time to quit*/
+-	    if (current == NULL)
+-		return(0);
+-	}
+-    break;
+-
+-  case 8:
+-
+-/* Line 1455 of yacc.c  */
+-#line 95 "parser.y"
+-    {
+-	    /*ignore the line in error*/
+-	    fprintf(stderr, "error in parsing the input key file\n");
+-	}
+-    break;
+-
+-  case 9:
+-
+-/* Line 1455 of yacc.c  */
+-#line 105 "parser.y"
+-    {
+-	    if (strlen((yyvsp[(2) - (3)].sval)) >= 12)
+-		*((yyvsp[(2) - (3)].sval) + 11) = '\0';
+-	    strcpy(current[0]->name, (yyvsp[(2) - (3)].sval));
+-	    current[0]->units = NULL;
+-	    current[0]->type = (yyvsp[(1) - (3)].ival);
+-	}
+-    break;
+-
+-  case 10:
+-
+-/* Line 1455 of yacc.c  */
+-#line 113 "parser.y"
+-    {
+-	    if (strlen((yyvsp[(2) - (4)].sval)) >= 12)
+-		*((yyvsp[(2) - (4)].sval) + 11) = '\0';
+-	    strcpy(current[0]->name, (yyvsp[(2) - (4)].sval));
+-	    current[0]->units = (yyvsp[(4) - (4)].sval);
+-	    current[0]->type = (yyvsp[(1) - (4)].ival);
+-	}
+-    break;
+-
+-  case 11:
+-
+-/* Line 1455 of yacc.c  */
+-#line 121 "parser.y"
+-    {
+-	    if (strlen((yyvsp[(2) - (4)].sval)) >= 12)
+-		*((yyvsp[(2) - (4)].sval) + 11) = '\0';
+-	    strcpy(current[0]->name, (yyvsp[(2) - (4)].sval));
+-	    current[0]->units = NULL;
+-	    current[0]->type = (yyvsp[(1) - (4)].ival) | ((yyvsp[(4) - (4)].ival) & INDEX);
+-	}
+-    break;
+-
+-  case 12:
+-
+-/* Line 1455 of yacc.c  */
+-#line 129 "parser.y"
+-    {
+-	    if (strlen((yyvsp[(2) - (5)].sval)) >= 12)
+-		*((yyvsp[(2) - (5)].sval) + 11) = '\0';
+-	    strcpy(current[0]->name, (yyvsp[(2) - (5)].sval));
+-	    current[0]->units = (yyvsp[(4) - (5)].sval);
+-	    current[0]->type = (yyvsp[(1) - (5)].ival) | ((yyvsp[(5) - (5)].ival) & INDEX);
+-	}
+-    break;
+-
+-  case 13:
+-
+-/* Line 1455 of yacc.c  */
+-#line 141 "parser.y"
+-    {
+-	    (yyval.ival) = COMM;
+-	}
+-    break;
+-
+-  case 14:
+-
+-/* Line 1455 of yacc.c  */
+-#line 145 "parser.y"
+-    {
+-	    (yyval.ival) = (yyvsp[(1) - (1)].ival);
+-	}
+-    break;
+-
+-  case 15:
+-
+-/* Line 1455 of yacc.c  */
+-#line 153 "parser.y"
+-    {
+-	    current[0]->def.dval = (yyvsp[(2) - (2)].dval);
+-	}
+-    break;
+-
+-  case 16:
+-
+-/* Line 1455 of yacc.c  */
+-#line 157 "parser.y"
+-    {
+-	    current[0]->def.sval = (yyvsp[(2) - (2)].sval);
+-	}
+-    break;
+-
+-  case 17:
+-
+-/* Line 1455 of yacc.c  */
+-#line 161 "parser.y"
+-    {
+-	    current[0]->def.ival = (yyvsp[(2) - (2)].ival);
+-	}
+-    break;
+-
+-  case 18:
+-
+-/* Line 1455 of yacc.c  */
+-#line 165 "parser.y"
+-    {
+-	    current[0]->def.ival = 0;
+-	}
+-    break;
+-
+-  case 19:
+-
+-/* Line 1455 of yacc.c  */
+-#line 173 "parser.y"
+-    {
+-	    current[0]->err_msg = (yyvsp[(1) - (1)].sval);
+-	}
+-    break;
+-
+-  case 20:
+-
+-/* Line 1455 of yacc.c  */
+-#line 177 "parser.y"
+-    {
+-	    current[0]->err_msg = NULL;
+-	}
+-    break;
+-
+-  case 21:
+-
+-/* Line 1455 of yacc.c  */
+-#line 184 "parser.y"
+-    {
+-	    (yyval.bval) = (yyvsp[(2) - (2)].bval);
+-	}
+-    break;
+-
+-  case 22:
+-
+-/* Line 1455 of yacc.c  */
+-#line 188 "parser.y"
+-    {
+-	    (yyval.bval) = NULL;
+-	}
+-    break;
+-
+-  case 23:
+-
+-/* Line 1455 of yacc.c  */
+-#line 196 "parser.y"
+-    {
+-	    (yyval.bval) = (yyvsp[(2) - (3)].bval);
+-	}
+-    break;
+-
+-  case 24:
+-
+-/* Line 1455 of yacc.c  */
+-#line 200 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '>';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 25:
+-
+-/* Line 1455 of yacc.c  */
+-#line 206 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '<';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 26:
+-
+-/* Line 1455 of yacc.c  */
+-#line 212 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = 'g';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 27:
+-
+-/* Line 1455 of yacc.c  */
+-#line 218 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = 'l';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 28:
+-
+-/* Line 1455 of yacc.c  */
+-#line 224 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '|';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 29:
+-
+-/* Line 1455 of yacc.c  */
+-#line 230 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '&';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 30:
+-
+-/* Line 1455 of yacc.c  */
+-#line 236 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '=';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 31:
+-
+-/* Line 1455 of yacc.c  */
+-#line 242 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = 'n';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 32:
+-
+-/* Line 1455 of yacc.c  */
+-#line 248 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '!';
+-	    (yyval.bval) = node(OPER, t, NULL, (yyvsp[(2) - (2)].bval));
+-	}
+-    break;
+-
+-  case 33:
+-
+-/* Line 1455 of yacc.c  */
+-#line 254 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '+';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 34:
+-
+-/* Line 1455 of yacc.c  */
+-#line 260 "parser.y"
+-    {
+-	    val_str t;
+-	    t.ival = '*';
+-	    (yyval.bval) = node(OPER, t, (yyvsp[(1) - (3)].bval), (yyvsp[(3) - (3)].bval));
+-	}
+-    break;
+-
+-  case 35:
+-
+-/* Line 1455 of yacc.c  */
+-#line 266 "parser.y"
+-    {
+-	    (yyval.bval) = (yyvsp[(1) - (1)].bval);
+-	}
+-    break;
+-
+-  case 36:
+-
+-/* Line 1455 of yacc.c  */
+-#line 274 "parser.y"
+-    {
+-	    val_str t;
+-	    t.dval = (yyvsp[(1) - (1)].dval);
+-	    (yyval.bval) = node(REAL, t, NULL, NULL);
+-	}
+-    break;
+-
+-  case 37:
+-
+-/* Line 1455 of yacc.c  */
+-#line 280 "parser.y"
+-    {
+-	    val_str t;
+-	    t.sval = (yyvsp[(1) - (1)].sval);
+-	    (yyval.bval) = node(PARVAL, t, NULL, NULL);
+-	}
+-    break;
+-
+-  case 38:
+-
+-/* Line 1455 of yacc.c  */
+-#line 286 "parser.y"
+-    {
+-	    val_str t;
+-	    t.dval = (float)(yyvsp[(1) - (1)].ival);
+-	    (yyval.bval) = node(REAL, t, NULL, NULL);
+-	}
+-    break;
+-
+-
+-
+-/* Line 1455 of yacc.c  */
+-#line 1827 "y.tab.c"
+-      default: break;
+-    }
+-  YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
+-
+-  YYPOPSTACK (yylen);
+-  yylen = 0;
+-  YY_STACK_PRINT (yyss, yyssp);
+-
+-  *++yyvsp = yyval;
+-
+-  /* Now `shift' the result of the reduction.  Determine what state
+-     that goes to, based on the state we popped back to and the rule
+-     number reduced by.  */
+-
+-  yyn = yyr1[yyn];
+-
+-  yystate = yypgoto[yyn - YYNTOKENS] + *yyssp;
+-  if (0 <= yystate && yystate <= YYLAST && yycheck[yystate] == *yyssp)
+-    yystate = yytable[yystate];
+-  else
+-    yystate = yydefgoto[yyn - YYNTOKENS];
+-
+-  goto yynewstate;
+-
+-
+-/*------------------------------------.
+-| yyerrlab -- here on detecting error |
+-`------------------------------------*/
+-yyerrlab:
+-  /* If not already recovering from an error, report this error.  */
+-  if (!yyerrstatus)
+-    {
+-      ++yynerrs;
+-#if ! YYERROR_VERBOSE
+-      yyerror (YY_("syntax error"));
+-#else
+-      {
+-	YYSIZE_T yysize = yysyntax_error (0, yystate, yychar);
+-	if (yymsg_alloc < yysize && yymsg_alloc < YYSTACK_ALLOC_MAXIMUM)
+-	  {
+-	    YYSIZE_T yyalloc = 2 * yysize;
+-	    if (! (yysize <= yyalloc && yyalloc <= YYSTACK_ALLOC_MAXIMUM))
+-	      yyalloc = YYSTACK_ALLOC_MAXIMUM;
+-	    if (yymsg != yymsgbuf)
+-	      YYSTACK_FREE (yymsg);
+-	    yymsg = (char *) YYSTACK_ALLOC (yyalloc);
+-	    if (yymsg)
+-	      yymsg_alloc = yyalloc;
+-	    else
+-	      {
+-		yymsg = yymsgbuf;
+-		yymsg_alloc = sizeof yymsgbuf;
+-	      }
+-	  }
+-
+-	if (0 < yysize && yysize <= yymsg_alloc)
+-	  {
+-	    (void) yysyntax_error (yymsg, yystate, yychar);
+-	    yyerror (yymsg);
+-	  }
+-	else
+-	  {
+-	    yyerror (YY_("syntax error"));
+-	    if (yysize != 0)
+-	      goto yyexhaustedlab;
+-	  }
+-      }
+-#endif
+-    }
+-
+-
+-
+-  if (yyerrstatus == 3)
+-    {
+-      /* If just tried and failed to reuse lookahead token after an
+-	 error, discard it.  */
+-
+-      if (yychar <= YYEOF)
+-	{
+-	  /* Return failure if at end of input.  */
+-	  if (yychar == YYEOF)
+-	    YYABORT;
+-	}
+-      else
+-	{
+-	  yydestruct ("Error: discarding",
+-		      yytoken, &yylval);
+-	  yychar = YYEMPTY;
+-	}
+-    }
+-
+-  /* Else will try to reuse lookahead token after shifting the error
+-     token.  */
+-  goto yyerrlab1;
+-
+-
+-/*---------------------------------------------------.
+-| yyerrorlab -- error raised explicitly by YYERROR.  |
+-`---------------------------------------------------*/
+-yyerrorlab:
+-
+-  /* Pacify compilers like GCC when the user code never invokes
+-     YYERROR and the label yyerrorlab therefore never appears in user
+-     code.  */
+-  if (/*CONSTCOND*/ 0)
+-     goto yyerrorlab;
+-
+-  /* Do not reclaim the symbols of the rule which action triggered
+-     this YYERROR.  */
+-  YYPOPSTACK (yylen);
+-  yylen = 0;
+-  YY_STACK_PRINT (yyss, yyssp);
+-  yystate = *yyssp;
+-  goto yyerrlab1;
+-
+-
+-/*-------------------------------------------------------------.
+-| yyerrlab1 -- common code for both syntax error and YYERROR.  |
+-`-------------------------------------------------------------*/
+-yyerrlab1:
+-  yyerrstatus = 3;	/* Each real token shifted decrements this.  */
+-
+-  for (;;)
+-    {
+-      yyn = yypact[yystate];
+-      if (yyn != YYPACT_NINF)
+-	{
+-	  yyn += YYTERROR;
+-	  if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
+-	    {
+-	      yyn = yytable[yyn];
+-	      if (0 < yyn)
+-		break;
+-	    }
+-	}
+-
+-      /* Pop the current state because it cannot handle the error token.  */
+-      if (yyssp == yyss)
+-	YYABORT;
+-
+-
+-      yydestruct ("Error: popping",
+-		  yystos[yystate], yyvsp);
+-      YYPOPSTACK (1);
+-      yystate = *yyssp;
+-      YY_STACK_PRINT (yyss, yyssp);
+-    }
+-
+-  *++yyvsp = yylval;
+-
+-
+-  /* Shift the error token.  */
+-  YY_SYMBOL_PRINT ("Shifting", yystos[yyn], yyvsp, yylsp);
+-
+-  yystate = yyn;
+-  goto yynewstate;
+-
+-
+-/*-------------------------------------.
+-| yyacceptlab -- YYACCEPT comes here.  |
+-`-------------------------------------*/
+-yyacceptlab:
+-  yyresult = 0;
+-  goto yyreturn;
+-
+-/*-----------------------------------.
+-| yyabortlab -- YYABORT comes here.  |
+-`-----------------------------------*/
+-yyabortlab:
+-  yyresult = 1;
+-  goto yyreturn;
+-
+-#if !defined(yyoverflow) || YYERROR_VERBOSE
+-/*-------------------------------------------------.
+-| yyexhaustedlab -- memory exhaustion comes here.  |
+-`-------------------------------------------------*/
+-yyexhaustedlab:
+-  yyerror (YY_("memory exhausted"));
+-  yyresult = 2;
+-  /* Fall through.  */
+-#endif
+-
+-yyreturn:
+-  if (yychar != YYEMPTY)
+-     yydestruct ("Cleanup: discarding lookahead",
+-		 yytoken, &yylval);
+-  /* Do not reclaim the symbols of the rule which action triggered
+-     this YYABORT or YYACCEPT.  */
+-  YYPOPSTACK (yylen);
+-  YY_STACK_PRINT (yyss, yyssp);
+-  while (yyssp != yyss)
+-    {
+-      yydestruct ("Cleanup: popping",
+-		  yystos[*yyssp], yyvsp);
+-      YYPOPSTACK (1);
+-    }
+-#ifndef yyoverflow
+-  if (yyss != yyssa)
+-    YYSTACK_FREE (yyss);
+-#endif
+-#if YYERROR_VERBOSE
+-  if (yymsg != yymsgbuf)
+-    YYSTACK_FREE (yymsg);
+-#endif
+-  /* Make sure YYID is used.  */
+-  return YYID (yyresult);
+-}
+-
+-
+-
+-/* Line 1675 of yacc.c  */
+-#line 293 "parser.y"
+-
+-
+-#include "lexical.c"
+-
+-
+-
+-/************************************************************************
+- *									*
+- *	node(type, val, left, right) - this routine builds the boolean	*
+- *  expression node of a tree with the given value.  It mallocs the 	*
+- *  space and assigns the data.						*
+- *									*
+- ************************************************************************/
+-struct bool_exp *node(type, val, left, right)
+-int type;
+-val_str val;
+-struct bool_exp *left, *right;
+-{
+-    struct bool_exp *t;
+-
+-    t = (struct bool_exp *)malloc( sizeof(struct bool_exp) );
+-    t->value = val;
+-    t->type = type;
+-    t->left = left;
+-    t->right = right;
+-    return(t);
+-}
+-
+-int yyerror() { return (1); }
+-
+-int yywrap(void) { return (1); }
+-
+--- a/src/keyread/parser.h
++++ /dev/null
+@@ -1,125 +0,0 @@
+-
+-/* A Bison parser, made by GNU Bison 2.4.  */
+-
+-/* Skeleton interface for Bison's Yacc-like parsers in C
+-   
+-      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+-   Free Software Foundation, Inc.
+-   
+-   This program is free software: you can redistribute it and/or modify
+-   it under the terms of the GNU General Public License as published by
+-   the Free Software Foundation, either version 3 of the License, or
+-   (at your option) any later version.
+-   
+-   This program is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-   GNU General Public License for more details.
+-   
+-   You should have received a copy of the GNU General Public License
+-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+-
+-/* As a special exception, you may create a larger work that contains
+-   part or all of the Bison parser skeleton and distribute that work
+-   under terms of your choice, so long as that work isn't itself a
+-   parser generator using the skeleton or a modified version thereof
+-   as a parser skeleton.  Alternatively, if you modify or redistribute
+-   the parser skeleton itself, you may (at your option) remove this
+-   special exception, which will cause the skeleton and the resulting
+-   Bison output files to be licensed under the GNU General Public
+-   License without this special exception.
+-   
+-   This special exception was added by the Free Software Foundation in
+-   version 2.2 of Bison.  */
+-
+-
+-/* Tokens.  */
+-#ifndef YYTOKENTYPE
+-# define YYTOKENTYPE
+-   /* Put the tokens into the symbol table, so that GDB and other debuggers
+-      know about them.  */
+-   enum yytokentype {
+-     CARD = 258,
+-     BG_GRP = 259,
+-     END_GRP = 260,
+-     PARTYPE = 261,
+-     EOL = 262,
+-     BOOLSTART = 263,
+-     GRT = 264,
+-     LES = 265,
+-     GRTE = 266,
+-     LESE = 267,
+-     OR = 268,
+-     AND = 269,
+-     EQU = 270,
+-     NOTEQU = 271,
+-     NOT = 272,
+-     PLUS = 273,
+-     TIMES = 274,
+-     RCONST = 275,
+-     STRING = 276,
+-     INTEGER = 277,
+-     NUMB = 278,
+-     NAME = 279,
+-     UNITS = 280,
+-     ERR_MSG = 281,
+-     COMMENT = 282,
+-     PARNAME = 283
+-   };
+-#endif
+-/* Tokens.  */
+-#define CARD 258
+-#define BG_GRP 259
+-#define END_GRP 260
+-#define PARTYPE 261
+-#define EOL 262
+-#define BOOLSTART 263
+-#define GRT 264
+-#define LES 265
+-#define GRTE 266
+-#define LESE 267
+-#define OR 268
+-#define AND 269
+-#define EQU 270
+-#define NOTEQU 271
+-#define NOT 272
+-#define PLUS 273
+-#define TIMES 274
+-#define RCONST 275
+-#define STRING 276
+-#define INTEGER 277
+-#define NUMB 278
+-#define NAME 279
+-#define UNITS 280
+-#define ERR_MSG 281
+-#define COMMENT 282
+-#define PARNAME 283
+-
+-
+-
+-
+-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+-typedef union YYSTYPE
+-{
+-
+-/* Line 1676 of yacc.c  */
+-#line 33 "parser.y"
+-
+-    int ival;
+-    float dval;
+-    char *sval;
+-    struct bool_exp *bval;
+-    
+-
+-
+-/* Line 1676 of yacc.c  */
+-#line 117 "y.tab.h"
+-} YYSTYPE;
+-# define YYSTYPE_IS_TRIVIAL 1
+-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
+-# define YYSTYPE_IS_DECLARED 1
+-#endif
+-
+-extern YYSTYPE yylval;
+-
+-
+--- a/src/keyread/write.c
++++ /dev/null
+@@ -1,193 +0,0 @@
+-
+-/*************************************************************************
+- *									 *
+- *   Original : MEL         Stanford University        Sept, 1984	 *
+- *									 *
+- *     Copyright c 1984 The board of trustees of the Leland Stanford 	 *
+- *                      Junior University. All rights reserved.		 *
+- *     This subroutine may not be used outside of the SUPREM4 computer	 *
+- *     program without the prior written consent of Stanford University. *
+- *									 *
+- *************************************************************************/
+-/*   write.c                Version 4.1     */
+-/*   Last Modification : 8/18/89  16:35:37 */
+-
+-#include <stdio.h>
+-#include <string.h>
+-#include <ctype.h>
+-#include "check.h"
+-#include "key.h"
+-
+-/************************************************************************
+- *									*
+- *	write.c - The routines defined here dump the card structure as  *
+- *  read from the key file to an unformatted file for later use.	*
+- *  The method for dumping the hierarchy is recursive because I don't   *
+- *  want anyone to be able to understand it. (Myself included)		*
+- *  									*
+- ************************************************************************/
+-
+-
+-/************************************************************************
+- *									*
+- *	write_list(param, fd) - this writes out each of the parameters  *
+- *  in the list passed to it.  If there are sub parameters, it 		*
+- *  increments depth and calls itself on the sub parameters.		*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-write_list(param, fd)
+-struct par_str **param;
+-int fd;
+-{
+-
+-    while ( param[0]->name[0] != '\0' ) {
+-	/*process this parameter*/
+-	if (write_param( param[0], fd ) == -1)
+-	    return(-1);
+-
+-	/*does this sucker have sub parameters??*/
+-	if (param[0]->param != NULL) {
+-	    depth++;
+-	    if (write_list( param[0]->param, fd ) == -1)
+-		return(-1);
+-	    depth--;
+-	}
+-
+-	/*advance the counter*/
+-	param++;
+-    }
+-}
+-
+-
+-/************************************************************************
+- *									*
+- *	write_boolean(bexp) - this routine stores the boolean 		*
+- *  expression in a post fix notation.  It is, once again, recursive    *
+- *  because of traditional reasons.					*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-write_boolean(bexp, fd)
+-struct bool_exp *bexp;
+-int fd;
+-{
+-
+-    /*first write out the current structure*/
+-    write(fd, &(bexp->type), sizeof(int));
+-
+-    /*write out the value based on the type of data stored*/
+-    switch ( bexp->type ) {
+-    case OPER   : /*write out the four byte descriptor*/
+-		  if (write(fd, &bexp->value.ival, sizeof(int)) == -1)
+-		      return(-1);
+-		  break;
+-    case REAL   : /*write out the real number*/
+-		  if (write(fd, &bexp->value.dval, sizeof(float)) == -1)
+-		      return( -1 );
+-		  break;
+-    case PARVAL	: /*write out the descriptor string*/
+-		  if (write(fd,bexp->value.sval,strlen(bexp->value.sval)+1)==-1)
+-		      return(-1);
+-		  break;
+-    default	: return( -1 );
+-		  break;
+-    }
+-
+-    /*write out the left and right kids*/
+-    if ( bexp->left != NULL ) {
+-	if ( write_boolean( bexp->left, fd) == -1)
+-	    return(-1);
+-    }
+-    if ( bexp->right != NULL ) {
+-	if ( write_boolean( bexp->right, fd) == -1)
+-	    return(-1);
+-    }
+-    return(0);
+-}
+-
+-
+-/************************************************************************
+- *									*
+- *	write_param(par, fd) - this routine writes out the single parameter *
+- *  passed to it.							*
+- *									*
+- *	Original	Mark E. Law		Oct, 1984		*
+- *									*
+- ************************************************************************/
+-write_param(par, fd)
+-struct par_str *par;
+-int fd;
+-{
+-    char nullstr[2];
+-    int i;
+-
+-    nullstr[0] = '\0';
+-    i = 0;
+-    /*first write out the current depth*/
+-    if ( write(fd, &depth, sizeof(int)) == -1)
+-	return(-1);
+-
+-    /*begin by writing out all of the fixed length crap*/
+-    if (write(fd, par->name, 12) == -1)
+-	return(-1);
+-    if (write(fd, &par->type, sizeof(int)) == -1)
+-	return(-1);
+-
+-    /*write out the default based on type data*/
+-    switch( par->type & ~MASK ) {
+-    case REAL :	if (write(fd, &par->def.dval, sizeof(float)) == -1)
+-		    return(-1);
+-		break;
+-    case COMM :
+-    case BOOL :
+-    case CHOICE :
+-    case INT  :	if (write(fd, &par->def.ival, sizeof(int)) == -1)
+-		    return(-1);
+-		break;
+-    case STR  :	if (par->def.sval != NULL) {
+-		    if (write(fd, par->def.sval, strlen(par->def.sval)+1) == -1)
+-			return(-1);
+-		}
+-		else {
+-		    if (write(fd, nullstr, 1) == -1)
+-			return(-1);
+-		}
+-		break;
+-    default   : return(-1);
+-    }
+-
+-    /*write out the units and the error message*/
+-    if (par->units != NULL) {
+-	if (write(fd, par->units, strlen(par->units)+1) == -1)
+-	    return(-1);
+-    }
+-    else {
+-	if (write(fd, nullstr, 1) == -1)
+-	    return(-1);
+-    }
+-    if (par->err_msg != NULL) {
+-	if (write(fd, par->err_msg, strlen(par->err_msg)+1) == -1)
+-	    return(-1);
+-    }
+-    else {
+-	if (write(fd, nullstr, 1) == -1)
+-	    return(-1);
+-    }
+-
+-    /*write out the boolean expression*/
+-    if (par->bexp != NULL) {
+-	if (write_boolean(par->bexp, fd) == -1)
+-	    return(-1);
+-    }
+-    else {
+-	if (write(fd, &i, sizeof(int)) == -1)
+-	    return(-1);
+-    }
+-    return(0);
+-}
+-
+-
+-
+--- a/src/mesh/structure.c
++++ b/src/mesh/structure.c
+@@ -143,6 +143,12 @@
+ 	if ((ier = ig2_read(infile, lflip, scale) < 0)) return(ier);
+ 
+ 	create_db( (nn==0) );
++        if(getenv("SUPREM4_MESH_QUALITY")) {
++            extern int refine_mesh_quality(double);
++            if(refine_mesh_quality(atof(getenv("SUPREM4_MESH_QUALITY")))<0)
++                panic("cannot satisfy requested mesh quality");
++        }
++
+     }
+ 
+     /*write out the file if that is asked for*/
+--- a/src/oxide/viscous.c
++++ b/src/oxide/viscous.c
+@@ -53,7 +53,7 @@
+     proc_temp = temp;
+ 
+     /*Generate appropriate data structures for the FE method*/
+-    if(FEconvert( TRIOX, 3) < 0)panic("cannot construct viscous oxidation finite-element problem");
++    if(FEconvert( TRIOX, 3) < 0) return;
+ 
+     /* Boundary conditions */
+     FEoxbc();
+@@ -185,7 +185,7 @@
+         /* Introduce the coupled viscosity, reaction and diffusion effects
+          * together. The old path turns diffusion feedback off until the
+          * reaction coupling is already fully active. */
+-        oxide_staged_homotopy(!(getenv("SUPREM4_FE_OXIDANT_P1") || getenv("SUPREM4_FE_BBAR_P1") || getenv("SUPREM4_FE_LINEAR_TRACE")));
++        oxide_staged_homotopy(getenv("SUPREM4_FE_STAGED_HOMOTOPY") != NULL);
+     }
+ #endif
+ 
+--- a/src/refine/deposit.c
++++ b/src/refine/deposit.c
+@@ -236,6 +236,159 @@
+     return -1;
+ }
+ 
++/* Conforming quality refinement. Preserve the material partition and every
++ * old point; resolve short boundary segments by grading the interior mesh
++ * rather than merging distinct vertices or moving the boundary. */
++static double mesh_triangle_quality(int t)
++{
++    float *a=cord_arr(pt_nd(vert_tri(t,0))),*b=cord_arr(pt_nd(vert_tri(t,1))),*c=cord_arr(pt_nd(vert_tri(t,2)));
++    double ax=(double)b[0]-a[0],ay=(double)b[1]-a[1];
++    double bx=(double)c[0]-a[0],by=(double)c[1]-a[1];
++    double cx=(double)c[0]-b[0],cy=(double)c[1]-b[1];
++    return 2*sqrt(3.)*(ax*by-ay*bx)/(ax*ax+ay*ay+bx*bx+by*by+cx*cx+cy*cy);
++}
++static int mesh_admissible_midpoint(int e,float *c)
++{
++    int i,j,k,t,a,b;float v[3][MAXDIM];
++    for(j=0;j<MAXDIM;j++)c[j]=0;
++    for(j=0;j<2;j++)c[j]=.5*((double)cordinate(pt_edg(e,0),j)+cordinate(pt_edg(e,1),j));
++    for(i=0;i<num_tri_edg(e);i++) {
++        t=tri_edg(e,i);if(dead_tri(t) || !leaf(tri[t]))continue;
++        for(a=0;a<3;a++)if(vert_tri(t,a)==nd_edg(e,0))break;
++        for(b=0;b<3;b++)if(vert_tri(t,b)==nd_edg(e,1))break;
++        if(a==3 || b==3)return FALSE;
++        for(k=0;k<3;k++)memcpy(v[k],cord_arr(pt_nd(vert_tri(t,k))),sizeof(v[k]));
++        memcpy(v[a],c,sizeof(v[a]));
++        if(orient2d_float_sign(v[0],v[1],v[2])<=0)return FALSE;
++        memcpy(v[a],cord_arr(pt_nd(vert_tri(t,a))),sizeof(v[a]));
++        memcpy(v[b],c,sizeof(v[b]));
++        if(orient2d_float_sign(v[0],v[1],v[2])<=0)return FALSE;
++    }
++    return TRUE;
++}
++int refine_mesh_quality(double minimum)
++{
++    int t,worst,e,point,node,i,j,k,r,owner,onedge,count=0,limit=np*4+100;
++    int n[3],oldv[3],children[3];
++    double q,worstq,length,shortest,x,y,dx,dy,area,w[3],value,height,seedq;
++    float c[MAXDIM],*a,*b,*p[3];
++    if(mode!=TWOD)return 0;
++    if(!(minimum>0 && minimum<1))return -1;
++    for(;;) {
++        worst=-1;worstq=minimum;
++        for(t=0;t<ne;t++) {
++            if(dead_tri(t) || !leaf(tri[t]))continue;
++            q=mesh_triangle_quality(t);
++            if(q<worstq){worstq=q;worst=t;}
++        }
++        if(worst<0)break;
++        if(count>=limit)goto unresolved;
++        r=reg_tri(worst);shortest=DBL_MAX;e=-1;
++        for(i=0;i<3;i++) {
++            a=cord_arr(pt_nd(vert_tri(worst,i)));
++            b=cord_arr(pt_nd(vert_tri(worst,(i+1)%3)));
++            length=hypot((double)b[0]-a[0],(double)b[1]-a[1]);
++            if(length<shortest){shortest=length;e=i;}
++        }
++        a=cord_arr(pt_nd(vert_tri(worst,e)));
++        b=cord_arr(pt_nd(vert_tri(worst,(e+1)%3)));
++        dx=(double)b[0]-a[0];dy=(double)b[1]-a[1];
++        /* Off-center insertion near the shortest edge. Locate in the
++         * entire region, not just the needle: its rounded off-center can
++         * lie across an unconstrained diagonal. No boundary is split or
++         * moved unless the stored point lies exactly on an existing edge. */
++        /* Choose the off-center from the requested quality, rather than
++         * generating equilateral microcells regardless of that request.
++         * For base L and height s*L, q=2*sqrt(3)*s/(1.5+2*s*s). */
++        height=(sqrt(3.)+sqrt(3.-3.*minimum*minimum))/(2.*minimum);
++        {
++            float *opposite=cord_arr(pt_nd(vert_tri(worst,(e+2)%3)));
++            double vx=(double)opposite[0]-.5*((double)a[0]+b[0]);
++            double vy=(double)opposite[1]-.5*((double)a[1]+b[1]);
++            double circle_height=(vx*vx+vy*vy-.25*(dx*dx+dy*dy))/(2*(dx*vy-dy*vx));
++            if(circle_height>0 && circle_height<height)height=circle_height;
++        }
++        for(k=0;k<32;k++,height*=.5) {
++            double ex,ey,fx,fy;
++            c[0]=.5*((double)a[0]+b[0])-height*dy;
++            c[1]=.5*((double)a[1]+b[1])+height*dx;c[2]=0;
++            ex=(double)c[0]-a[0];ey=(double)c[1]-a[1];
++            fx=(double)c[0]-b[0];fy=(double)c[1]-b[1];
++            seedq=2*sqrt(3.)*(dx*ey-dy*ex)/(dx*dx+dy*dy+ex*ex+ey*ey+fx*fx+fy*fy);
++            if(seedq>=minimum && orient2d_float_sign(a,b,c)>0)break;
++        }
++        if(k==32)goto unresolved;
++        /* A candidate may encroach on a long constrained segment next
++         * to the short edge. Split the segment first (Ruppert protection),
++         * otherwise inserting the off-center simply creates another needle. */
++        onedge=-1;shortest=0;
++        for(e=0;e<ned;e++) {
++            int constrained=num_tri_edg(e)==1,belongs=0;
++            if(dead_edg(e))continue;
++            for(i=0;i<num_tri_edg(e);i++) {
++                int t0=tri_edg(e,i);
++                if(reg_tri(t0)==r)belongs=1;
++                else constrained=1;
++            }
++            if(!constrained || !belongs)continue;
++            a=cord_arr(pt_edg(e,0));b=cord_arr(pt_edg(e,1));
++            if(((double)c[0]-a[0])*((double)c[0]-b[0])+
++               ((double)c[1]-a[1])*((double)c[1]-b[1])>=0)continue;
++            if(len_edg(e)>shortest){shortest=len_edg(e);onedge=e;}
++        }
++        if(onedge>=0) {
++            if(!mesh_admissible_midpoint(onedge,c))goto unresolved;
++            if(sp_edge_keep(onedge,c,&point,FALSE,nd_edg(onedge,0))<0)goto unresolved;
++            count++;bd_connect("protected quality segment refinement");UpdateSymbolic++;
++            continue;
++        }
++        owner=-1;onedge=-1;
++        for(t=0;t<ne;t++) {
++            int side[3];
++            if(dead_tri(t) || !leaf(tri[t]) || reg_tri(t)!=r)continue;
++            for(i=0;i<3;i++)p[i]=cord_arr(pt_nd(vert_tri(t,i)));
++            for(i=0;i<3;i++)side[i]=orient2d_float_sign(p[i],p[(i+1)%3],c);
++            if(side[0]<0 || side[1]<0 || side[2]<0)continue;
++            for(i=0;i<3;i++)if(c[0]==p[i][0] && c[1]==p[i][1])goto unresolved;
++            owner=t;
++            for(i=0;i<3;i++)if(side[i]==0)onedge=edg_ele(t,(i+2)%3);
++            break;
++        }
++        if(owner<0)goto unresolved;
++        if(onedge>=0) {
++            if(sp_edge_keep(onedge,c,&point,FALSE,nd_edg(onedge,0))<0)goto unresolved;
++        }
++        else {
++            for(i=0;i<3;i++){oldv[i]=vert_tri(owner,i);p[i]=cord_arr(pt_nd(oldv[i]));}
++            area=((double)p[1][0]-p[0][0])*((double)p[2][1]-p[0][1])-
++                 ((double)p[1][1]-p[0][1])*((double)p[2][0]-p[0][0]);
++            x=c[0];y=c[1];
++            w[0]=(((double)p[1][0]-x)*((double)p[2][1]-y)-((double)p[1][1]-y)*((double)p[2][0]-x))/area;
++            w[1]=(((double)p[2][0]-x)*((double)p[0][1]-y)-((double)p[2][1]-y)*((double)p[0][0]-x))/area;
++            w[2]=1-w[0]-w[1];
++            if(w[0]<0 || w[1]<0 || w[2]<0)goto unresolved;
++            point=mk_pt(2,c);set_space(point,shortest);node=mk_nd(point,mat_reg(r));
++            for(j=0;j<n_imp;j++) {
++                value=0;for(i=0;i<3;i++)value+=w[i]*sol_nd(oldv[i],j);
++                set_sol_nd(node,j,value);
++            }
++            for(i=0;i<3;i++) {
++                n[0]=oldv[i];n[1]=oldv[(i+1)%3];n[2]=node;
++                children[i]=mk_ele_nd(3,n,r);
++                if(tri[owner]->nb[(i+2)%3]<0)tri[children[i]]->nb[2]=tri[owner]->nb[(i+2)%3];
++            }
++            rem_ele(owner,FALSE);
++        }
++        count++;bd_connect("conforming off-center refinement");UpdateSymbolic++;
++        if(count%100==0)fprintf(stderr,"[quality-progress] inserted=%d old_q=%g points=%d\n",count,worstq,np);
++    }
++    if(count)fprintf(stderr,"[quality] inserted=%d target=%g points=%d\n",count,minimum,np);
++    return 0;
++unresolved:
++    fprintf(stderr,"ERROR: quality refinement unresolved triangle=%d q=%g insertions=%d\n",worst,worstq,count);
++    return -1;
++}
++
+ /************************************************************************
+  *									*
+  *	user_deposit( ) - get the parameters for deposition of a new	*
+--- a/src/refine/sp_edge.c
++++ b/src/refine/sp_edge.c
+@@ -32,6 +32,7 @@
+ #define DMIN3(A,B,C) DMIN( A, DMIN( B, C) )
+ 
+ #define MIN_GRID_SPACE 2.5e-8
++
+ 
+ /*-----------------SP_EDGE----------------------------------------------
+  * This does the database grunt work of adding one new point to an edge.
+@@ -126,12 +127,6 @@
+ 
+     eoth = insert_pt_edg( ie, c, p );
+     ip = *p;
+-    if (getenv("SUPREM4_PT_TRACE"))
+-        fprintf(stderr, "[split] caller=%+ld c=(%.9g,%.9g) edge=(%.9g,%.9g)-(%.9g,%.9g) newpt=%d\n",
+-                (long)((char *)__builtin_return_address(0) - (char *)sp_gredg),
+-                (double)c[0],(double)c[1],
+-                (double)pt[pt_edg(ie,0)]->cord[0],(double)pt[pt_edg(ie,0)]->cord[1],
+-                (double)pt[pt_edg(ie,1)]->cord[0],(double)pt[pt_edg(ie,1)]->cord[1], ip);
+ 
+     /*get the current edge ends into local storage*/
+     in = node_mat(nd_pt(ip,0), mat_nd(nd_edg(ie,0)));

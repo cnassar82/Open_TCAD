@@ -23,15 +23,23 @@ static char sccsid[]="FEsolve.c 3.6 9/9/88 23:46:05";
 #include "FEmath.h"
 #ifdef SUPREM_FE_UMFPACK
 #include "pivoted_solver.h"
-static double FEscalednorm(struct suprem_pivoted *p,double *rhs)
+static double FEweightednorm(int n,double *weight,double *rhs)
 {
     double sum=0,value;int k;
-    for(k=0;k<p->n;k++) {
-        value=rhs[k]*p->row_scale[k];
+    for(k=0;k<n;k++) {
+        /* Constraint reactions are not free-node equilibrium residuals.
+         * Match the boundary-DOF exclusion used by FErhsnorm. */
+        int fixity=FEnd[k/FEdf]->fixity[k%FEdf];
+        if(fixity==1)continue;
+        value=rhs[k]*weight[k];
         if(!isfinite(value))return HUGE_VAL;
         sum+=value*value;
     }
     return sqrt(sum);
+}
+static double FEscalednorm(struct suprem_pivoted *p,double *rhs)
+{
+    return FEweightednorm(p->n,p->row_scale,rhs);
 }
 #endif
 
@@ -102,10 +110,58 @@ FEsolve( int verbose)
 	if( FEnd[ i]->fixity[ j] == 1)
 	    FEnd[ i]->sol[ j] = FEnd[ i]->bc[ j];
 
+#ifdef SUPREM_FE_UMFPACK
+    if(FEwarm_start && FEnonloop>1) {
+        double *guess=salloc(double,FEdf*FEnn);
+        int limit=FEnonloop,solved;
+        VECTOR2 guess[k]=FEnd[i]->sol[j];
+        lambda=1;FEnonloop=limit<12?limit:12;noderiv=0;
+        solved=FEnewton(ia,aoff,a,il,loff,l,rhs);
+        FEnonloop=limit;
+        if(solved>0) {free(guess);goto done;}
+        VECTOR2 FEnd[i]->sol[j]=guess[k];
+        free(guess);lambda=0;noderiv=0;
+    }
+#endif
+
     /* Solve the initial linear problem */
     noderiv = 0;     a[0] = 0;
-    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0)
+    if(getenv("SUPREM4_FE_TRACE")) {
+        int i2,j2,nfix0=0,nleft=0,nnear=0;
+        double dxmin=1e30;
+        VECTOR2 if(FEnd[i]->fixity[j]==1) nfix0 += (j==0);
+        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3) {
+            nleft++;
+            if(nleft<=40)
+                fprintf(stderr,"[FE] left node %d cord=(%.6g,%.6g) fix=(%d,%d,%d) sol=(%.4g,%.4g,%.4g)\n",
+                        i2,FEnd[i2]->cord[0],FEnd[i2]->cord[1],
+                        FEnd[i2]->fixity[0],FEnd[i2]->fixity[1],FEnd[i2]->fixity[2],
+                        FEnd[i2]->sol[0],FEnd[i2]->sol[1],FEnd[i2]->sol[2]);
+        }
+        /* nearest-neighbor spacing among left-edge nodes only */
+        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3)
+            for(j2=i2+1;j2<FEnn;j2++) if(FEnd[j2]->cord[0]<1e-3) {
+                double ddx=FEnd[i2]->cord[0]-FEnd[j2]->cord[0];
+                double ddy=FEnd[i2]->cord[1]-FEnd[j2]->cord[1];
+                double dd=sqrt(ddx*ddx+ddy*ddy);
+                if(dd<dxmin)dxmin=dd;
+            }
+        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3)
+            for(j2=0;j2<FEnn;j2++) if(FEnd[j2]->cord[0]>=1e-3) {
+                double ddx=FEnd[i2]->cord[0]-FEnd[j2]->cord[0];
+                double ddy=FEnd[i2]->cord[1]-FEnd[j2]->cord[1];
+                double dd=sqrt(ddx*ddx+ddy*ddy);
+                if(dd<1e-3)nnear++;
+            }
+        fprintf(stderr,"[FE] solve start: FEnn=%d FEdf=%d fix0count=%d left(x<1e-3)=%d minleftspacing=%.6g nearpairs=%d\n",
+                FEnn,FEdf,nfix0,nleft,dxmin,nnear);
+    }
+    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0) {
+        if(getenv("SUPREM4_FE_TRACE"))
+            fprintf(stderr,"[FE] initial solve failed: FEnn=%d FEdf=%d neq=%d lambda=%g\n",
+                    FEnn,FEdf,neq,lambda);
         panic("initial finite element solve failed");
+    }
     if (FEnonloop == 1) goto done;
 
     /*
@@ -353,10 +409,78 @@ FEmilne( ia, aoff, a, il, loff, l, rhs, solo, deln, delm, derr)
 /*-----------------FEnewton---------------------------------------------
  * Newton solver with Jacobian recyling, auto damping.
  *----------------------------------------------------------------------*/
+#ifdef SUPREM_FE_UMFPACK
+/* Fully globalized Newton on the actual assembled residual.  Always rebuild
+ * the Jacobian; backtrack with an Armijo decrease rather than an arbitrary
+ * one-percent minimum step or a synthetic zero residual after a small update.
+ */
+static int FEnewton_pivoted(int *ia,int aoff,double *a,double *rhs)
+{
+    struct suprem_pivoted solver={0};
+    double *old=salloc(double,neq),*step=salloc(double,neq),*scales=salloc(double,neq);
+    double *weight=salloc(double,neq);
+    double before,after,update,alpha;
+    int i,j,k,iteration,search,status,changed,success=0,accepted;
+    VECTOR2 scales[k]=FEabe[j];
+    for(iteration=0;iteration<FEnonloop;iteration++) {
+        noderiv=0;FEassmb(ia,aoff,a,rhs);
+        status=suprem_pivoted_factor(&solver,neq,ia,aoff,a,scales);
+        if(status!=UMFPACK_OK) {
+            fprintf(stderr,"FE pivoted factorization failed: status=%d lambda=%g\n",status,lambda);break;
+        }
+        /* The merit function must remain the same between iterations.
+         * LU equilibration may change with the Jacobian; freeze only the
+         * nonlinear residual weights at the start of this Newton solve. */
+        if(iteration==0)for(k=0;k<neq;k++)weight[k]=solver.row_scale[k];
+        before=FEweightednorm(neq,weight,rhs);
+        if(!isfinite(before))break;
+        status=suprem_pivoted_solve(&solver,rhs);
+        if(status!=UMFPACK_OK)break;
+        VECTOR2 {old[k]=FEnd[i]->sol[j];step[k]=rhs[k];}
+        update=FEupdnorm(step);
+        if(!isfinite(update))break;
+        alpha=1;accepted=0;
+        for(search=0;search<60;search++,alpha*=.5) {
+            changed=0;
+            VECTOR2 if(FEnd[i]->fixity[j]!=1) {
+                double candidate=old[k]+alpha*step[k];
+                if(candidate!=old[k])changed=1;
+                FEnd[i]->sol[j]=candidate;
+            }
+            noderiv=1;FEassmb(ia,aoff,a,rhs);
+            after=FEweightednorm(neq,weight,rhs);
+            /* Both criteria must be evaluated, including the real residual
+             * after the update. Linear problems need only the residual test. */
+            if(isfinite(after) && after<=FErel &&
+               (update<=FErel || FEnonloop==1)) {
+                success=accepted=1;break;
+            }
+            if(isfinite(after) && after<before && after<=(1-1e-4*alpha)*before) {
+                accepted=1;break;
+            }
+            if(!changed || 1-1e-4*alpha==1)break;
+        }
+        if(FEverbose)printf("Newton %d lambda=%g alpha=%g update=%g residual=%g -> %g\n",
+                            iteration,lambda,alpha,update,before,after);
+        if(!accepted) {
+            VECTOR2 FEnd[i]->sol[j]=old[k];
+            break;
+        }
+        if(success)break;
+    }
+    suprem_pivoted_free(&solver);free(old);free(step);free(scales);free(weight);
+    noderiv=0;
+    return success?1:-1;
+}
+#endif
+
 FEnewton( ia, aoff, a, il, loff, l, rhs)
     int *ia, aoff, *il, loff;
     double *a, *l, *rhs;
 {
+#ifdef SUPREM_FE_UMFPACK
+    return FEnewton_pivoted(ia,aoff,a,rhs);
+#endif
     int loop, converge;
     int i, j, k, TmpND;
     double upd, FErhsnorm(), norm, onorm, *sol0;
@@ -440,7 +564,38 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
 	VECTOR2 sol0[ k] = FEnd[i]->sol[j];
 	VECTOR updv[k] = rhs[k];
 	upd = FEupdnorm( updv);
-        if(!isfinite(upd)) {converge=-1;break;}
+        if(!isfinite(upd)) {
+            if(getenv("SUPREM4_FE_TRACE")) {
+                int bi=-1;double bv=0;
+                VECTOR if(!isfinite(rhs[k]) && bi<0){bi=k;bv=rhs[k];}
+                fprintf(stderr,"[FE] nonfinite update at loop=%d lambda=%g upd=%g first_bad_eqn=%d rhs=%g\n",
+                        loop,lambda,upd,bi,bv);
+            }
+            converge=-1;break;
+        }
+        if(getenv("SUPREM4_FE_TRACE") && upd>0 && upd<1e19) {
+            /* rank equations by the same per-eq metric FEupdnorm uses */
+            int rank, worst[4];double worstv[4];
+            for(rank=0;rank<4;rank++){worst[rank]=-1;worstv[rank]=-1;}
+            VECTOR2 if (FEnd[i]->fixity[j] != 1) {
+                double s = FEnd[i]->sol[j]; if (s < 0) s = -s;
+                double u = updv[k]/(FEabe[j]+s); if (u < 0) u = -u;
+                for(rank=3;rank>=0;rank--) {
+                    if(u>worstv[rank]) {
+                        if(rank<3){worst[rank+1]=worst[rank];worstv[rank+1]=worstv[rank];}
+                        worst[rank]=k;worstv[rank]=u;
+                    }
+                }
+            }
+            for(rank=0;rank<4;rank++) {
+                int k2=worst[rank];
+                if(k2<0)continue;
+                fprintf(stderr,"[FE] loop=%d upd=%.6g rank%d eqn=%d node=%d dof=%d fix=%d delta=%.6g sol=%.6g abe=%.6g cord=(%.6g,%.6g)\n",
+                        loop,upd,rank,k2,k2/FEdf,k2%FEdf,FEnd[k2/FEdf]->fixity[k2%FEdf],
+                        updv[k2],FEnd[k2/FEdf]->sol[k2%FEdf],FEabe[k2%FEdf],
+                        (double)FEnd[k2/FEdf]->cord[0],(double)FEnd[k2/FEdf]->cord[1]);
+            }
+        }
 
 	/* Use upd, not cutback upd, to decide on convergence */
 	/* Don't break because haven't added that last little update yet */
@@ -524,6 +679,9 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
 #ifdef SUPREM_FE_UMFPACK
     suprem_pivoted_free(&pivoted);free(scales);
 #endif
+    if(converge<=0 && getenv("SUPREM4_FE_TRACE"))
+        fprintf(stderr,"[FE] newton failed: converge=%d loop=%d upd=%.6g FErel=%.6g norm=%.6g onorm=%.6g noderiv=%d\n",
+                converge,loop,upd,FErel,norm,onorm,noderiv);
     return( converge);
 }
 

@@ -1,0 +1,5 @@
+work/
+*.bin
+*.str
+core*
+pmos_motion_capture/pmos/s[0-9]*

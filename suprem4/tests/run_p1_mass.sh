@@ -6,6 +6,6 @@ trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
 "${CC:-gcc}" -std=gnu89 -g -O1 -fcommon -ffunction-sections -fdata-sections \
     -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie \
     -I "$root/src/include" "$root/tests/p1_mass.c" \
-    "${SUPREM_GEOMETRY_SOURCE:-$root/src/dbase/geometry.c}" \
+    "${SUPREM_GEOMETRY_SOURCE:-$root/src/dbase/geometry.c}" "$root/src/geom/misc.c" \
     -Wl,--gc-sections -lm -o "$test_dir/p1_mass"
 "$test_dir/p1_mass"

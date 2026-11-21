@@ -11,6 +11,9 @@ void mesh_trial_discard(struct mesh_trial *trial);
  * Static rezoning must transfer nd[].sol; an active implicit trial must not. */
 int mesh_trial_active(void);
 
+/* Read-only embedding check; dt=0 checks committed coordinates. */
+int mesh_trial_validate_embedding(double dt, int *bad_triangle);
+
 /* Returns zero without mutation if rounded motion is invalid. */
 int mesh_trial_move(double dt, int *bad_triangle);
 

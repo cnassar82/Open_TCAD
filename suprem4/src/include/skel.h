@@ -25,6 +25,11 @@
 #define AFTER              0
 #define OFFSET_ELEC     -1024	/* Distinguish BC from triangles by offset*/
 
+/* Storage-rounding agreement predicates shared by the skeleton Boolean
+ * and etch cutter snap rounding. */
+extern int rounding_same_point(const float *a, const float *b);
+extern int rounding_on_segment(const float *p, const float *a, const float *b);
+
 /***************************************************
  *                                                 *
  *            Macros                               *

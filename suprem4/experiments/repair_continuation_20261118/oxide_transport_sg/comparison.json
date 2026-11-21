@@ -1,0 +1,30 @@
+{
+  "rows": [
+    {
+      "divisions": 1,
+      "P_sheet_Si_cm2": 970424336639.2649,
+      "P_at_5nm_cm3": 2.0414500883181056e+17,
+      "runtime": {
+        "SUPREM4_CHARGED_FLUX": "sg"
+      }
+    },
+    {
+      "divisions": 64,
+      "P_sheet_Si_cm2": 33487263111.060253,
+      "P_at_5nm_cm3": 1.3605317398261266e+16,
+      "runtime": {
+        "SUPREM4_CHARGED_FLUX": "sg"
+      }
+    },
+    {
+      "divisions": 128,
+      "P_sheet_Si_cm2": 33349772204.725258,
+      "P_at_5nm_cm3": 1.3543608393740884e+16,
+      "runtime": {
+        "SUPREM4_CHARGED_FLUX": "sg"
+      }
+    }
+  ],
+  "coarse_to_finest_sheet_ratio": 29.09837976349858,
+  "finest_pair_relative_difference": 0.00412269401694787
+}

@@ -6,7 +6,7 @@
 #include <math.h>
 #include <limits.h>
 #include "mesh_patch.h"
-extern int orient2d_float_sign(float *, float *, float *);
+extern int orient2d_float_sign(const float *, const float *, const float *);
 
 static int sign3(const struct mesh_patch_point *p, int a, int b, int c)
 {
@@ -58,6 +58,74 @@ static int segment_bad(const struct mesh_patch_point *p,int a,int b,int c,int d)
     }
     return 0;
 }
+/* Visibility tests use only exact signs on the stored coordinates. */
+static int patch_in_cone(const struct mesh_patch_point *p,const int *order,
+                         int n,int i,int j)
+{
+    int a=order[i],b=order[(i+1)%n],c=order[(i+n-1)%n],v=order[j];
+    if(sign3(p,a,b,c)>=0)return sign3(p,a,v,c)>0 && sign3(p,v,a,b)>0;
+    return !(sign3(p,a,v,b)>=0 && sign3(p,v,a,c)>=0);
+}
+/* Bottleneck-quality dynamic programming over all valid polygon diagonals.
+ * Q(i,j)=max_k min(Q(i,k),Q(k,j),quality(i,k,j)). Unlike choosing the best
+ * current ear, this optimizes the worst triangle of the complete cavity.
+ * Coordinates, boundary constraints and the acceptance score are unchanged. */
+static int patch_optimal_triangulation(const struct mesh_patch_point *p,
+    const int *order,int n,int region,struct mesh_patch_result *r)
+{
+    double *score=NULL,q,candidate;int *split=NULL,*tasks=NULL;
+    unsigned char *visible=NULL;size_t cells;int i,j,k,a,b,gap,pending=0;
+    int status=MESH_PATCH_INVALID;
+    if(n<3 || (size_t)n>((size_t)-1)/(size_t)n)return status;
+    cells=(size_t)n*n;
+    if(cells>((size_t)-1)/sizeof(double) || cells>((size_t)-1)/sizeof(int) ||
+       (size_t)n>((size_t)-1)/(2*sizeof(int)))return status;
+    score=malloc(cells*sizeof(double));split=malloc(cells*sizeof(int));
+    visible=calloc(cells,sizeof(*visible));tasks=malloc((size_t)2*n*sizeof(int));
+    if(!score || !split || !visible || !tasks){status=MESH_PATCH_NOMEM;goto out;}
+    for(i=0;i<n;i++)for(j=0;j<n;j++){score[(size_t)i*n+j]=-1;split[(size_t)i*n+j]=-1;}
+    for(i=0;i<n;i++)for(j=i+1;j<n;j++) {
+        int valid=(j==i+1 || (i==0 && j==n-1));
+        if(!valid && patch_in_cone(p,order,n,i,j) && patch_in_cone(p,order,n,j,i)) {
+            for(k=0;k<n;k++)if(segment_bad(p,order[i],order[j],order[k],order[(k+1)%n]))break;
+            valid=k==n;
+        }
+        visible[(size_t)i*n+j]=valid;
+        if(j==i+1)score[(size_t)i*n+j]=HUGE_VAL;
+    }
+    for(gap=2;gap<n;gap++)for(i=0;i+gap<n;i++) {
+        j=i+gap;if(!visible[(size_t)i*n+j])continue;
+        for(k=i+1;k<j;k++) {
+            if(score[(size_t)i*n+k]<0 || score[(size_t)k*n+j]<0 ||
+               sign3(p,order[i],order[k],order[j])<=0)continue;
+            q=quality(p,order[i],order[k],order[j]);
+            candidate=fmin(q,fmin(score[(size_t)i*n+k],score[(size_t)k*n+j]));
+            if(candidate>score[(size_t)i*n+j]) {
+                score[(size_t)i*n+j]=candidate;split[(size_t)i*n+j]=k;
+            }
+        }
+    }
+    if(score[n-1]<0)goto out;
+    tasks[0]=0;tasks[1]=n-1;pending=1;r->count=0;r->new_min_quality=HUGE_VAL;
+    while(pending) {
+        pending--;i=tasks[2*pending];j=tasks[2*pending+1];k=split[(size_t)i*n+j];
+        if(k<=i || k>=j || r->count>=n-2)goto out;
+        a=r->count++;
+        r->triangle[a].vertex[0]=order[i];r->triangle[a].vertex[1]=order[k];
+        r->triangle[a].vertex[2]=order[j];r->triangle[a].region=region;
+        q=quality(p,order[i],order[k],order[j]);r->new_min_quality=fmin(r->new_min_quality,q);
+        for(b=0;b<2;b++) {
+            int first=b?k:i,last=b?j:k;
+            if(last==first+1)continue;
+            if(pending>=n)goto out;
+            tasks[2*pending]=first;tasks[2*pending+1]=last;pending++;
+        }
+    }
+    if(r->count==n-2)status=MESH_PATCH_OK;
+out:
+    free(score);free(split);free(visible);free(tasks);return status;
+}
+
 void mesh_patch_release(struct mesh_patch_result *r)
 {
     free(r->triangle);r->triangle=NULL;r->count=0;
@@ -128,31 +196,13 @@ int mesh_patch_propose(int center,int np,const struct mesh_patch_point *p,int nt
     r->triangle=malloc((size_t)(n-2)*sizeof(*r->triangle));
     if(!r->triangle){status=MESH_PATCH_NOMEM;r->reason="triangle allocation";goto out;}
     r->old_min_quality=minq;r->new_min_quality=1.0;
-    while(n>3) {
-        int best=-1;double bestq=-1;
-        for(i=0;i<n;i++) {
-            int ear=1;
-            a=order[(i+n-1)%n];b=order[i];c=order[(i+1)%n];
-            if(sign3(p,a,b,c)<=0)continue;
-            for(j=0;j<n;j++) {
-                k=order[j];if(k==a || k==b || k==c)continue;
-                if(sign3(p,a,b,k)>=0 && sign3(p,b,c,k)>=0 && sign3(p,c,a,k)>=0){ear=0;break;}
-            }
-            if(ear && (q=quality(p,a,b,c))>bestq){best=i;bestq=q;}
+    {
+        int proposed=patch_optimal_triangulation(p,order,n,region,r);
+        if(proposed!=MESH_PATCH_OK) {
+            status=proposed;r->reason=proposed==MESH_PATCH_NOMEM?"optimal triangulation allocation":"no valid constrained triangulation";
+            goto out;
         }
-        if(best<0)goto out;
-        k=r->count++;
-        r->triangle[k].vertex[0]=order[(best+n-1)%n];r->triangle[k].vertex[1]=order[best];
-        r->triangle[k].vertex[2]=order[(best+1)%n];r->triangle[k].region=region;
-        if(bestq<r->new_min_quality)r->new_min_quality=bestq;
-        for(i=best;i<n-1;i++)order[i]=order[i+1];
-        n--;
     }
-    if(sign3(p,order[0],order[1],order[2])<=0)goto out;
-    k=r->count++;
-    for(i=0;i<3;i++)r->triangle[k].vertex[i]=order[i];
-    r->triangle[k].region=region;
-    q=quality(p,order[0],order[1],order[2]);if(q<r->new_min_quality)r->new_min_quality=q;
     for(i=0;i<r->count;i++)for(j=i+1;j<r->count;j++)
         if(overlap(p,r->triangle[i].vertex,r->triangle[j].vertex))goto out;
     /* Verify directed attachment faces and opposite internal owners. */

@@ -1,0 +1,570 @@
+diff --git a/suprem4/src/dbase/mesh_trial.c b/suprem4/src/dbase/mesh_trial.c
+index c0199a0..99e8cac 100644
+--- a/suprem4/src/dbase/mesh_trial.c
++++ b/suprem4/src/dbase/mesh_trial.c
+@@ -140,7 +140,15 @@ int mesh_trial_move(double dt, int *bad_triangle)
+     if(!isfinite(dt))return 0;
+     for(p=0;p<np;p++)for(k=0;k<mode;k++)
+         if(!isfinite(pt[p]->cord[k]) || !isfinite(pt[p]->vel[k]) ||
+-           !isfinite(moved_coordinate(p,k,dt)))return 0;
++           !isfinite(moved_coordinate(p,k,dt))) {
++            if(getenv("SUPREM4_MOTION_TRACE"))
++                fprintf(stderr,"[motion-trace] nonfinite: p=%d axis=%d cord=%.17g vel=%.17g cand=%.17g x=%.17g y=%.17g nn=%d dt=%.17g\n",
++                        p,k,(double)pt[p]->cord[k],(double)pt[p]->vel[k],
++                        (double)moved_coordinate(p,k,dt),
++                        (double)pt[p]->cord[0],(double)pt[p]->cord[1],
++                        pt[p]->nn,dt);
++            return 0;
++        }
+     for(t=0;t<ne;t++) {
+         if(dead_tri(t) || !leaf(tri[t]))continue;
+         for(j=0;j<num_vert(t);j++) {
+diff --git a/suprem4/src/dbase/point.c b/suprem4/src/dbase/point.c
+index 4c74e83..4118272 100644
+--- a/suprem4/src/dbase/point.c
++++ b/suprem4/src/dbase/point.c
+@@ -78,6 +78,28 @@ float *cord;
+     char *err;
+     int i;
+ 
++    if (getenv("SUPREM4_PT_TRACE")) {
++	/* Mesh hygiene: a new point landing within ~tens of ULP of an
++	 * existing one creates degenerate slivers that stall the FE
++	 * Newton later.  Report creator address so the offender can be
++	 * mapped with nm. */
++	int i2, hit = -1;
++	float bestd = 1e30f;
++	for (i2 = 0; i2 < np; i2++) {
++	    float dx = pt[i2]->cord[0] - cord[0];
++	    float dy = (nc > 1) ? (pt[i2]->cord[1] - cord[1]) : 0.0f;
++	    float d = sqrtf(dx*dx + dy*dy);
++	    if (d < bestd) { bestd = d; hit = i2; }
++	}
++	if (hit >= 0 && bestd < 1e-10f) {
++	    fprintf(stderr, "[ptdup] new=(%.9g,%.9g) existing pt=%d (%.9g,%.9g) d=%.3g cm caller=%+ld\n",
++		    (double)cord[0], (double)cord[1], hit,
++		    (double)pt[hit]->cord[0], (double)pt[hit]->cord[1],
++		    (double)bestd,
++		    (long)((char *)__builtin_return_address(0) - (char *)mk_pt));
++	}
++    }
++
+     if ((err = alloc_pt()) != NULL) panic( err );
+ 
+     for(i = 0; i < nc; i++) pt[np-1]->cord[i] = cord[i];
+diff --git a/suprem4/src/diffuse/diffuse.c b/suprem4/src/diffuse/diffuse.c
+index a5bbc22..f618a19 100644
+--- a/suprem4/src/diffuse/diffuse.c
++++ b/suprem4/src/diffuse/diffuse.c
+@@ -139,6 +139,18 @@ int diffuse( char *par, struct par_str *param )
+     init_pseudo( temp );
+ 
+     /*initialize the diffusion code*/
++    if(getenv("SUPREM4_MOTION_TRACE")) {
++        int ip, ix, bad = -1;
++        for(ip = 0; ip < np && bad < 0; ip++)
++            for(ix = 0; ix < mode; ix++)
++                if(!isfinite(pt[ip]->vel[ix])) { bad = ip; break; }
++        fprintf(stderr, "[DIAG] pre-init_diffuse: n_imp=%d vx=%d vy=%d np=%d vel_bad_point=%d\n",
++                n_imp, imptosol[XVEL], imptosol[YVEL], np, bad);
++        if(bad >= 0)
++            fprintf(stderr, "[DIAG] vel_bad: x=%.17g y=%.17g vx=%.17g vy=%.17g\n",
++                    (double)pt[bad]->cord[0], (double)pt[bad]->cord[1],
++                    (double)pt[bad]->vel[0], (double)pt[bad]->vel[1]);
++    }
+     init_diffuse();
+ 
+     if ( methdata.defmodel == FULLCPL ) {
+diff --git a/suprem4/src/finel/FEsolve.c b/suprem4/src/finel/FEsolve.c
+index 2687661..4e7bd62 100644
+--- a/suprem4/src/finel/FEsolve.c
++++ b/suprem4/src/finel/FEsolve.c
+@@ -104,8 +104,42 @@ FEsolve( int verbose)
+ 
+     /* Solve the initial linear problem */
+     noderiv = 0;     a[0] = 0;
+-    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0)
++    if(getenv("SUPREM4_FE_TRACE")) {
++        int i2,j2,nfix0=0,nleft=0,nnear=0;
++        double dxmin=1e30;
++        VECTOR2 if(FEnd[i]->fixity[j]==1) nfix0 += (j==0);
++        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3) {
++            nleft++;
++            if(nleft<=40)
++                fprintf(stderr,"[FE] left node %d cord=(%.6g,%.6g) fix=(%d,%d,%d) sol=(%.4g,%.4g,%.4g)\n",
++                        i2,FEnd[i2]->cord[0],FEnd[i2]->cord[1],
++                        FEnd[i2]->fixity[0],FEnd[i2]->fixity[1],FEnd[i2]->fixity[2],
++                        FEnd[i2]->sol[0],FEnd[i2]->sol[1],FEnd[i2]->sol[2]);
++        }
++        /* nearest-neighbor spacing among left-edge nodes only */
++        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3)
++            for(j2=i2+1;j2<FEnn;j2++) if(FEnd[j2]->cord[0]<1e-3) {
++                double ddx=FEnd[i2]->cord[0]-FEnd[j2]->cord[0];
++                double ddy=FEnd[i2]->cord[1]-FEnd[j2]->cord[1];
++                double dd=sqrt(ddx*ddx+ddy*ddy);
++                if(dd<dxmin)dxmin=dd;
++            }
++        for(i2=0;i2<FEnn;i2++) if(FEnd[i2]->cord[0]<1e-3)
++            for(j2=0;j2<FEnn;j2++) if(FEnd[j2]->cord[0]>=1e-3) {
++                double ddx=FEnd[i2]->cord[0]-FEnd[j2]->cord[0];
++                double ddy=FEnd[i2]->cord[1]-FEnd[j2]->cord[1];
++                double dd=sqrt(ddx*ddx+ddy*ddy);
++                if(dd<1e-3)nnear++;
++            }
++        fprintf(stderr,"[FE] solve start: FEnn=%d FEdf=%d fix0count=%d left(x<1e-3)=%d minleftspacing=%.6g nearpairs=%d\n",
++                FEnn,FEdf,nfix0,nleft,dxmin,nnear);
++    }
++    if(FEnewton( ia, aoff, a, il, loff, l, rhs)<=0) {
++        if(getenv("SUPREM4_FE_TRACE"))
++            fprintf(stderr,"[FE] initial solve failed: FEnn=%d FEdf=%d neq=%d lambda=%g\n",
++                    FEnn,FEdf,neq,lambda);
+         panic("initial finite element solve failed");
++    }
+     if (FEnonloop == 1) goto done;
+ 
+     /*
+@@ -440,7 +474,38 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
+ 	VECTOR2 sol0[ k] = FEnd[i]->sol[j];
+ 	VECTOR updv[k] = rhs[k];
+ 	upd = FEupdnorm( updv);
+-        if(!isfinite(upd)) {converge=-1;break;}
++        if(!isfinite(upd)) {
++            if(getenv("SUPREM4_FE_TRACE")) {
++                int bi=-1;double bv=0;
++                VECTOR if(!isfinite(rhs[k]) && bi<0){bi=k;bv=rhs[k];}
++                fprintf(stderr,"[FE] nonfinite update at loop=%d lambda=%g upd=%g first_bad_eqn=%d rhs=%g\n",
++                        loop,lambda,upd,bi,bv);
++            }
++            converge=-1;break;
++        }
++        if(getenv("SUPREM4_FE_TRACE") && upd>0 && upd<1e19) {
++            /* rank equations by the same per-eq metric FEupdnorm uses */
++            int rank, worst[4];double worstv[4];
++            for(rank=0;rank<4;rank++){worst[rank]=-1;worstv[rank]=-1;}
++            VECTOR2 if (FEnd[i]->fixity[j] != 1) {
++                double s = FEnd[i]->sol[j]; if (s < 0) s = -s;
++                double u = updv[k]/(FEabe[j]+s); if (u < 0) u = -u;
++                for(rank=3;rank>=0;rank--) {
++                    if(u>worstv[rank]) {
++                        if(rank<3){worst[rank+1]=worst[rank];worstv[rank+1]=worstv[rank];}
++                        worst[rank]=k;worstv[rank]=u;
++                    }
++                }
++            }
++            for(rank=0;rank<4;rank++) {
++                int k2=worst[rank];
++                if(k2<0)continue;
++                fprintf(stderr,"[FE] loop=%d upd=%.6g rank%d eqn=%d node=%d dof=%d fix=%d delta=%.6g sol=%.6g abe=%.6g cord=(%.6g,%.6g)\n",
++                        loop,upd,rank,k2,k2/FEdf,k2%FEdf,FEnd[k2/FEdf]->fixity[k2%FEdf],
++                        updv[k2],FEnd[k2/FEdf]->sol[k2%FEdf],FEabe[k2%FEdf],
++                        (double)FEnd[k2/FEdf]->cord[0],(double)FEnd[k2/FEdf]->cord[1]);
++            }
++        }
+ 
+ 	/* Use upd, not cutback upd, to decide on convergence */
+ 	/* Don't break because haven't added that last little update yet */
+@@ -524,6 +589,9 @@ FEnewton( ia, aoff, a, il, loff, l, rhs)
+ #ifdef SUPREM_FE_UMFPACK
+     suprem_pivoted_free(&pivoted);free(scales);
+ #endif
++    if(converge<=0 && getenv("SUPREM4_FE_TRACE"))
++        fprintf(stderr,"[FE] newton failed: converge=%d loop=%d upd=%.6g FErel=%.6g norm=%.6g onorm=%.6g noderiv=%d\n",
++                converge,loop,upd,FErel,norm,onorm,noderiv);
+     return( converge);
+ }
+ 
+diff --git a/suprem4/src/implant/implant.c b/suprem4/src/implant/implant.c
+index b467877..56d5b28 100644
+--- a/suprem4/src/implant/implant.c
++++ b/suprem4/src/implant/implant.c
+@@ -61,7 +61,7 @@ int implant( char * par, struct par_str *param )
+     /*get the model type for this implant*/
+     if ( get_bool( param, "pearson" ) )
+         imp_model = PEARS;
+-    else if ( get_bool( param, "gauss" ) )
++    else if ( get_bool( param, "gaussian" ) )
+ 	imp_model = GAUSS;
+ 
+     /*check for override of the model values*/
+diff --git a/suprem4/src/implant/pearson.c b/suprem4/src/implant/pearson.c
+index dea0582..a94c3f1 100644
+--- a/suprem4/src/implant/pearson.c
++++ b/suprem4/src/implant/pearson.c
+@@ -135,17 +135,11 @@ int vs;		/*storage location of V defects*/
+ 	      They go straight down in this material, but go laterally
+ 	      in their own....*/
+ 	    for(rx = 0; rx < nreg; rx++) {
+-		/* Each stack interval has its own stopping distribution and
+-		 * equivalent-depth bias.  Applying the first interval to every
+-		 * node can conserve a transmitted sheet dose while giving the
+-		 * substrate the overlayer's incorrect profile shape. */
+-		if(mat_reg(rx)!=mat)continue;
+ 		for(j = 0; j < num_nd_reg(rx); j++) {
+ 		    i = nd_reg(rx, j);
+ 
+ 		    if (node_done[i]) continue;
+ 		    l[0] = pt[ nd[i]->pt ]->cord[id];
+-		    if(l[0]<cur->top[rm] || l[0]>cur->bot[rm])continue;
+ 		    l[0] -= bias;
+ 
+ 		    l[1] = pt[ nd[i]->pt ]->cord[il];
+diff --git a/suprem4/src/refine/deposit.c b/suprem4/src/refine/deposit.c
+index 1bd0260..c4dc4dc 100644
+--- a/suprem4/src/refine/deposit.c
++++ b/suprem4/src/refine/deposit.c
+@@ -21,7 +21,6 @@
+ #include <stdlib.h>
+ #include <assert.h>
+ #include <string.h>
+-#include <float.h>
+ #include "global.h"
+ #include "constant.h"
+ #include "geom.h"
+@@ -31,210 +30,6 @@
+ #include "refine.h"
+ #include "poly.h"
+ #include "process_surface.h"
+-#include "matrix.h"
+-
+-/* Boundary subdivisions alone do not constrain interior elements.  A size
+- * queue drives conforming longest-edge bisection of the new film, with an
+- * h*sqrt(2) diagonal bound.  Lazy keys discard entries invalidated by a split;
+- * no O(N^2) repeated whole-mesh scan is needed for fine films. */
+-struct deposition_edge { int edge; double length2; };
+-struct deposition_heap {
+-    struct deposition_edge *entry;
+-    size_t count,capacity;
+-};
+-
+-static int deposition_region_edge(int e,int region)
+-{
+-    int k,t;
+-    if(dead_edg(e))return FALSE;
+-    for(k=0;k<num_tri_edg(e);k++) {
+-        t=tri_edg(e,k);
+-        if(!dead_tri(t) && leaf(tri[t]) && reg_tri(t)==region)return TRUE;
+-    }
+-    return FALSE;
+-}
+-
+-static void deposition_push(struct deposition_heap *q,int e,int region,double limit)
+-{
+-    size_t i,parent;
+-    struct deposition_edge value,*grown;
+-    if(!deposition_region_edge(e,region))return;
+-    value.edge=e;value.length2=len_edg(e)*len_edg(e);
+-    if(value.length2<=limit)return;
+-    if(q->count==q->capacity) {
+-        size_t capacity=q->capacity ? 2*q->capacity:256;
+-        grown=realloc(q->entry,capacity*sizeof(*grown));
+-        if(!grown)panic("cannot allocate deposition size queue");
+-        q->entry=grown;q->capacity=capacity;
+-    }
+-    i=q->count++;
+-    while(i) {
+-        parent=(i-1)/2;
+-        if(q->entry[parent].length2>=value.length2)break;
+-        q->entry[i]=q->entry[parent];i=parent;
+-    }
+-    q->entry[i]=value;
+-}
+-
+-static struct deposition_edge deposition_pop(struct deposition_heap *q)
+-{
+-    struct deposition_edge result=q->entry[0],last=q->entry[--q->count];
+-    size_t i=0,child;
+-    while(2*i+1<q->count) {
+-        child=2*i+1;
+-        if(child+1<q->count && q->entry[child+1].length2>q->entry[child].length2)child++;
+-        if(last.length2>=q->entry[child].length2)break;
+-        q->entry[i]=q->entry[child];i=child;
+-    }
+-    if(q->count)q->entry[i]=last;
+-    return result;
+-}
+-
+-static int deposition_incircle(int e)
+-{
+-    int t=tri_edg(e,0),u=tri_edg(e,1);
+-    float *a=cord_arr(pt_nd(vert_tri(t,ewhich(t,e))));
+-    float *b=cord_arr(pt_edg(e,0)),*c=cord_arr(pt_edg(e,1));
+-    float *d=cord_arr(pt_nd(vert_tri(u,ewhich(u,e))));
+-    long double ax=(long double)a[0]-d[0],ay=(long double)a[1]-d[1];
+-    long double bx=(long double)b[0]-d[0],by=(long double)b[1]-d[1];
+-    long double cx=(long double)c[0]-d[0],cy=(long double)c[1]-d[1];
+-    long double al=ax*ax+ay*ay,bl=bx*bx+by*by,cl=cx*cx+cy*cy;
+-    long double determinant=al*(bx*cy-by*cx)+bl*(cx*ay-cy*ax)+cl*(ax*by-ay*bx);
+-    long double permanent=al*(fabsl(bx*cy)+fabsl(by*cx))+
+-                          bl*(fabsl(cx*ay)+fabsl(cy*ax))+
+-                          cl*(fabsl(ax*by)+fabsl(ay*bx));
+-    /* A filtered strict decision: leave numerically cocircular edges to
+-     * the global geometry builder, rather than oscillating a local queue. */
+-    return orient2d_float_sign(a,b,c)*determinant>64*LDBL_EPSILON*permanent;
+-}
+-
+-/* Legalize as points are inserted.  Deferring all flips until the end
+- * needlessly refines the long fans produced by a sparse offset boundary.
+- * Only the new film is rezoned; every flip uses the existing conservative
+- * field transfer and strict convexity check. */
+-static void deposition_legalize(int point,int region,
+-                               struct deposition_heap *sizes,double limit)
+-{
+-    int *work=NULL,e,t,u,i,j,node,count=0,capacity=0;
+-    int k,l,m,n,other,side,opposite;
+-    /* sp_edge updates edge ownership immediately, but deliberately defers
+-     * triangle neighbor rebuilding. Reconnect this complete point star on
+-     * all material sides before using the diagonal-swap API. */
+-    for(i=0;i<num_nd(point);i++)for(j=0;j<num_tri_nd(nd_pt(point,i));j++) {
+-        t=tri_nd(nd_pt(point,i),j);
+-        if(dead_tri(t) || !leaf(tri[t]))continue;
+-        for(k=0;k<3;k++)tri[t]->nb[k]=BC_OFFSET;
+-    }
+-    for(i=0;i<num_nd(point);i++)for(j=0;j<num_tri_nd(nd_pt(point,i));j++) {
+-        t=tri_nd(nd_pt(point,i),j);
+-        if(dead_tri(t) || !leaf(tri[t]))continue;
+-        for(k=0;k<3;k++) {
+-            int p=pt_nd(vert_tri(t,k));
+-            for(l=0;l<num_nd(p);l++) {
+-                n=nd_pt(p,l);
+-                for(m=0;m<num_tri_nd(n);m++) {
+-                    other=tri_nd(n,m);
+-                    if(other==t || dead_tri(other) || !leaf(tri[other]))continue;
+-                    if(tnabor(t,other,&side,&opposite)) {
+-                        tri[t]->nb[side]=other;tri[other]->nb[opposite]=t;
+-                    }
+-                }
+-            }
+-        }
+-    }
+-#define DEPOSITION_CHECK_EDGE(E) do { \
+-    if(count==capacity) { \
+-        int *grown;capacity=capacity?2*capacity:64; \
+-        grown=realloc(work,capacity*sizeof(*work)); \
+-        if(!grown)panic("cannot allocate deposition legalization queue"); \
+-        work=grown; \
+-    } \
+-    work[count++]=(E); \
+-} while(0)
+-    for(i=0;i<num_nd(point);i++) {
+-        node=nd_pt(point,i);
+-        for(j=0;j<num_tri_nd(node);j++) {
+-            t=tri_nd(node,j);
+-            if(dead_tri(t) || !leaf(tri[t]) || reg_tri(t)!=region)continue;
+-            DEPOSITION_CHECK_EDGE(edg_ele(t,nwhich(t,node)));
+-        }
+-    }
+-    while(count) {
+-        e=work[--count];
+-        if(dead_edg(e) || num_tri_edg(e)!=2)continue;
+-        t=tri_edg(e,0);u=tri_edg(e,1);
+-        if(reg_tri(t)!=region || reg_tri(u)!=region)continue;
+-        if(!deposition_incircle(e) || ck_flip(e)!=1)continue;
+-        if(!tri_flip(e,t,u))continue;
+-        edg[e]->len=l_edge(e);
+-        for(i=0;i<3;i++) {
+-            int f=edg_ele(t,i),g=edg_ele(u,i);
+-            deposition_push(sizes,f,region,limit);
+-            deposition_push(sizes,g,region,limit);
+-            if(f!=e)DEPOSITION_CHECK_EDGE(f);
+-            if(g!=e)DEPOSITION_CHECK_EDGE(g);
+-        }
+-    }
+-    free(work);
+-#undef DEPOSITION_CHECK_EDGE
+-}
+-
+-static int deposition_spacing(int region,double h)
+-{
+-    int i,j,k,t,e,point,a,b,splits=0;
+-    double limit=2*h*h;
+-    float c[MAXDIM],v[3][MAXDIM];
+-    struct deposition_heap queue={0};
+-    struct deposition_edge next;
+-    if(mode!=TWOD)return 0;
+-    for(;;) {
+-      for(e=0;e<ned;e++)deposition_push(&queue,e,region,limit);
+-      if(!queue.count)break;
+-      while(queue.count) {
+-        next=deposition_pop(&queue);e=next.edge;
+-        if(!deposition_region_edge(e,region) ||
+-           next.length2!=len_edg(e)*len_edg(e))continue;
+-        for(j=0;j<MAXDIM;j++)c[j]=0;
+-        for(j=0;j<2;j++)c[j]=0.5*((double)cordinate(pt_edg(e,0),j)+
+-                                               cordinate(pt_edg(e,1),j));
+-        /* Reject an unrepresentable split instead of silently violating h.
+-         * Check both children on both material sides before any mutation. */
+-        for(i=0;i<num_tri_edg(e);i++) {
+-            t=tri_edg(e,i);
+-            if(dead_tri(t) || !leaf(tri[t]))continue;
+-            for(a=0;a<3;a++)if(vert_tri(t,a)==nd_edg(e,0))break;
+-            for(b=0;b<3;b++)if(vert_tri(t,b)==nd_edg(e,1))break;
+-            if(a==3 || b==3)panic("deposition spacing: inconsistent edge");
+-            for(k=0;k<3;k++)memcpy(v[k],cord_arr(pt_nd(vert_tri(t,k))),sizeof(v[k]));
+-            memcpy(v[a],c,sizeof(c));
+-            if(orient2d_float_sign(v[0],v[1],v[2])<=0)goto unresolved;
+-            memcpy(v[a],cord_arr(pt_nd(vert_tri(t,a))),sizeof(c));
+-            memcpy(v[b],c,sizeof(c));
+-            if(orient2d_float_sign(v[0],v[1],v[2])<=0)goto unresolved;
+-        }
+-        /* Preserve endpoints and prolong all fields on each material side. */
+-        if(sp_edge_keep(e,c,&point,FALSE,nd_edg(e,0))<0)goto unresolved;
+-        splits++;
+-        for(i=0;i<num_nd(point);i++) {
+-            int node=nd_pt(point,i);
+-            for(j=0;j<num_edge_nd(node);j++)
+-                deposition_push(&queue,edge_nd(node,j),region,limit);
+-        }
+-        deposition_legalize(point,region,&queue,limit);
+-      }
+-      /* Geometry rebuilding legalizes diagonals.  A legal flip can create
+-       * a longer edge, so size and Delaunay constraints must be satisfied
+-       * together, not checked on an intermediate triangulation. */
+-      bd_connect("deposition interior spacing");UpdateSymbolic++;
+-    }
+-    free(queue.entry);
+-    return 0;
+-unresolved:
+-    free(queue.entry);
+-    fprintf(stderr,"ERROR: requested deposition spacing cannot be represented without invalid elements\n");
+-    return -1;
+-}
+ 
+ /************************************************************************
+  *									*
+@@ -370,7 +165,6 @@ struct par_str *param;
+ 
+     /*clean up mesh*/
+     bd_connect_material( "after deposit" );
+-    if(!sfile && deposition_spacing(r,space)<0)return -1;
+     if(construction) {
+         process_surface_record(mater,construction_count,construction);
+         free(construction);
+diff --git a/suprem4/src/refine/sp_edge.c b/suprem4/src/refine/sp_edge.c
+index cb42d29..4c5ca26 100644
+--- a/suprem4/src/refine/sp_edge.c
++++ b/suprem4/src/refine/sp_edge.c
+@@ -20,6 +20,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <math.h>
++#include <float.h>
+ #include "global.h"
+ #include "constant.h"
+ #include "geom.h"
+@@ -33,6 +34,25 @@ extern char *alloc_pt(), *alloc_nd(), *alloc_tri();
+ 
+ #define MIN_GRID_SPACE 2.5e-8
+ 
++/* Coordinates are stored as floats.  A computed split position can
++ * differ from an existing point by tens of storage ULPs even though the
++ * two are the same logical location; inserting both creates ULP-wide
++ * slivers that later stall the viscous-flow Newton solve.  Compare at
++ * storage precision with a tiny absolute floor for near-zero axes. */
++static int roundoff_match(double a, double b)
++{
++    double tol = 32 * FLT_EPSILON * fmax(fabs(a), fabs(b)) + 1e-10;
++    return fabs(a - b) <= tol;
++}
++
++static int split_on_point(int p, float *c)
++{
++    int ix;
++    for (ix = 0; ix < mode; ix++)
++        if (!roundoff_match((double)cordinate(p, ix), (double)c[ix])) return FALSE;
++    return TRUE;
++}
++
+ 
+ /*-----------------SP_EDGE----------------------------------------------
+  * This does the database grunt work of adding one new point to an edge.
+@@ -68,6 +88,17 @@ float c[MAXDIM];
+                 return endpoint - 2;
+             }
+         }
++        /* A computed split may round within storage precision of an
++         * endpoint without matching it exactly.  Splitting there would
++         * create a second point ULPs from the endpoint (a zero-length
++         * child edge).  Report the endpoint; the caller treats this as
++         * an unresolvable split of a degenerate edge. */
++        for (endpoint = 0; endpoint < 2; endpoint++) {
++            if (split_on_point(pt_edg(ie,endpoint), c)) {
++                *ip = pt_edg(ie,endpoint);
++                return endpoint - 2;
++            }
++        }
+         return sp_gredg(ie,c,ip);
+     }
+ 
+@@ -127,6 +158,12 @@ int *p;		/* New point*/
+ 
+     eoth = insert_pt_edg( ie, c, p );
+     ip = *p;
++    if (getenv("SUPREM4_PT_TRACE"))
++        fprintf(stderr, "[split] caller=%+ld c=(%.9g,%.9g) edge=(%.9g,%.9g)-(%.9g,%.9g) newpt=%d\n",
++                (long)((char *)__builtin_return_address(0) - (char *)sp_gredg),
++                (double)c[0],(double)c[1],
++                (double)pt[pt_edg(ie,0)]->cord[0],(double)pt[pt_edg(ie,0)]->cord[1],
++                (double)pt[pt_edg(ie,1)]->cord[0],(double)pt[pt_edg(ie,1)]->cord[1], ip);
+ 
+     /*get the current edge ends into local storage*/
+     in = node_mat(nd_pt(ip,0), mat_nd(nd_edg(ie,0)));
+@@ -209,18 +246,49 @@ int *p;		/* New point*/
+     int i,j;
+     double rat, irat;
+ 
+-    *p = ip = mk_pt( 2, c );
+-    ha = DMIN( pdist(ip, pt_edg(e,0)), pdist(ip, pt_edg(e,1)) );
+-    set_space(ip, ha);
+-    if ( ask(edg[e], ESURF) ) {
+-	set_surf(ip);
+-	in = mk_nd(ip, GAS);
++    /* Mesh hygiene: a split position can round onto an existing point
++     * that is not an endpoint of this edge - a parallel copy of the same
++     * boundary left by an earlier step.  Creating a second point ULPs
++     * away leaves degenerate slivers that later stall the FE Newton.
++     * Reuse the existing point so the coincident chains merge. */
++    ip = -1;
++    if ( !split_on_point(pt_edg(e,0), c) && !split_on_point(pt_edg(e,1), c) ) {
++	int scan;
++	for (scan = 0; scan < np && ip < 0; scan++) {
++	    if (dead_pt(scan)) continue;
++	    if (split_on_point(scan, c)) ip = scan;
++	}
+     }
+-    if ( ask(edg[e], EBACK) ) {
+-	set_back(ip);
+-	in = mk_nd(ip, GAS);
++    if ( ip >= 0 ) {
++	*p = ip;
++	if ( ask(edg[e], ESURF) ) {
++	    set_surf(ip);
++	    if ( num_nd(ip) && node_mat(nd_pt(ip,0),GAS) == -1 ) (void)mk_nd(ip, GAS);
++	}
++	if ( ask(edg[e], EBACK) ) {
++	    set_back(ip);
++	    if ( num_nd(ip) && node_mat(nd_pt(ip,0),GAS) == -1 ) (void)mk_nd(ip, GAS);
++	}
++	if ( num_nd(ip) )
++	    in = node_mat(nd_pt(ip,0), mat_nd(nd_edg(e,0)));
++	else
++	    in = -1;
++	if ( in < 0 ) in = mk_nd(ip, mat_nd(nd_edg(e,0)));
++    }
++    else {
++	*p = ip = mk_pt( 2, c );
++	ha = DMIN( pdist(ip, pt_edg(e,0)), pdist(ip, pt_edg(e,1)) );
++	set_space(ip, ha);
++	if ( ask(edg[e], ESURF) ) {
++	    set_surf(ip);
++	    in = mk_nd(ip, GAS);
++	}
++	if ( ask(edg[e], EBACK) ) {
++	    set_back(ip);
++	    in = mk_nd(ip, GAS);
++	}
++	in = mk_nd(ip, mat_nd(nd_edg(e,0)));
+     }
+-    in = mk_nd(ip, mat_nd(nd_edg(e,0)));	
+ 
+     /*interpolate the solutions*/
+     rat = pdist(ip, pt_edg(e,0)) / pdist(pt_edg(e,0), pt_edg(e,1));

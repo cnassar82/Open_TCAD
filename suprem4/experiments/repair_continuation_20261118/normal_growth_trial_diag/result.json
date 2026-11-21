@@ -1,0 +1,14 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_t4pr6tts/src/suprem4",
+  "binary_sha256": "d0ec5ccac450f231566e8dbe8f557d21d83c60311ed08b75985f626896689194",
+  "input_sha256": "7bb827f9eb3714e54cc1e0ede5cb86d9a081f9b37df01b99c9c3fcf5be8c4206",
+  "requested_normal_spacing_nm": 1.0,
+  "runtime_options": {
+    "SUPREM4_PT_TRACE": "1",
+    "SUPREM4_MESH_DIAG": "1",
+    "SUPREM4_NORMAL_LAYERS": "1"
+  },
+  "accepted_full_cmos": false,
+  "exit": -6,
+  "elapsed_seconds": 0.21491399686783552
+}

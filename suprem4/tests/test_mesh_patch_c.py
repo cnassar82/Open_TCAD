@@ -2,6 +2,8 @@
 import ctypes as C
 import json
 import math
+import os
+from functools import lru_cache
 from pathlib import Path
 import random
 import struct
@@ -13,6 +15,7 @@ from mesh_patch_oracle import propose_interior_star
 from partition_audit import audit_partition
 
 ROOT=Path(__file__).resolve().parents[1]
+SOURCE=Path(os.environ.get('SUPREM_TEST_SOURCE',ROOT/'src')).resolve()
 class Point(C.Structure):_fields_=[('xy',C.c_float*2)]
 class Triangle(C.Structure):_fields_=[('vertex',C.c_int*3),('region',C.c_int)]
 class Result(C.Structure):
@@ -29,10 +32,10 @@ class KernelTest(unittest.TestCase):
         so=cls.work/'kernel.so'
         misc=cls.work/'misc.o'
         subprocess.run(['gcc','-c','-fPIC','-O2','-std=gnu89','-ffunction-sections',
-                        '-fvisibility=hidden','-I',str(ROOT/'src/include'),
-                        str(ROOT/'src/geom/misc.c'),'-o',str(misc)],check=True)
+                        '-fvisibility=hidden','-I',str(SOURCE/'include'),
+                        str(SOURCE/'geom/misc.c'),'-o',str(misc)],check=True)
         subprocess.run(['gcc','-shared','-fPIC','-O2','-std=gnu89','-ffunction-sections',
-                        '-I',str(ROOT/'src/include'),str(ROOT/'src/dbase/mesh_patch.c'),
+                        '-I',str(SOURCE/'include'),str(SOURCE/'dbase/mesh_patch.c'),
                         str(misc),'-Wl,--gc-sections','-lm','-o',str(so)],check=True)
         cls.lib=C.CDLL(str(so));cls.lib.mesh_patch_propose.argtypes=[C.c_int,C.c_int,C.POINTER(Point),C.c_int,C.POINTER(Triangle),C.POINTER(Result)]
         cls.lib.mesh_patch_release.argtypes=[C.POINTER(Result)]
@@ -84,6 +87,63 @@ class KernelTest(unittest.TestCase):
                     accepted+=1;self.verify_output(p,t,new);self.assertGreaterEqual(q[1],q[0]*(1-1e-12))
                 else:refused+=1;self.assertEqual(reason,'quality would deteriorate')
         self.assertGreater(accepted,0)
+    def test_high_valence_quality_refusal(self):
+        n=64
+        p=[(0,0)]+[(math.cos(2*math.pi*i/n),math.sin(2*math.pi*i/n)) for i in range(n)]
+        old=[(0,i+1,(i+1)%n+1) for i in range(n)]
+        code,new,reason,q,_=self.run_kernel(p,old)
+        self.assertEqual(code,1,reason)
+        self.assertEqual(new,[])
+        self.assertEqual(reason,'quality would deteriorate')
+        self.assertTrue(math.isfinite(q[1]) and 0<q[1]<q[0])
+
+    def test_captured_greedy_quality_deadlock(self):
+        d=json.loads((ROOT/'tests/fixtures/rit_pmos_quality_deadlock/cavity.json').read_text())
+        ids=[d['center']]+[int(k) for k in d['points_cm_hex'] if int(k)!=d['center']]
+        p=[tuple(float.fromhex(x) for x in d['points_cm_hex'][str(k)]) for k in ids]
+        old=[tuple(ids.index(v) for v in t) for t in d['old_triangles']]
+        rng=random.Random(182026)
+        for scale in (1.,1024.,1./1024):
+            permutation=list(range(len(p)));rng.shuffle(permutation)
+            points=[tuple(scale*x for x in p[v]) for v in permutation]
+            triangles=[tuple(permutation.index(v) for v in t) for t in old];rng.shuffle(triangles)
+            code,new,reason,q,rounded=self.run_kernel(points,triangles,center=permutation.index(0))
+            self.assertEqual(code,0,reason)
+            self.assertAlmostEqual(q[0],d['old_min_quality'],places=12)
+            self.assertAlmostEqual(q[1],d['optimal_min_quality'],places=12)
+            self.assertGreater(q[1],.8)
+            self.verify_output(rounded,triangles,new)
+
+    def test_optimal_score_against_exhaustive_ear_search(self):
+        from mesh_patch_oracle import inside_or_on
+        rng=random.Random(192026)
+        for n in range(4,9):
+            for rep in range(3):
+                points=[(0,0)]+[(rng.uniform(.5,1.5)*math.cos(2*math.pi*i/n),
+                                 rng.uniform(.5,1.5)*math.sin(2*math.pi*i/n)) for i in range(n)]
+                old=[(0,i+1,(i+1)%n+1) for i in range(n)]
+                code,new,reason,q,p=self.run_kernel(points,old)
+                exact={i:tuple(F(x) for x in xy) for i,xy in enumerate(p)}
+                def quality(t):
+                    v=[exact[i] for i in t]
+                    denominator=sum((a[0]-b[0])**2+(a[1]-b[1])**2 for a,b in zip(v,v[1:]+v[:1]))
+                    return 2*math.sqrt(3)*float(orient(p,t)/denominator)
+                @lru_cache(None)
+                def exhaustive(poly):
+                    if len(poly)==3:return quality(poly) if orient(p,poly)>0 else -1
+                    best=-1
+                    for i in range(len(poly)):
+                        t=(poly[i-1],poly[i],poly[(i+1)%len(poly)])
+                        if orient(p,t)<=0 or any(inside_or_on(exact,v,*t) for v in poly if v not in t):continue
+                        rest=exhaustive(poly[:i]+poly[i+1:])
+                        if rest>=0:best=max(best,min(quality(t),rest))
+                    return best
+                optimum=exhaustive(tuple(range(1,n+1)))
+                self.assertIn(code,(0,1),reason)
+                self.assertAlmostEqual(q[1],optimum,places=12)
+                if code==0:self.verify_output(p,old,new)
+                else:self.assertLess(optimum,q[0]*(1-1e-12))
+
     def test_captured_boundary_and_region_constraint(self):
         d=json.loads((ROOT/'tests/fixtures/rit_pmos_first_bad_removal/patch.json').read_text())
         ids=[d['center']['id']]+[int(k) for k in d['points'] if int(k)!=d['center']['id']]

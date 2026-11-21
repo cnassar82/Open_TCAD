@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 15:40:51 */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
@@ -177,6 +178,74 @@ static int exact_clip_coordinate(float *p,int clip)
 static int exact_clip_contact(int point,int clip)
 {return exact_clip_coordinate(cord_arr(point),clip);}
 
+/* Subject boundary edges that lie exactly on the clipping boundary.
+ * A midpoint sample cannot classify such an edge: it is ON, or roundoff
+ * places it one ULP on an arbitrary side. Both skeletons have the same
+ * orientation (ck_clock), so material lies on the same side of an edge
+ * running the same way as its supporting clip edge (removed, IN) and on
+ * opposite sides of an edge running against it (retained, OUT). */
+struct coincident_edge {int edge,cls;};
+static struct coincident_edge *coincident=NULL;
+static int ncoincident=0,coincident_capacity=0;
+
+/* Point p lies on the supporting line of ab to storage rounding: the
+ * lateral band of rounding_on_segment, without its finite-extent limits. */
+static int rounding_on_line(const float *p,const float *a,const float *b)
+{
+    double dx=(double)b[0]-a[0],dy=(double)b[1]-a[1];
+    double xtol=2*FLT_EPSILON*fmax(fabs((double)p[0]),fmax(fabs((double)a[0]),fabs((double)b[0])));
+    double ytol=2*FLT_EPSILON*fmax(fabs((double)p[1]),fmax(fabs((double)a[1]),fabs((double)b[1])));
+    if(dx==0 && dy==0)return FALSE;
+    return fabs(((double)p[0]-a[0])*dy-((double)p[1]-a[1])*dx)<=xtol*fabs(dy)+ytol*fabs(dx);
+}
+/* Subject edge ab runs along clip edge cd when its midpoint is ON cd and
+ * both endpoints are on cd's supporting line, all to storage rounding
+ * (exact collinearity is the special case). */
+static int coincident_class(int a,int b,int clip)
+{
+    struct LLedge *q=sreg[clip]->bnd;
+    float *pa=cord_arr(pt_nd(a)),*pb=cord_arr(pt_nd(b)),m[3];
+    int k;
+    for(k=0;k<2;k++)m[k]=.5*((double)pa[k]+pb[k]);
+    m[2]=0;
+    do {
+        float *c=cord_arr(pt_nd(nB(q))),*d=cord_arr(pt_nd(nF(q)));
+        if(rounding_on_segment(m,c,d) && rounding_on_line(pa,c,d) && rounding_on_line(pb,c,d)) {
+            double dot=((double)pb[0]-pa[0])*((double)d[0]-c[0])+
+                       ((double)pb[1]-pa[1])*((double)d[1]-c[1]);
+            if(dot>0)return IN;
+            if(dot<0)return OUT;
+        }
+        q=q->next;
+    }while(q!=sreg[clip]->bnd);
+    return ON;
+}
+static int coincident_lookup(int edge)
+{
+    int i;
+    for(i=0;i<ncoincident;i++)if(coincident[i].edge==edge)return coincident[i].cls;
+    return ON;
+}
+/* A vertex ON the clip is a junction only if its retained/removed status
+ * changes there. Where every incident boundary edge has one class and at
+ * least one of them is coincident, the vertex takes that class; arcs then
+ * break only at genuine junctions. */
+static void reclassify_coincident(int subject,int *inside)
+{
+    struct LLedge *bp,*bnd=sreg[subject]->bnd;
+    int g,before,after;
+    if(!ncoincident)return;
+    for(g=1,bp=bnd;g || bp!=bnd;g=0,bp=bp->next) {
+        int prev_cls,next_cls;
+        if(inside[nB(bp)]!=ON)continue;
+        before=coincident_lookup(bp->prev->edge);after=coincident_lookup(bp->edge);
+        if(before==ON && after==ON)continue;
+        prev_cls=before!=ON?before:inside[nB(bp->prev)];
+        next_cls=after!=ON?after:inside[nF(bp)];
+        if(prev_cls!=ON && prev_cls==next_cls)inside[nB(bp)]=prev_cls;
+    }
+}
+
 /* The arc walker needs at most one crossing per source edge. Resolve
  * multiple crossings before classification, rather than silently keeping
  * an arc that passes through the clipping polygon a second time. Split
@@ -263,11 +332,23 @@ classify_interiors:
      * classifications alone do not determine that arc's interior. */
     n=sreg[subject]->len;pieces=salloc(int,n);
     bnd=s=sreg[subject]->bnd;i=0;
+    ncoincident=0;
     do{pieces[i++]=s->edge;s=s->next;}while(s!=bnd);
-    for(i=0;i<n;i++) {
+    s=bnd;
+    for(i=0;i<n;i++,s=s->next) {
+        int cls;
         edge=pieces[i];
         if(!on_bound(pt_edg(edge,0),clip) ||
            !on_bound(pt_edg(edge,1),clip))continue;
+        cls=coincident_class(nB(s),nF(s),clip);
+        if(cls!=ON) {
+            if(ncoincident==coincident_capacity) {
+                coincident_capacity=coincident_capacity?2*coincident_capacity:64;
+                coincident=sralloc(struct coincident_edge,coincident_capacity,coincident);
+            }
+            coincident[ncoincident].edge=edge;coincident[ncoincident].cls=cls;ncoincident++;
+            continue;
+        }
         for(j=0;j<2;j++)c[j]=.5*((double)cordinate(pt_edg(edge,0),j)+
                                        cordinate(pt_edg(edge,1),j));
         c[2]=0;
@@ -299,6 +380,50 @@ int *s;
 
     /*check for the points in / out */
     check_in( s1, s2, inside, &allin, &allout );
+    if(mode==TWOD && ncoincident) {
+        struct LLedge *bp,*bnd=sreg[s1]->bnd;
+        int g,in=0,out=0,cnt=0;
+        reclassify_coincident(s1,inside);
+        /* An isolated retained coincident edge between two junctions has
+         * no OUT vertex for the arc walker. Give it a midpoint whose class
+         * is the edge's exact class, not a rounded point-in-polygon sample. */
+        for(g=0;g<ncoincident;g++) {
+            int edge=coincident[g].edge,a=nd_edg(edge,0),b=nd_edg(edge,1),k,point,node,old_nn;
+            float c[3];
+            if(coincident[g].cls!=OUT || inside[a]!=ON || inside[b]!=ON)continue;
+            for(k=0;k<2;k++)c[k]=.5*((double)cordinate(pt_nd(a),k)+cordinate(pt_nd(b),k));
+            c[2]=0;
+            if((c[0]==cordinate(pt_nd(a),0) && c[1]==cordinate(pt_nd(a),1)) ||
+               (c[0]==cordinate(pt_nd(b),0) && c[1]==cordinate(pt_nd(b),1)))continue;
+            old_nn=nn;
+            sp_gredg(edge,c,&point);
+            if(nn>old_nn) {
+                inside=sralloc(int,nn,inside);
+                for(k=old_nn;k<nn;k++)inside[k]=ON;
+            }
+            node=node_mat(nd_pt(point,0),sreg[s1]->mat);
+            if(node>=0)inside[node]=OUT;
+        }
+        for(g=1,bp=bnd;g || bp!=bnd;g=0,bp=bp->next) {
+            cnt++;
+            if(inside[nB(bp)]!=OUT)in++;
+            if(inside[nB(bp)]!=IN)out++;
+        }
+        allin=in==cnt;allout=out==cnt;
+        if(getenv("SUPREM4_SNAP_DIAG")) {
+            /* vertex class O/I/N, then edge: '.' ordinary, '+' retained
+             * coincident, '-' removed coincident; run-length encoded. */
+            char last[3]="",cur[3];int run=0;
+            fprintf(stderr,"[skel-coincident] subject=%d edges=%d:",s1,ncoincident);
+            for(g=1,bp=bnd;g || bp!=bnd;g=0,bp=bp->next) {
+                int v=inside[nB(bp)],c=coincident_lookup(bp->edge);
+                cur[0]=v==OUT?'O':v==IN?'I':'N';cur[1]=c==OUT?'+':c==IN?'-':'.';cur[2]=0;
+                if(strcmp(cur,last)){if(run)fprintf(stderr," %s%d",last,run);strcpy(last,cur);run=0;}
+                run++;
+            }
+            fprintf(stderr," %s%d\n",last,run);
+        }
+    }
     if (mesh_diag_enabled())
 	fprintf(stderr, "[meshdiag] sub_skel classify s1=%d s2=%d s1_allin=%d s1_allout=%d len1=%d len2=%d\n",
 		s1, s2, allin, allout, sreg[s1]->len, sreg[s2]->len);
@@ -420,23 +545,29 @@ struct LLedge *edge;
     return 0;
 }
 
-static int same_clip_point(int a, int b)
+/* Agreement of two stored binary32 points to storage rounding, per axis. */
+int rounding_same_point(const float *a, const float *b)
 {
     double tolerance, x, y;
     int k;
+    for (k=0; k<2; k++) {
+        x = fabs((double)a[k]);
+        y = fabs((double)b[k]);
+        tolerance = 2 * FLT_EPSILON * fmax(x,y);
+        if (fabs((double)a[k]-b[k]) > tolerance)
+            return FALSE;
+    }
+    return TRUE;
+}
+
+static int same_clip_point(int a, int b)
+{
     /* Intersections and original corners are stored as floats.  At an
      * axis-aligned boundary a computed intersection can differ from its
      * corner by roundoff (e.g. x=-1e-23 instead of zero).  Inserting both
      * creates a reversing edge and changes the polygon's winding number.
      * Compare at storage precision, without a fixed physical length cutoff. */
-    for (k=0; k<2; k++) {
-        x = fabs((double)cordinate(a,k));
-        y = fabs((double)cordinate(b,k));
-        tolerance = 2 * FLT_EPSILON * fmax(x,y);
-        if (fabs((double)cordinate(a,k)-cordinate(b,k)) > tolerance)
-            return FALSE;
-    }
-    return TRUE;
+    return rounding_same_point(cord_arr(a), cord_arr(b));
 }
 
 /* Regularized area Booleans do not return isolated points or line segments
@@ -800,27 +931,36 @@ int *ai, *ao;
 /* The same finite-segment predicate is used for classification and for
  * endpoint intersections.  A fixed one-Angstrom ON band classified nearby
  * parallel edges as crossing even when no intersection could be found. */
-static int clip_on_segment(int p, int a, int b)
+/* Point p lies on finite segment ab to binary32 storage rounding. This is
+ * the ON predicate of the skeleton Boolean; etch cutter snap rounding uses
+ * the same predicate so that exactly these contacts are made exact. */
+int rounding_on_segment(const float *p, const float *a, const float *b)
 {
-    double px,py,ax,ay,bx,by,dx,dy,len,t,xtol,ytol;
-    px=cordinate(p,0); py=cordinate(p,1);
-    ax=cordinate(a,0); ay=cordinate(a,1);
-    bx=cordinate(b,0); by=cordinate(b,1);
-    /* A storage-roundoff allowance on the supporting line must not extend
-     * the finite segment beyond either endpoint. */
-    if (px<fmin(ax,bx) || px>fmax(ax,bx) ||
-        py<fmin(ay,by) || py>fmax(ay,by)) return FALSE;
-    dx=bx-ax; dy=by-ay; len=hypot(dx,dy);
-    /* Propagate coordinate precision through the dot/cross products.
-     * A large lateral coordinate must not create an equally large depth
-     * tolerance on an almost horizontal interface. */
+    double px,py,ax,ay,bx,by,dx,dy,t,xtol,ytol;
+    px=p[0]; py=p[1];
+    ax=a[0]; ay=a[1];
+    bx=b[0]; by=b[1];
+    dx=bx-ax; dy=by-ay;
+    if (dx==0 && dy==0) return rounding_same_point(p,a);
+    /* The allowance is lateral only. A point must project within the
+     * finite segment: storage roundoff never extends a segment beyond
+     * either endpoint. Float differences and their products are exact in
+     * double, so the slab test is decided correctly. (An exact bounding box
+     * did this for sloped segments, but left an axis-aligned segment, such
+     * as a mask edge, with no lateral allowance at all.) */
+    t=(px-ax)*dx+(py-ay)*dy;
+    if (t<0 || t>dx*dx+dy*dy) return FALSE;
+    /* Propagate coordinate precision through the cross product. A large
+     * lateral coordinate must not create an equally large depth tolerance
+     * on an almost horizontal interface. */
     xtol=2*FLT_EPSILON*fmax(fabs(px),fmax(fabs(ax),fabs(bx)));
     ytol=2*FLT_EPSILON*fmax(fabs(py),fmax(fabs(ay),fabs(by)));
-    if (len==0) return same_clip_point(p,a);
-    t=(px-ax)*dx+(py-ay)*dy;
-    return t>=-(xtol*fabs(dx)+ytol*fabs(dy)) &&
-           t<=len*len+xtol*fabs(dx)+ytol*fabs(dy) &&
-           fabs((px-ax)*dy-(py-ay)*dx)<=xtol*fabs(dy)+ytol*fabs(dx);
+    return fabs((px-ax)*dy-(py-ay)*dx)<=xtol*fabs(dy)+ytol*fabs(dx);
+}
+
+static int clip_on_segment(int p, int a, int b)
+{
+    return rounding_on_segment(cord_arr(p), cord_arr(a), cord_arr(b));
 }
 
 /* An ON endpoint is already the junction chosen by classification. Re-solving

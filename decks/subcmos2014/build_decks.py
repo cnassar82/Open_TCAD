@@ -13,13 +13,23 @@ CHECKPOINTS = ['initial', 'pad', 'well_mask', 'wells', 'locos_mask', 'locos',
                'spacers', 'source_drain', 'annealed', 'contacts', 'metal1']
 
 class Deck:
-    def __init__(self, device, pwell, post_locos_model):
+    def __init__(self, device, pwell, post_locos_model, pmos_vt_dose=2.6e12,
+                 pmos_vt_energy=35, blanket_vt_dose=7e11):
         self.device, self.pwell = device, pwell
+        self.pmos_vt_dose, self.pmos_vt_energy = pmos_vt_dose, pmos_vt_energy
+        self.blanket_vt_dose = blanket_vt_dose
         self.post_locos_model = post_locos_model
         self.lines = [f'# RIT Sub-CMOS 2014: {device.upper()}, isolated well cross-section.',
                       '# Source: rit_process/SubCmos2014_0p5um.pdf; see README.md.',
                       '# 1 um drawn gate (0.5 um layout lambda); assumed 2D masks.',
-                      'option quiet', 'method fermi vertical grid.oxide=0.04']
+                      'option quiet', 'method fermi vertical grid.oxide=0.04',
+                      # P diffusivity in SiO2: TSUPREM-4 2002.4 default (Table A-3,
+                      # 4.338e10 um^2/min, 4.44 eV; Ghezzo & Brown, JECS 120,
+                      # 146, 1973). Stock SUPREM-IV (7.6e-3 cm^2/s, 3.5 eV) is
+                      # 5.5x faster at 1000 C, 27x at 800 C, and leaked n+ poly
+                      # P through the 15 nm gate oxide into the NMOS channel.
+                      # Segregation/transport already equal TSUPREM-4's.
+                      'phosphorus oxide Dix.0=7.23 Dix.E=4.44']
         self.recipes = []
     def add(self, *lines): self.lines.extend(lines)
     def checkpoint(self, name):
@@ -108,11 +118,22 @@ class Deck:
                      'method fermi vertical grid.oxide=0.04')
         self.recipe('311 sacrificial Kooi oxide',73,900,10,40,15,'weto2',
                     flood=5,ramp_gas='dryo2')
-        self.implant('boron',7e11,60)
-        if self.device=='pmos': self.implant('boron',2.6e12,60)
+        self.implant('boron',self.blanket_vt_dose,60)  # PDF p.75: 7e11
+        # PDF p.76: 2.6e12 at 60 keV. The p.74 sizing assumes half the dose
+        # stops in the ~1000 A Kooi oxide; at 60 keV the simulation keeps ~95 %
+        # and the PMOS is a normally-on buried channel (Vt +0.35 V). 35 keV
+        # keeps the PDF dose (~67 % retained): Vt -0.885 V, SS 97 mV/dec.
+        # See suprem4/doc/rit_cmos_full_flow_repair_20261119.md.
+        if self.device=='pmos': self.implant('boron',self.pmos_vt_dose,self.pmos_vt_energy)
         self.checkpoint('threshold')
-        self.add('etch oxide dry thick=0.1')
-        self.recipe('215 gate oxide',81,900,10,45,20,'dryo2',anneal=0)
+        # PDF p.78-79: the Kooi oxide (~1000 A target, 104 nm simulated) is
+        # etched to clear and HF-dipped twice, so the gate oxide grows on bare
+        # silicon. A timed strip with 10% overetch clears it; the nominal
+        # 0.1 um etch left 4-5 nm of boron-bearing oxide under the gate oxide.
+        self.add('etch oxide dry thick=0.11')
+        # Soak calibrated (45 -> 40 min) so the as-grown gate oxide meets the
+        # PDF's 150 A target on bare silicon (NMOS 14.8 / PMOS 15.1 nm).
+        self.recipe('215 gate oxide',81,900,10,40,20,'dryo2',anneal=0)
         self.checkpoint('gate_oxide')
         # Resolve the 50 keV P profile (sigma=28.4 nm); spacing is a mesh
         # constraint, not an incident-dose adjustment. Keep a pre-anneal
@@ -163,15 +184,28 @@ def main():
                         help='PDF p.54 improved BF2 or p.50 legacy boron process')
     parser.add_argument('--post-locos-model',choices=['vertical','viscous'],default='vertical',
                         help='thin-oxide growth model after stress-dependent LOCOS')
+    parser.add_argument('--pmos-vt-dose',type=float,default=2.6e12,
+                        help='PMOS-only Vt adjust boron dose (PDF p.76: 2.6e12)')
+    parser.add_argument('--blanket-vt-dose',type=float,default=7e11,
+                        help='blanket NMOS+PMOS Vt adjust boron dose at 60 keV (PDF p.75: 7e11)')
+    parser.add_argument('--pmos-vt-energy',type=float,default=35,
+                        help='PMOS-only Vt adjust boron energy in keV (PDF p.76: 60; '
+                             'default 35 calibrated to the simulated Kooi retention)')
+    parser.add_argument('--output',type=Path,default=HERE,
+                        help='write a separate deck variant without replacing the main decks')
     args=parser.parse_args()
+    output=args.output.resolve();output.mkdir(parents=True,exist_ok=True)
     metadata={'source':'rit_process/SubCmos2014_0p5um.pdf','pwell_variant':args.pwell,
               'gate_length_um':1.0,'post_locos_model':args.post_locos_model,
+              'pmos_vt_dose_cm2':args.pmos_vt_dose,'pmos_vt_energy_keV':args.pmos_vt_energy,
+              'blanket_vt_dose_cm2':args.blanket_vt_dose,
               'checkpoints':CHECKPOINTS,'devices':{}}
     for device in ['nmos','pmos']:
-        deck=Deck(device,args.pwell,args.post_locos_model)
-        (HERE/(device+'.in')).write_text(deck.build())
+        deck=Deck(device,args.pwell,args.post_locos_model,args.pmos_vt_dose,
+                  args.pmos_vt_energy,args.blanket_vt_dose)
+        (output/(device+'.in')).write_text(deck.build())
         metadata['devices'][device]={'recipes':deck.recipes}
-    (HERE/'resist_top.dat').write_text('0 -2\n10 -2\n')
-    (HERE/'process.json').write_text(json.dumps(metadata,indent=2)+'\n')
+    (output/'resist_top.dat').write_text('0 -2\n10 -2\n')
+    (output/'process.json').write_text(json.dumps(metadata,indent=2)+'\n')
 
 if __name__=='__main__':main()

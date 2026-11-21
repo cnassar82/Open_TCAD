@@ -1,0 +1,21 @@
+{
+  "accepted_full_cmos": false,
+  "scope": "diagnostic only: global Jacobian at stressed PMOS stalled lambda .125, deliberately stop after finite differences",
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_3mye1ttq/src/suprem4",
+  "binary_sha256": "8007106745aa4877d1f75bc745ebcdc9bb25afb34c696df0f32a3f2f2a14798f",
+  "input_sha256": "5e93354c55cec0886839c5fe3f32a7c9044f4b2a3b575523e3870a6a10b1a01e",
+  "initial_sha256": "c2f8e8270c245e957d5aaa1d997effb79b216a7caa7165da3bc1aee3a97745e1",
+  "runtime_options": {
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_FE_OXIDANT_P1": "1",
+    "SUPREM4_FE_BBAR_P1": "1",
+    "SUPREM4_FE_LINEAR_TRACE": "1",
+    "SUPREM4_FE_JCHECK": "stop"
+  },
+  "exit": -6,
+  "elapsed_seconds": 25.682406201958656,
+  "diagnostic_completed": true
+}

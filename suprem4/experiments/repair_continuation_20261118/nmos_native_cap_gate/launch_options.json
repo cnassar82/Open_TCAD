@@ -1,0 +1,6 @@
+{
+  "supplemental_launch_record": true,
+  "note": "The runner was launched before runtime-option capture was generalized; this is the additional explicitly supplied option. All other runtime flags appear in its standard provenance.",
+  "SUPREM4_NATIVE_JOIN_CAP": "1",
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_0fkneocj/src/suprem4"
+}

@@ -1,0 +1,284 @@
+# RIT Sub-CMOS 2014: NMOS, isolated well cross-section.
+# Source: rit_process/SubCmos2014_0p5um.pdf; see README.md.
+# 1 um drawn gate (0.5 um layout lambda); assumed 2D masks.
+option quiet
+method fermi vertical grid.oxide=0.04
+line x loc=0 spac=0.2 tag=left
+line x loc=0.5 spac=0.08
+line x loc=2 spac=0.08
+line x loc=3 spac=0.08
+line x loc=5 spac=0.06
+line x loc=5.5 spac=0.04
+line x loc=6 spac=0.06
+line x loc=6.5 spac=0.04
+line x loc=7 spac=0.06
+line x loc=9 spac=0.08
+line x loc=10 spac=0.2 tag=right
+line y loc=0 spac=0.01 tag=top
+line y loc=0.1 spac=0.025
+line y loc=0.4 spac=0.08
+line y loc=1 spac=0.2
+line y loc=3 spac=0.4
+line y loc=8 spac=0.8 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize boron conc=1e15 orient=100
+structure outfile=initial.str
+# PDF p.24: 250 pad oxide; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 dryo2
+diffuse time=5 temp=875 dryo2 continue
+diffuse time=5 temp=925 dryo2 continue
+diffuse time=5 temp=975 dryo2 continue
+diffuse time=40 temp=1000 dryo2 continue
+diffuse time=5 temp=1000 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=12 temp=800 nitrogen continue
+structure outfile=pad.str
+deposit nitride thick=0.15 divisions=5
+# PDF p.43: 330 n-well masking oxide; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=5 temp=1000 dryo2
+diffuse time=50 temp=1000 weto2 continue
+diffuse time=5 temp=1000 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=12 temp=800 nitrogen continue
+etch nitride all
+# PDF p.48: 25 nm oxide loss in pre-strip BOE.
+etch oxide dry thick=0.025
+implant bf2 dose=8e+12 energy=110 pearson
+structure outfile=well_mask.str
+# PDF p.56: 10 well drive; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=5 temp=1025 nitrogen continue
+diffuse time=5 temp=1075 nitrogen continue
+diffuse time=600 temp=1100 nitrogen continue
+diffuse time=5 temp=1100 nitrogen continue
+diffuse time=10 temp=1075 nitrogen continue
+diffuse time=10 temp=1025 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=12 temp=800 nitrogen continue
+structure outfile=wells.str
+etch oxide all
+# PDF p.59: 250 second pad oxide; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 dryo2
+diffuse time=5 temp=875 dryo2 continue
+diffuse time=5 temp=925 dryo2 continue
+diffuse time=5 temp=975 dryo2 continue
+diffuse time=40 temp=1000 dryo2 continue
+diffuse time=5 temp=1000 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=12 temp=800 nitrogen continue
+deposit nitride thick=0.15 divisions=5
+etch nitride start x=-0.1 y=-5
+etch continue x=-0.1 y=1
+etch continue x=0.5 y=1
+etch done x=0.5 y=-5
+etch nitride start x=2 y=-5
+etch continue x=2 y=1
+etch continue x=3 y=1
+etch done x=3 y=-5
+etch nitride start x=9 y=-5
+etch continue x=9 y=1
+etch continue x=10.1 y=1
+etch done x=10.1 y=-5
+deposit photoresist thick=1.5 divisions=6
+etch photoresist start x=-0.1 y=-5
+etch continue x=-0.1 y=1
+etch continue x=0.5 y=1
+etch done x=0.5 y=-5
+etch photoresist start x=2 y=-5
+etch continue x=2 y=1
+etch continue x=3 y=1
+etch done x=3 y=-5
+etch photoresist start x=9 y=-5
+etch continue x=9 y=1
+etch continue x=10.1 y=1
+etch done x=10.1 y=-5
+implant boron dose=8e+13 energy=100 pearson
+etch photoresist all
+structure outfile=locos_mask.str
+# Stress coefficients from SUPREM example 9, not PDF calibration.
+oxide Vc=300 Vr=30 Vd=25 stress.dep=true
+method viscous oxide.rel=1e-2 grid.oxide=0.04
+# PDF p.68: 406 field oxidation; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=5 temp=1025 nitrogen continue
+diffuse time=5 temp=1075 nitrogen continue
+diffuse time=5 temp=1100 dryo2
+diffuse time=65 temp=1100 weto2 continue
+diffuse time=5 temp=1100 nitrogen continue
+diffuse time=9.166666667 temp=1075 nitrogen continue
+diffuse time=9.166666667 temp=1025 nitrogen continue
+diffuse time=9.166666667 temp=975 nitrogen continue
+diffuse time=9.166666667 temp=925 nitrogen continue
+diffuse time=9.166666667 temp=875 nitrogen continue
+diffuse time=9.166666667 temp=825 nitrogen continue
+diffuse time=15 temp=800 nitrogen continue
+etch nitride all
+etch oxide dry thick=0.05
+structure outfile=locos.str
+# Thin post-LOCOS oxides: vertical growth approximation.
+method fermi vertical grid.oxide=0.04
+# PDF p.73: 311 sacrificial Kooi oxide; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+diffuse time=5 temp=825 dryo2 dump=10
+diffuse time=5 temp=875 dryo2 continue dump=10
+diffuse time=5 temp=900 dryo2 continue dump=10
+diffuse time=40 temp=900 weto2 continue dump=10
+diffuse time=5 temp=900 nitrogen continue dump=10
+diffuse time=7.5 temp=875 nitrogen continue dump=10
+diffuse time=7.5 temp=825 nitrogen continue dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+implant boron dose=7e+11 energy=60 pearson
+structure outfile=threshold.str
+etch oxide dry thick=0.1
+# PDF p.81: 215 gate oxide; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+diffuse time=5 temp=825 dryo2 dump=10
+diffuse time=5 temp=875 dryo2 continue dump=10
+diffuse time=45 temp=900 dryo2 continue dump=10
+diffuse time=10 temp=875 nitrogen continue dump=10
+diffuse time=10 temp=825 nitrogen continue dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+structure outfile=gate_oxide.str
+deposit poly thick=0.5 divisions=10 space=0.01
+implant phosphorus dose=2e+16 energy=50 pearson
+structure outfile=poly_implanted.str
+# PDF p.88: 120 poly activation; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+diffuse time=5 temp=825 nitrogen continue dump=10
+diffuse time=5 temp=875 nitrogen continue dump=10
+diffuse time=5 temp=925 nitrogen continue dump=10
+diffuse time=5 temp=975 nitrogen continue dump=10
+diffuse time=15 temp=1000 nitrogen continue dump=10
+diffuse time=10 temp=975 nitrogen continue dump=10
+diffuse time=10 temp=925 nitrogen continue dump=10
+diffuse time=10 temp=875 nitrogen continue dump=10
+diffuse time=10 temp=825 nitrogen continue dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+structure outfile=poly_doped.str
+etch poly left p1.x=5.5
+etch poly right p1.x=6.5
+structure outfile=gate.str
+deposit photoresist thick=1.5 divisions=6
+etch photoresist start x=3 y=-5
+etch continue x=3 y=1
+etch continue x=9 y=1
+etch done x=9 y=-5
+implant phosphorus dose=2.5e+13 energy=60 pearson
+etch photoresist all
+structure outfile=ldd.str
+deposit oxide thick=0.5 divisions=10 space=0.04
+etch oxide dry thick=0.5
+structure outfile=spacers.str
+deposit photoresist file=resist_top.dat divisions=8
+etch photoresist start x=3 y=-5
+etch continue x=3 y=1
+etch continue x=9 y=1
+etch done x=9 y=-5
+implant phosphorus dose=2e+15 energy=60 pearson
+etch photoresist all
+deposit photoresist file=resist_top.dat divisions=8
+etch photoresist start x=0.5 y=-5
+etch continue x=0.5 y=1
+etch continue x=2 y=1
+etch done x=2 y=-5
+implant boron dose=2e+15 energy=50 pearson
+etch photoresist all
+structure outfile=source_drain.str
+# PDF p.116: 280 source/drain activation; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+diffuse time=5 temp=825 dryo2 dump=10
+diffuse time=5 temp=875 dryo2 continue dump=10
+diffuse time=5 temp=925 dryo2 continue dump=10
+diffuse time=5 temp=975 dryo2 continue dump=10
+diffuse time=20 temp=1000 dryo2 continue dump=10
+diffuse time=5 temp=1000 nitrogen continue dump=10
+diffuse time=10 temp=975 nitrogen continue dump=10
+diffuse time=10 temp=925 nitrogen continue dump=10
+diffuse time=10 temp=875 nitrogen continue dump=10
+diffuse time=10 temp=825 nitrogen continue dump=10
+diffuse time=15 temp=800 nitrogen continue dump=10
+structure outfile=annealed.str
+# PDF p.117/118: use 0.5 um ILD, despite p.17 summary 0.4 um.
+deposit oxide thick=0.5 divisions=10 space=0.06
+deposit photoresist file=resist_top.dat divisions=8
+etch photoresist start x=0.75 y=-5
+etch continue x=0.75 y=1
+etch continue x=1.75 y=1
+etch done x=1.75 y=-5
+etch photoresist start x=3.75 y=-5
+etch continue x=3.75 y=1
+etch continue x=4.75 y=1
+etch done x=4.75 y=-5
+etch photoresist start x=5.55 y=-5
+etch continue x=5.55 y=1
+etch continue x=6.45 y=1
+etch done x=6.45 y=-5
+etch photoresist start x=7.25 y=-5
+etch continue x=7.25 y=1
+etch continue x=8.25 y=1
+etch done x=8.25 y=-5
+etch oxide dry thick=1.5
+etch photoresist all
+structure outfile=contacts.str
+deposit aluminum thick=0.75 divisions=10 space=0.06
+etch aluminum start x=-0.1 y=-6
+etch continue x=-0.1 y=1
+etch continue x=0.5 y=1
+etch done x=0.5 y=-6
+etch aluminum start x=2 y=-6
+etch continue x=2 y=1
+etch continue x=3.4 y=1
+etch done x=3.4 y=-6
+etch aluminum start x=5 y=-6
+etch continue x=5 y=1
+etch continue x=5.25 y=1
+etch done x=5.25 y=-6
+etch aluminum start x=6.75 y=-6
+etch continue x=6.75 y=1
+etch continue x=7 y=1
+etch done x=7 y=-6
+etch aluminum start x=8.8 y=-6
+etch continue x=8.8 y=1
+etch continue x=10.1 y=1
+etch done x=10.1 y=-6
+structure outfile=metal1.str
+structure outfile=nmos.str
+quit

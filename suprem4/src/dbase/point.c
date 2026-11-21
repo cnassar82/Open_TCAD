@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 08:21:10 */
 
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <global.h>
 #include <constant.h>
@@ -77,6 +78,28 @@ float *cord;
 {
     char *err;
     int i;
+
+    if (getenv("SUPREM4_PT_TRACE")) {
+	/* Mesh hygiene: a new point landing within ~tens of ULP of an
+	 * existing one creates degenerate slivers that stall the FE
+	 * Newton later.  Report creator address so the offender can be
+	 * mapped with nm. */
+	int i2, hit = -1;
+	float bestd = 1e30f;
+	for (i2 = 0; i2 < np; i2++) {
+	    float dx = pt[i2]->cord[0] - cord[0];
+	    float dy = (nc > 1) ? (pt[i2]->cord[1] - cord[1]) : 0.0f;
+	    float d = sqrtf(dx*dx + dy*dy);
+	    if (d < bestd) { bestd = d; hit = i2; }
+	}
+	if (hit >= 0 && bestd < 1e-10f) {
+	    fprintf(stderr, "[ptdup] new=(%.9g,%.9g) existing pt=%d (%.9g,%.9g) d=%.3g cm caller=%+ld\n",
+		    (double)cord[0], (double)cord[1], hit,
+		    (double)pt[hit]->cord[0], (double)pt[hit]->cord[1],
+		    (double)bestd,
+		    (long)((char *)__builtin_return_address(0) - (char *)mk_pt));
+	}
+    }
 
     if ((err = alloc_pt()) != NULL) panic( err );
 

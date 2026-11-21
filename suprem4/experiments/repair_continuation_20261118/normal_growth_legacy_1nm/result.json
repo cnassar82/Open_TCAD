@@ -1,0 +1,73 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_cbqctkkk/src/suprem4",
+  "binary_sha256": "7ca7ad65d884bbe5d22f29a1da658ae3a289a7b7d7415a103475f37a726021c3",
+  "input_sha256": "7bb827f9eb3714e54cc1e0ede5cb86d9a081f9b37df01b99c9c3fcf5be8c4206",
+  "requested_normal_spacing_nm": 1.0,
+  "runtime_options": {},
+  "accepted_full_cmos": false,
+  "exit": 0,
+  "elapsed_seconds": 0.3661297420039773,
+  "cuts": [
+    {
+      "x_um": 0.025,
+      "oxide_thickness_nm": 14.384264659383916,
+      "cut_max_gap_nm": 10.788198403693663,
+      "intersections": 3
+    },
+    {
+      "x_um": 0.275,
+      "oxide_thickness_nm": 14.384264659383916,
+      "cut_max_gap_nm": 10.788199493824962,
+      "intersections": 3
+    },
+    {
+      "x_um": 0.525,
+      "oxide_thickness_nm": 14.384264659383916,
+      "cut_max_gap_nm": 10.788196586808166,
+      "intersections": 4
+    },
+    {
+      "x_um": 0.775,
+      "oxide_thickness_nm": 14.384264659383916,
+      "cut_max_gap_nm": 10.788202618950239,
+      "intersections": 4
+    },
+    {
+      "x_um": 0.975,
+      "oxide_thickness_nm": 14.384264659383916,
+      "cut_max_gap_nm": 10.788200729224176,
+      "intersections": 4
+    }
+  ],
+  "points": 297,
+  "independent_audit": {
+    "sha256": "aaa6641f96f2e25c7eb6de9cb61365c1cbf6860c7327bb9c38cdc08b1dbf29e5",
+    "topology": {
+      "triangles": 520,
+      "area_by_region_um2": {
+        "1": 0.9939161940501287,
+        "2": 0.014384264296006834
+      }
+    },
+    "partition": {
+      "triangle_pairs_checked": 260,
+      "boundary_pairs_checked": 72,
+      "triangles": 520,
+      "boundary_edges": 72
+    },
+    "chemistry": {
+      "species_checked": [
+        5
+      ],
+      "inventory_by_material_species": {
+        "3:5": 982896824413758.5,
+        "1:5": 17080525765987.336
+      }
+    },
+    "points": 297,
+    "minimum_quality": 0.06491504881789766
+  },
+  "spacing_reset_reported": false,
+  "achieved_requested_edge_spacing": false,
+  "maximum_oxide_edge_normal_span_nm": 14.384264659383916
+}

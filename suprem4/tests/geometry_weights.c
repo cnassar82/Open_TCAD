@@ -24,9 +24,17 @@ static void check(const float xy[3][2],int obtuse)
     area=.5*(((double)xy[1][0]-xy[0][0])*((double)xy[2][1]-xy[0][1])-
              ((double)xy[1][1]-xy[0][1])*((double)xy[2][0]-xy[0][0]));
     assert(area>0);
+    /* Before any CHP repair: an obtuse triangle whose edge couplings sum
+     * positive keeps its own ehed, but its control volumes must still be
+     * positive and sum to its area (the legacy |cot| pieces did not). */
     tri_geom(0);
-    if(obtuse)chp_fix(0);
     for(i=0;i<3;i++) {
+        assert(isfinite(triangle.earea[i]) && triangle.earea[i]>=0);
+        sum+=triangle.earea[i];
+    }
+    assert(fabs(sum-area)<2e-6*area);
+    if(obtuse)chp_fix(0);
+    for(sum=0,i=0;i<3;i++) {
         assert(isfinite(triangle.earea[i]) && triangle.earea[i]>=0);
         assert(isfinite(triangle.ehed[i]) && triangle.ehed[i]>=0);
         sum+=triangle.earea[i];
@@ -48,7 +56,10 @@ int main(void)
     const float acute[3][2]={{0,0},{2,0},{1,1.5}};
     const float obtuse[3][2]={{0,0},{2,0},{.25,.25}};
     float shifted[3][2];int i,j,p,scale;
-    check(narrow,1);check(right,0);check(acute,0);check(obtuse,1);
+    /* Flat fan element: a refined interface node over a distant bulk
+     * node (thin-film barrier deck); legacy volume was ~10^4 x its area. */
+    const float fan[3][2]={{.25f,0},{.265625f,0},{0,.0049f}};
+    check(narrow,1);check(right,0);check(acute,0);check(obtuse,1);check(fan,1);
     /* Cyclic ordering and scale changes exercise the formula, not one ID. */
     for(p=0;p<3;p++)for(scale=-12;scale<=12;scale+=6) {
         for(i=0;i<3;i++)for(j=0;j<2;j++)shifted[i][j]=ldexpf(narrow[(i+p)%3][j],scale);

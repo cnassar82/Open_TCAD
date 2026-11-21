@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 15:40:39 */
 
 #include <math.h>
+#include "suprem_options.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -343,10 +344,10 @@ struct par_str *param;
         numop = gen_offset( nump, p, &op, thick, space);
 
 #ifdef SUPREM_DOMAIN_OFFSET
-    if(!sfile && mode==TWOD && getenv("SUPREM4_PROCESS_SURFACE") &&
-       !strcmp(getenv("SUPREM4_PROCESS_SURFACE"),"1") &&
-       getenv("SUPREM4_DEPOSITION_GEOMETRY") &&
-       !strcmp(getenv("SUPREM4_DEPOSITION_GEOMETRY"),"domain")) {
+    if(!sfile && mode==TWOD && suprem_option("SUPREM4_PROCESS_SURFACE") &&
+       !strcmp(suprem_option("SUPREM4_PROCESS_SURFACE"),"1") &&
+       suprem_option("SUPREM4_DEPOSITION_GEOMETRY") &&
+       !strcmp(suprem_option("SUPREM4_DEPOSITION_GEOMETRY"),"domain")) {
         extern int suprem_nominal_offset(int,const double *,double,double,double **);
         double *input=salloc(double,2*nump);
         for(i=0;i<nump;i++){input[2*i]=p[i].x;input[2*i+1]=p[i].y;}

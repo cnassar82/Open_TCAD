@@ -128,13 +128,13 @@ DBASESRCS = dbase/alloc.c dbase/check.c dbase/clktri.c dbase/couple.c \
 	dbase/dimen.c dbase/dispose.c dbase/edge.c dbase/element.c \
 	dbase/flip.c dbase/geom.c dbase/geometry.c dbase/grid_loop.c \
 	dbase/grid_upd.c dbase/kill_node.c dbase/list.c dbase/locate.c \
-	dbase/make_db.c dbase/material_domain.c dbase/material_domain_db.c dbase/mesh_patch.c dbase/mesh_patch_remove.c dbase/mesh_trial.c dbase/vertical_constraints.c dbase/neigh.c dbase/new_layer.c dbase/node.c \
+	dbase/make_db.c dbase/material_domain.c dbase/material_domain_db.c dbase/mesh_patch.c dbase/mesh_patch_remove.c dbase/mesh_trial.c dbase/vertical_constraints.c dbase/neigh.c dbase/new_layer.c dbase/node.c dbase/thin_film.c \
 	dbase/point.c dbase/region.c dbase/remove.c
 DBASEOBJS = dbase/alloc.o dbase/check.o dbase/clktri.o dbase/couple.o \
 	dbase/dimen.o dbase/dispose.o dbase/edge.o dbase/element.o \
 	dbase/flip.o dbase/geom.o dbase/geometry.o dbase/grid_loop.o \
 	dbase/grid_upd.o dbase/kill_node.o dbase/list.o dbase/locate.o \
-	dbase/make_db.o dbase/material_domain.o dbase/material_domain_db.o dbase/mesh_patch.o dbase/mesh_patch_remove.o dbase/mesh_trial.o dbase/vertical_constraints.o dbase/neigh.o dbase/new_layer.o dbase/node.o \
+	dbase/make_db.o dbase/material_domain.o dbase/material_domain_db.o dbase/mesh_patch.o dbase/mesh_patch_remove.o dbase/mesh_trial.o dbase/vertical_constraints.o dbase/neigh.o dbase/new_layer.o dbase/node.o dbase/thin_film.o \
 	dbase/point.o dbase/region.o dbase/remove.o
 
 DEVICESRCS = device/Electron.c device/Hole.c device/Psi.c \

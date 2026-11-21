@@ -1,0 +1,5 @@
+option chat
+method fermi vertical grid.oxide=0.04
+structure infile=locos_mask.str
+structure outfile=quality_initial.str
+quit

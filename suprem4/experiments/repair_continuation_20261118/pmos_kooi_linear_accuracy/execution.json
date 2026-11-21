@@ -1,0 +1,27 @@
+{
+  "accepted_full_cmos": false,
+  "scope": "saved PMOS 0.1 second stressed oxidation probe",
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_whbuvcf2/src/suprem4",
+  "binary_sha256": "1cd4cc7e49020b3e672850cfd9e25307bad6aa24cc211ba992c20eafa1e963ca",
+  "input_sha256": "5e93354c55cec0886839c5fe3f32a7c9044f4b2a3b575523e3870a6a10b1a01e",
+  "initial_sha256": "c2f8e8270c245e957d5aaa1d997effb79b216a7caa7165da3bc1aee3a97745e1",
+  "runtime_options": {
+    "SUPREM4_FE_LINEAR_CHECK": "1",
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_FE_OXIDANT_P1": "1",
+    "SUPREM4_FE_BBAR_P1": "1",
+    "SUPREM4_FE_LINEAR_TRACE": "1"
+  },
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "exit": 124,
+  "elapsed_seconds": 60.00712606916204,
+  "diagnostic_completed": false,
+  "execution_completed": false
+}

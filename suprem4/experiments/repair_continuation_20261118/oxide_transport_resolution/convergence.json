@@ -1,0 +1,70 @@
+{
+  "scope": "same-engine spatial convergence, not physical calibration",
+  "rows": [
+    {
+      "oxide_divisions": 1,
+      "cell_nm": 15.0,
+      "silicon_P_sheet_cm2": 970388755881.775,
+      "P_at_5nm_cm3": 2.0413861612853334e+17,
+      "passed": true,
+      "relative_to_finest": 29.099537633506227
+    },
+    {
+      "oxide_divisions": 2,
+      "cell_nm": 7.5,
+      "silicon_P_sheet_cm2": 256006205757.87045,
+      "P_at_5nm_cm3": 7.077167001437254e+16,
+      "passed": true,
+      "relative_to_finest": 7.676987365844851
+    },
+    {
+      "oxide_divisions": 4,
+      "cell_nm": 3.75,
+      "silicon_P_sheet_cm2": 86843356014.30798,
+      "P_at_5nm_cm3": 2.929159970921536e+16,
+      "passed": true,
+      "relative_to_finest": 2.604215569523992
+    },
+    {
+      "oxide_divisions": 8,
+      "cell_nm": 1.875,
+      "silicon_P_sheet_cm2": 46580116193.08876,
+      "P_at_5nm_cm3": 1.7673301060117224e+16,
+      "passed": true,
+      "relative_to_finest": 1.3968214655395477
+    },
+    {
+      "oxide_divisions": 16,
+      "cell_nm": 0.9375,
+      "silicon_P_sheet_cm2": 36621204280.5558,
+      "P_at_5nm_cm3": 1.4579287744466832e+16,
+      "passed": true,
+      "relative_to_finest": 1.098178545131643
+    },
+    {
+      "oxide_divisions": 32,
+      "cell_nm": 0.46875,
+      "silicon_P_sheet_cm2": 34116984702.72079,
+      "P_at_5nm_cm3": 1.3798357425732376e+16,
+      "passed": true,
+      "relative_to_finest": 1.0230832481116814
+    },
+    {
+      "oxide_divisions": 64,
+      "cell_nm": 0.234375,
+      "silicon_P_sheet_cm2": 33484840765.25216,
+      "P_at_5nm_cm3": 1.360440726573395e+16,
+      "passed": true,
+      "relative_to_finest": 1.0041268286492095
+    },
+    {
+      "oxide_divisions": 128,
+      "cell_nm": 0.1171875,
+      "silicon_P_sheet_cm2": 33347222492.100197,
+      "P_at_5nm_cm3": 1.3542652332415972e+16,
+      "passed": true,
+      "relative_to_finest": 1.0
+    }
+  ],
+  "finest_pair_relative_sheet_difference": 0.004126828649209546
+}

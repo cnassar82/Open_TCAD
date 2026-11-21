@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 15:40:46 */
 
 #include <math.h>
+#include "suprem_options.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,8 +85,8 @@ double space;		/*size of the spacing*/
     struct line *op;
 
 #ifdef SUPREM_DOMAIN_OFFSET
-    if (mode==TWOD && getenv("SUPREM4_DEPOSITION_GEOMETRY") &&
-        !strcmp(getenv("SUPREM4_DEPOSITION_GEOMETRY"),"domain")) {
+    if (mode==TWOD && suprem_option("SUPREM4_DEPOSITION_GEOMETRY") &&
+        !strcmp(suprem_option("SUPREM4_DEPOSITION_GEOMETRY"),"domain")) {
         extern int suprem_domain_offset(int,const double *,double,double,double **);
         double *input=salloc(double,2*nump),*output=NULL;
         for(i=0;i<nump;i++){input[2*i]=p[i].x;input[2*i+1]=p[i].y;}
@@ -104,8 +105,8 @@ double space;		/*size of the spacing*/
         return nop;
     }
 #else
-    if (getenv("SUPREM4_DEPOSITION_GEOMETRY") &&
-        !strcmp(getenv("SUPREM4_DEPOSITION_GEOMETRY"),"domain"))
+    if (suprem_option("SUPREM4_DEPOSITION_GEOMETRY") &&
+        !strcmp(suprem_option("SUPREM4_DEPOSITION_GEOMETRY"),"domain"))
         panic("domain deposition requires a native build with --domain-offset");
 #endif
 

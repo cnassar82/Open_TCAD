@@ -1,5 +1,6 @@
 """Independent dopant polarity and geometry probes for the generated process cuts."""
 import math
+from pathlib import Path
 def read(path):
     coords={}; regions={}; triangles=[]; nodes={}; species=[]
     for line in path.read_text().splitlines():
@@ -48,9 +49,21 @@ def concentration(mesh,x,y,material=3):
     raise ValueError(f'probe outside material {material}: ({x},{y})')
 
 
+def dielectric_separation(mesh):
+    """A gate stack must not short its dielectric even at a shared vertex."""
+    coords,tris,_=mesh
+    silicon={coords[v] for mat,vs in tris if mat==3 for v in vs}
+    poly={coords[v] for mat,vs in tris if mat==4 for v in vs}
+    contacts=sorted(silicon & poly)
+    if contacts:
+        raise ValueError(f'poly touches silicon at {len(contacts)} dielectric pinch-outs; first coordinates: {contacts[:5]}')
+    return {'poly_silicon_point_contacts':0}
+
+
 def gate_dielectric(mesh):
     """Require oxide material, rather than just a positive poly/silicon gap."""
     coords,tris,_=mesh
+    dielectric_separation(mesh)
     poly=[coords[v] for mat,vs in tris if mat==4 for v in vs]
     if not poly:raise ValueError('missing poly gate')
     left,right=min(p[0] for p in poly),max(p[0] for p in poly)
@@ -112,6 +125,28 @@ def validate(path,device,stage):
         result['gate_dielectric_um']=surface(6)-spans[0][1]
         if result['gate_dielectric_um']<=0:raise ValueError('missing gate dielectric')
         result['gate_oxide_material_probes']=gate_dielectric(mesh)
+    if stage=='poly_doped':
+        result['blanket_dielectric_separation']=dielectric_separation(mesh)
+    if stage in ('poly_doped','gate','ldd','spacers'):
+        # The blanket n+ poly implant must not reverse the well beneath
+        # the future body contact. Check before a compensating body implant
+        # can hide transport through an unresolved dielectric barrier.
+        # The reference is the same probe in the gate-oxide checkpoint, before
+        # poly exists: the blanket boron threshold adjust already makes the
+        # n-well p-type at 50 nm (buried-channel PMOS), so a fixed device
+        # polarity is not the invariant. Polarity must survive the poly steps.
+        probe=concentration(mesh,1.25,surface(1.25)+.05)
+        reference_path=Path(path).parent/'gate_oxide.str'
+        if reference_path.exists():
+            reference_mesh=read(reference_path)
+            reference=concentration(reference_mesh,1.25,intervals(reference_mesh,1.25,3)[0][0]+.05)
+            expected=1 if reference['net_donor_cm3']>0 else -1
+            result['body_50nm_before_poly']=reference
+        else:
+            expected=-1 if device=='nmos' else 1
+        if expected*probe['net_donor_cm3']<=0:
+            raise ValueError(f'poly steps reversed the body polarity at 50 nm: {probe}')
+        result['body_50nm_below_surface']=probe
     if stage in ('source_drain','annealed','metal1'):
         expected=1 if device=='nmos' else -1
         for name,x,sign in [('source',4.25,expected),('drain',7.75,expected),('body',1.25,-expected)]:

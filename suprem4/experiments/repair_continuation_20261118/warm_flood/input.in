@@ -1,0 +1,18 @@
+option chat
+method fermi vertical grid.oxide=0.04
+structure infile=locos_mask.str
+# Stress coefficients from SUPREM example 9, not PDF calibration.
+oxide Vc=300 Vr=30 Vd=25 stress.dep=true
+method viscous oxide.rel=1e-2 grid.oxide=0.04
+# PDF p.68: 406 field oxidation; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=5 temp=1025 nitrogen continue
+diffuse time=5 temp=1075 nitrogen continue
+diffuse time=5 temp=1100 dryo2
+structure outfile=flood.str
+quit

@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 08:20:54 */
 
 #include <stdio.h>
+#include "suprem_options.h"
 #include <stdlib.h>
 #include <math.h>
 #include "global.h"
@@ -484,7 +485,7 @@ double dt;
                 audit_removal_ownership("rem_edg", ++operation, ie);
             }
 
-        if(getenv("SUPREM4_MESH_PATCH_REMOVAL"))mesh_patch_removal_report();
+        if(suprem_option("SUPREM4_MESH_PATCH_REMOVAL"))mesh_patch_removal_report();
 	bd_connect("after removing silicon nodes");
 	UpdateSymbolic++;
     }
@@ -504,7 +505,7 @@ double dt;
                 audit_removal_ownership("rem_pt", ++operation, ip);
             }
 
-        if(getenv("SUPREM4_MESH_PATCH_REMOVAL"))mesh_patch_removal_report();
+        if(suprem_option("SUPREM4_MESH_PATCH_REMOVAL"))mesh_patch_removal_report();
 	bd_connect("after removing silicon nodes");
 	UpdateSymbolic++;
     }

@@ -52,7 +52,15 @@ quit
   poly_x=[coords[v][0] for mat,vs in tris if mat==4 for v in vs]
   expected=(max(poly_x)-min(poly_x))*(intervals(source,5,3)[0][0]-intervals(source,5,4)[0][1])
   r['expected_buried_area_um2']=expected
-  if abs(after.get(1,0)-expected)>1e-12:raise ValueError(f'buried oxide area {after.get(1,0)} != {expected} um2')
+  # Etch snap-rounds its temporary cutter: a mask edge may be routed through
+  # an existing vertex that the Boolean's ON predicate cannot distinguish from
+  # it (per axis 2*FLT_EPSILON*max|coord|) rather than creating a sliver
+  # beside it. The area bound is that band times the cut height, per side.
+  thickness=intervals(source,5,3)[0][0]-intervals(source,5,4)[0][1]
+  band=2*2.0**-23*max(abs(x) for x in poly_x)
+  tolerance=max(1e-12,2*band*thickness)
+  r['buried_area_tolerance_um2']=tolerance
+  if abs(after.get(1,0)-expected)>tolerance:raise ValueError(f'buried oxide area {after.get(1,0)} != {expected} um2 (tolerance {tolerance})')
   mesh=read(d/'after.str');r['gate_oxide']=gate_dielectric(mesh)
   for x in (3,7):
    if intervals(mesh,x,1):raise ValueError('unmasked oxide was not cleared')

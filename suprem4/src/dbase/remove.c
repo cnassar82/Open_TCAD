@@ -17,6 +17,7 @@
 /*   Last Modification : 7/3/91 08:21:13 */
 
 #include <stdio.h>
+#include "suprem_options.h"
 #include <math.h>
 #include "global.h"
 #include "constant.h"
@@ -152,7 +153,7 @@ int r;
 static unsigned long patch_committed, patch_pinned;
 static int patch_enabled(void)
 {
-    const char *value=getenv("SUPREM4_MESH_PATCH_REMOVAL");
+    const char *value=suprem_option("SUPREM4_MESH_PATCH_REMOVAL");
     return value && value[0]=='1' && value[1]=='\0';
 }
 static int patch_remove(int point)

@@ -1,0 +1,16 @@
+{
+  "exit": 124,
+  "timed_out": true,
+  "runtime_options": {
+    "SUPREM4_FE_TRUST_REGION": "1",
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1"
+  },
+  "source_structure_sha256": "63dbfaaf024788ff3f63595a6bfcf25321cf769563a31c77211ea7906a45d351",
+  "elapsed_seconds": 1800.0229869959876,
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_4n0dyzln/src/suprem4",
+  "binary_sha256": "1a74b0fc17c6240559d4048e56b1197ffb53c62e546db4519ba1d8280915daef",
+  "input_sha256": "e9414da55db405f0709824d303af36d26476963cd9d343fc3f6b75fe202e2f54"
+}

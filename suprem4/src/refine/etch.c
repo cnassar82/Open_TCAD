@@ -17,7 +17,9 @@
 /*   Last Modification : 7/3/91 15:40:40 */
 
 #include <stdio.h>
+#include "suprem_options.h"
 #include <math.h>
+#include <float.h>
 #include <stdlib.h>
 #include <string.h>
 #include <global.h>
@@ -341,7 +343,7 @@ user_etch( par, param)
 
 	/*find the surface line*/
 	nums = find_surf( &surf );
-        if(getenv("SUPREM4_PROCESS_SURFACE") && !strcmp(getenv("SUPREM4_PROCESS_SURFACE"),"1"))
+        if(suprem_option("SUPREM4_PROCESS_SURFACE") && !strcmp(suprem_option("SUPREM4_PROCESS_SURFACE"),"1"))
             construction_count=process_surface_get(mater,nums,surf,&construction);
         if(construction_count) {
             free(surf);nums=construction_count;surf=salloc(struct line,nums);
@@ -491,6 +493,236 @@ user_etch( par, param)
 
 /*-----------------ETCH-------------------------------------------------
  *----------------------------------------------------------------------*/
+/* ---------------------------------------------------------------------
+ * Snap rounding of the etch cutter onto the subject boundary.
+ *
+ * A cutter meant to coincide with an existing surface (a spacer etch that
+ * removes exactly the deposited thickness from a flat face, a mask edge on
+ * a mesh line) agrees with it only to binary32 rounding once stored. The
+ * exact Boolean then finds proper crossings one ULP beside subject vertices
+ * and leaves one-ULP edges and slivers in the retained material and in
+ * every region sharing those vertices.
+ *
+ * Following snap rounding (Hobby 1999; Guibas & Marimont 1998) only the
+ * temporary cutter moves, never the mesh:
+ *   1. a cutter vertex that agrees with a subject vertex to rounding takes
+ *      that vertex's stored coordinates;
+ *   2. consecutive cutter vertices closer than the deposition coat grid g are
+ *      merged: the mesh surface is built on that grid and cannot represent
+ *      finer cutter detail;
+ *   3. a subject vertex that agrees to rounding with a point of a cutter edge
+ *      interior is inserted into that edge;
+ *   4. cutter vertices that agree to rounding with a subject edge PQ, between
+ *      cutter visits to P and Q, are dropped so the cutter follows PQ exactly.
+ * "Agrees to rounding" is exactly the skeleton Boolean's own ON predicate
+ * (rounding_same_point, rounding_on_segment): per-axis binary32 storage
+ * rounding, relative to that axis's coordinate magnitudes. The snap makes
+ * exact precisely the contacts the Boolean would treat as ON anyway. A real
+ * film is never removed unless it is thinner than storage rounding of its
+ * own coordinates; a real offset (the t(1-cos) displacement of a vertical
+ * etch on a sloped face) is never snapped. The skeleton Boolean resolves the resulting exact contacts and
+ * coincident edges. The snapped cutter is used only if exact predicates
+ * certify it is a simple polygon; otherwise the unsnapped cutter is used.
+ * --------------------------------------------------------------------- */
+struct snap_hit {double t; float x,y;};
+static int snap_hit_order(const void *a,const void *b)
+{
+    double s=((const struct snap_hit *)a)->t,t=((const struct snap_hit *)b)->t;
+    return s<t ? -1 : s>t;
+}
+/* Does point s lie ON the interior of segment ab, by the Boolean's own
+ * rounding predicate? t is its parameter along ab. */
+static int snap_on_segment(const float *s,const float *a,const float *b,double *t)
+{
+    double ex=(double)b[0]-a[0],ey=(double)b[1]-a[1],l2=ex*ex+ey*ey;
+    if(!(l2>0) || !rounding_on_segment(s,a,b))return 0;
+    *t=(((double)s[0]-a[0])*ex+((double)s[1]-a[1])*ey)/l2;
+    return *t>0 && *t<1;
+}
+static int snap_segments_touch(const float *a,const float *b,const float *c,const float *d)
+{
+    int ac=orient2d_float_sign(a,b,c),ad=orient2d_float_sign(a,b,d);
+    int ca=orient2d_float_sign(c,d,a),cb=orient2d_float_sign(c,d,b);
+#define SNAP_ON(P,Q,R) (orient2d_float_sign(Q,R,P)==0 && \
+        P[0]>=fminf(Q[0],R[0]) && P[0]<=fmaxf(Q[0],R[0]) && \
+        P[1]>=fminf(Q[1],R[1]) && P[1]<=fmaxf(Q[1],R[1]))
+    if(ac*ad<0 && ca*cb<0)return 1;
+    return SNAP_ON(c,a,b) || SNAP_ON(d,a,b) || SNAP_ON(a,c,d) || SNAP_ON(b,c,d);
+}
+/* Exact simplicity test of a closed polygon given by float vertex pairs. */
+static int snap_polygon_simple(const float *xy,int n)
+{
+    int i,j;
+    if(n<3)return 0;
+    for(i=0;i<n;i++) {
+        const float *a=xy+2*i,*b=xy+2*((i+1)%n);
+        float lo0=fminf(a[0],b[0]),hi0=fmaxf(a[0],b[0]),lo1=fminf(a[1],b[1]),hi1=fmaxf(a[1],b[1]);
+        if(a[0]==b[0] && a[1]==b[1])return 0;
+        for(j=i+1;j<n;j++) {
+            const float *c=xy+2*j,*d=xy+2*((j+1)%n);
+            if(fmaxf(c[0],d[0])<lo0 || fminf(c[0],d[0])>hi0 ||
+               fmaxf(c[1],d[1])<lo1 || fminf(c[1],d[1])>hi1)continue;
+            if(j==i+1 || (i==0 && j==n-1)) {
+                /* Adjacent edges share one vertex and must not fold back. */
+                const float *shared=j==i+1 ? b:a,*u=j==i+1 ? a:b,*v=j==i+1 ? d:c;
+                if(orient2d_float_sign(u,shared,v)==0 &&
+                   ((double)u[0]-shared[0])*((double)v[0]-shared[0])+
+                   ((double)u[1]-shared[1])*((double)v[1]-shared[1])>0)return 0;
+                continue;
+            }
+            if(snap_segments_touch(a,b,c,d))return 0;
+        }
+    }
+    return 1;
+}
+static void snap_grow(float **xy,float **sp,int *cap,int need)
+{
+    if(need<=*cap)return;
+    while(*cap<need)*cap*=2;
+    *xy=sralloc(float,2*(*cap),*xy);*sp=sralloc(float,*cap,*sp);
+}
+static void snap_cutter(float *p[MAXDIM+1],int *nump,int mater)
+{
+    int r,g,i,j,k,n=*nump,ns=0,cap=0,out=0,outcap,nh,hcap=0;
+    int snapped=0,merged=0,inserted=0,rerouted=0,ring,exponent;
+    int *snext=NULL,*subject_vertex,*keep,*anchored;
+    float *sx=NULL,*sy=NULL,*xy,*oxy,*sp;
+    struct snap_hit *hits=NULL;
+    struct LLedge *bp,*bnd;
+    double extent=0,grid,grid2;
+    if(mode!=TWOD || n<3)return;
+    for(r=0;r<nreg;r++) {
+        /* Every region of the etched material: a covered region becomes
+         * exposed, and is etched, once the region above it is removed. */
+        if(mater!=-1 && mat_reg(r)!=mater)continue;
+        bnd=sreg[reg[r]->sreg]->bnd;if(!bnd)continue;
+        ring=ns;
+        for(g=1,bp=bnd;g || bp!=bnd;g=0,bp=bp->next) {
+            if(ns==cap) {
+                cap=cap?2*cap:256;
+                sx=sralloc(float,cap,sx);sy=sralloc(float,cap,sy);snext=sralloc(int,cap,snext);
+            }
+            sx[ns]=xcord(pt_nd(nB(bp)));sy[ns]=ycord(pt_nd(nB(bp)));snext[ns]=ns+1;
+            extent=fmax(extent,fmax(fabs(sx[ns]),fabs(sy[ns])));ns++;
+        }
+        if(ns>ring)snext[ns-1]=ring;
+    }
+    if(!ns || !(extent>0)){free(sx);free(sy);free(snext);return;}
+    /* The deposition coat grid (domain_offset.cpp): 2^(exponent-24). Scale
+     * by the subject only; a dry-etch cutter carries a far bounding box. */
+    (void)frexp(extent,&exponent);grid=ldexp(1.0,exponent-24);grid2=grid*grid;
+    outcap=n+16;
+    xy=salloc(float,2*outcap);sp=salloc(float,outcap);oxy=salloc(float,2*n);anchored=salloc(int,n);
+    /* 1. Vertex snap: the nearest subject vertex that agrees to rounding. */
+    for(i=0;i<n;i++) {
+        double best=INFINITY;int bi=-1;
+        for(k=0;k<ns;k++) {
+            double dx,dy,d2;
+            float sv[2],cv[2];
+            sv[0]=sx[k];sv[1]=sy[k];cv[0]=p[0][i];cv[1]=p[1][i];
+            if(!rounding_same_point(sv,cv))continue;
+            dx=(double)sx[k]-p[0][i];dy=(double)sy[k]-p[1][i];d2=dx*dx+dy*dy;
+            if(d2<best){best=d2;bi=k;}
+        }
+        oxy[2*i]=bi>=0?sx[bi]:p[0][i];oxy[2*i+1]=bi>=0?sy[bi]:p[1][i];anchored[i]=bi>=0;
+        if(bi>=0 && (oxy[2*i]!=p[0][i] || oxy[2*i+1]!=p[1][i]))snapped++;
+    }
+    /* 2. Consecutive cutter vertices closer than the coat grid. */
+    for(i=0;i<n;i++) {
+        int next=(i+1)%n;
+        double dx=(double)oxy[2*next]-oxy[2*i],dy=(double)oxy[2*next+1]-oxy[2*i+1];
+        if(next==i || (dx==0 && dy==0) || !(dx*dx+dy*dy<grid2))continue;
+        if(anchored[i] && anchored[next])continue; /* two distinct subject vertices */
+        if(anchored[next]){oxy[2*i]=oxy[2*next];oxy[2*i+1]=oxy[2*next+1];anchored[i]=1;}
+        else{oxy[2*next]=oxy[2*i];oxy[2*next+1]=oxy[2*i+1];anchored[next]=anchored[i];}
+        merged++;
+    }
+    /* 3. Subject vertices on cutter edge interiors, in order along the edge. */
+    for(i=0;i<n;i++) {
+        const float *a=oxy+2*i,*b=oxy+2*((i+1)%n);
+        /* rounding_on_segment extends the box only by storage rounding. */
+        double pad0=4*FLT_EPSILON*fmax(fabs((double)a[0]),fabs((double)b[0]))+FLT_MIN;
+        double pad1=4*FLT_EPSILON*fmax(fabs((double)a[1]),fabs((double)b[1]))+FLT_MIN;
+        double lo0=fmin(a[0],b[0])-pad0,hi0=fmax(a[0],b[0])+pad0;
+        double lo1=fmin(a[1],b[1])-pad1,hi1=fmax(a[1],b[1])+pad1;
+        snap_grow(&xy,&sp,&outcap,out+1);
+        xy[2*out]=a[0];xy[2*out+1]=a[1];sp[out]=p[3]?p[3][i]:-1.0;out++;
+        nh=0;
+        for(k=0;k<ns;k++) {
+            double t;float sv[2];
+            if(sx[k]<lo0 || sx[k]>hi0 || sy[k]<lo1 || sy[k]>hi1)continue;
+            if((sx[k]==a[0] && sy[k]==a[1]) || (sx[k]==b[0] && sy[k]==b[1]))continue;
+            sv[0]=sx[k];sv[1]=sy[k];
+            if(rounding_same_point(sv,a) || rounding_same_point(sv,b))continue;
+            if(!snap_on_segment(sv,a,b,&t))continue;
+            if(nh==hcap){hcap=hcap?2*hcap:16;hits=sralloc(struct snap_hit,hcap,hits);}
+            hits[nh].t=t;hits[nh].x=sx[k];hits[nh].y=sy[k];nh++;
+        }
+        if(!nh)continue;
+        qsort(hits,nh,sizeof(*hits),snap_hit_order);
+        for(j=0;j<nh;j++) {
+            if(j && hits[j].x==hits[j-1].x && hits[j].y==hits[j-1].y)continue;
+            snap_grow(&xy,&sp,&outcap,out+1);
+            xy[2*out]=hits[j].x;xy[2*out+1]=hits[j].y;sp[out]=-1.0;out++;inserted++;
+        }
+    }
+    /* Exact consecutive identities created by snapping. */
+    for(i=0,k=0;i<out;i++) {
+        if(k && xy[2*i]==xy[2*(k-1)] && xy[2*i+1]==xy[2*(k-1)+1]) {
+            if(sp[i]>0 && (sp[k-1]<=0 || sp[i]<sp[k-1]))sp[k-1]=sp[i];
+            continue;
+        }
+        xy[2*k]=xy[2*i];xy[2*k+1]=xy[2*i+1];sp[k]=sp[i];k++;
+    }
+    while(k>1 && xy[2*(k-1)]==xy[0] && xy[2*(k-1)+1]==xy[1]) {
+        if(sp[k-1]>0 && (sp[0]<=0 || sp[k-1]<sp[0]))sp[0]=sp[k-1];
+        k--;
+    }
+    out=k;
+    /* 4. Cutter detours that agree to rounding with a subject edge PQ. */
+    subject_vertex=salloc(int,out>0?out:1);keep=salloc(int,out>0?out:1);
+    for(i=0;i<out;i++) {
+        keep[i]=1;subject_vertex[i]=-1;
+        for(k=0;k<ns;k++)if(sx[k]==xy[2*i] && sy[k]==xy[2*i+1]){subject_vertex[i]=k;break;}
+    }
+    for(i=0;i<out;i++) {
+        int m,b=-1,edge=0;
+        double t;
+        if(subject_vertex[i]<0)continue;
+        for(m=1;m<out;m++){j=(i+m)%out;if(subject_vertex[j]>=0){b=j;break;}}
+        if(b<0 || m<2)continue;
+        for(k=0;k<ns && !edge;k++) {
+            int q=snext[k];
+            if((sx[k]==xy[2*i] && sy[k]==xy[2*i+1] && sx[q]==xy[2*b] && sy[q]==xy[2*b+1]) ||
+               (sx[q]==xy[2*i] && sy[q]==xy[2*i+1] && sx[k]==xy[2*b] && sy[k]==xy[2*b+1]))edge=1;
+        }
+        if(!edge)continue;
+        for(j=(i+1)%out;j!=b;j=(j+1)%out)
+            if(!snap_on_segment(xy+2*j,xy+2*i,xy+2*b,&t))break;
+        if(j!=b)continue;
+        for(j=(i+1)%out;j!=b;j=(j+1)%out)if(keep[j]){keep[j]=0;rerouted++;}
+    }
+    for(i=0,k=0;i<out;i++)if(keep[i]) {
+        xy[2*k]=xy[2*i];xy[2*k+1]=xy[2*i+1];sp[k]=sp[i];k++;
+    }
+    out=k;
+    free(subject_vertex);free(keep);
+    if((snapped || merged || inserted || rerouted) && snap_polygon_simple(xy,out)) {
+        p[0]=sralloc(float,out,p[0]);p[1]=sralloc(float,out,p[1]);
+        if(p[3])p[3]=sralloc(float,out,p[3]);
+        for(i=0;i<out;i++){p[0][i]=xy[2*i];p[1][i]=xy[2*i+1];if(p[3])p[3][i]=sp[i];}
+        *nump=out;
+        if(mesh_diag_enabled() || getenv("SUPREM4_SNAP_DIAG"))
+            fprintf(stderr,"[etch-snap] grid=%.3g cm snapped=%d merged=%d inserted=%d rerouted=%d vertices=%d\n",
+                    grid,snapped,merged,inserted,rerouted,out);
+    } else if(snapped || merged || inserted || rerouted) {
+        if(mesh_diag_enabled() || getenv("SUPREM4_SNAP_DIAG"))
+            fprintf(stderr,"[etch-snap] rejected: snapped cutter is not simple (snapped=%d merged=%d inserted=%d rerouted=%d)\n",
+                    snapped,merged,inserted,rerouted);
+    }
+    free(sx);free(sy);free(snext);free(xy);free(sp);free(oxy);free(anchored);free(hits);
+}
+
 etch( p, nump, mater )
 float *p[MAXDIM+1];
 int nump;
@@ -511,6 +743,7 @@ int mater;
      * making edges; retain every nonzero edge, however short. */
     if (mode == TWOD) {
         int kept=0,j;
+        snap_cutter(p,&nump,mater);
         for(j=0;j<nump;j++) {
             if(kept && p[0][j]==p[0][kept-1] && p[1][j]==p[1][kept-1]) {
                 if(p[3] && p[3][j]>0 &&

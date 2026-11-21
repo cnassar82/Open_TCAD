@@ -198,6 +198,7 @@ int ie;			/*the triangle number*/
     double disq,djsq,dksq,di,dj,dk;	/*distances*/
     double ai,aj,ak,ci,cj,ck;		/*area terms and half cotangents*/
     double s,den;
+    int orientation;
 
     /*assume the son of gun is clockwise*/
     /*get the point numbers*/
@@ -226,10 +227,21 @@ int ie;			/*the triangle number*/
     /*triangle area is one half of this value*/
     s = -0.5 * den;
 
-    /*if area is less than 0, reorder the points and repeat*/
-    if (s < 0.0) {
+    /* The orientation itself is certified exactly, consistently with
+     * sclk_tri and the exact flip/mesh predicates. The double determinant
+     * supplies magnitudes; it must agree in sign with the exact one. */
+    orientation = orient2d_float_sign(pt[ pt_nd(i) ]->cord, pt[ pt_nd(j) ]->cord,
+                                      pt[ pt_nd(k) ]->cord);
+    if (orientation == 0) {
+	char buf[120];
+	sprintf(buf, "triangle %d is flat\n", ie);
+	panic(buf);
+    }
+    if (orientation < 0) {
 	    panic("triangles are not clock wise, data base corrupted");
-    } 
+    }
+    if (!(s > 0.0))
+	panic("triangle area is not representable in double precision");
 
     /*we want one half of the cotangent*/
     den = 0.5 / den;
@@ -255,15 +267,30 @@ int ie;			/*the triangle number*/
     if ((di == 0.0) || (dj == 0.0) || (dk == 0.0)) 
 	panic("zero length side in triangle %d\n");
 
-    /* The same circumcentric areas, using edge^2 * |cot(angle)| / 8.
-     * Subtracting two squared radii loses the area near a right angle.
-     * Keep double intermediates until the final legacy float storage. */
-    ai = 0.25 * disq * fabs(ci);
-    aj = 0.25 * djsq * fabs(cj);
-    ak = 0.25 * dksq * fabs(ck);
-    tri[ie]->earea[0] = aj + ak;
-    tri[ie]->earea[1] = ak + ai;
-    tri[ie]->earea[2] = ai + aj;
+    /* Control-volume (mass) areas. For a non-obtuse triangle these are the
+     * circumcentric Voronoi pieces, edge^2 * cot(opposite angle) / 8, which
+     * sum exactly to the triangle area. For an obtuse triangle the
+     * circumcenter lies outside: the legacy |cot| pieces then sum to MORE
+     * than the triangle (unboundedly for flat triangles), inflating node
+     * volumes, breaking dose conservation and diluting dopant at nodes
+     * fanned by flat elements (e.g. a refined interface over a coarser
+     * bulk, or thin layered dielectrics). Signed pieces sum correctly but
+     * can be negative. Use the mixed Voronoi area (Meyer et al., 2003):
+     * obtuse vertex s/2, the others s/4. Volumes are positive and every
+     * triangle contributes exactly its own area. ci is the half cotangent
+     * of the angle at vertex 0 (edge jk), and so on. */
+    if (ci >= 0.0 && cj >= 0.0 && ck >= 0.0) {
+	ai = 0.25 * disq * ci;
+	aj = 0.25 * djsq * cj;
+	ak = 0.25 * dksq * ck;
+	tri[ie]->earea[0] = aj + ak;
+	tri[ie]->earea[1] = ak + ai;
+	tri[ie]->earea[2] = ai + aj;
+    } else {
+	tri[ie]->earea[0] = (ci < 0.0) ? 0.5 * s : 0.25 * s;
+	tri[ie]->earea[1] = (cj < 0.0) ? 0.5 * s : 0.25 * s;
+	tri[ie]->earea[2] = (ck < 0.0) ? 0.5 * s : 0.25 * s;
+    }
     if (p1_mass_lumping())
         tri[ie]->earea[0] = tri[ie]->earea[1] = tri[ie]->earea[2] = s/3.0;
 }

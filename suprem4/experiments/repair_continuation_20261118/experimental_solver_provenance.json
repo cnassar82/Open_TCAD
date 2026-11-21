@@ -1,0 +1,113 @@
+{
+  "status": "experimental, not accepted",
+  "base": "exact main working-tree file hashes below",
+  "files": [
+    {
+      "path": "dbase/grid_upd.c",
+      "main_sha256": "98cb30a8e25d5d6d54ab55fa5aa40dafbdca9a829837ba5f8f37477f7d4893a9",
+      "experimental_sha256": "9a40b9caab2200aa4484048d90fa2e5be2a71d2e607716c3faad1e8caec703fb"
+    },
+    {
+      "path": "dbase/mesh_trial.c",
+      "main_sha256": "a98849a62d5d574d8d493b542fa56b6ae00e868e5ff4577b3eab76e40dd9557b",
+      "experimental_sha256": "037db4b3dea5a7d2400a76c42f3b7265773114d70f598156b6db9b6cd343d218"
+    },
+    {
+      "path": "dbase/new_layer.c",
+      "main_sha256": "d10047f2e9da5ddcf4010b7fa4e8c04a6558110328b73a2a522674ad46550359",
+      "experimental_sha256": "89278cb57b856c2701ce33b11ed625d579166b16e676582ec1c07e4ea366797e"
+    },
+    {
+      "path": "dbase/point.c",
+      "main_sha256": "2bb2a0e19ca9aa7bf33ec42f8bc38a7fd3b33164ab27e28b72a9ef2e054793f5",
+      "experimental_sha256": "bb8617d7df0c0f04db69d318bfec3f70fb5e1153c5e4af1a6ffdd2ffac9fae6c"
+    },
+    {
+      "path": "dbase/remove.c",
+      "main_sha256": "e449aad3b53bbc706db5336756d75951cdb5970796d5bccaa884f89b2c43bdab",
+      "experimental_sha256": "eea9d0bdf51ea520221cd6c66737cdf81c7be17cf74511009039e09a01ff413a"
+    },
+    {
+      "path": "dbase/vertical_constraints.c",
+      "main_sha256": "512c73a2bf4a93a86e74955ac43bc6981f0f4915d859a62528c42b53f507236c",
+      "experimental_sha256": "b200f7370775c9fd5219b541b71b28d49fc60426257bd6f5ea07874c6fcaffe5"
+    },
+    {
+      "path": "diffuse/block_set.c",
+      "main_sha256": "409877396a6cb06c672d5d990505c913d3ae13a1bf2983a2c9d098929eadbc70",
+      "experimental_sha256": "7db9c622d7724c938a6a42d955f0b392de89a0ff24666fff4614157050a87585"
+    },
+    {
+      "path": "diffuse/diffuse.c",
+      "main_sha256": "5569957cf0ff3bc3d982aa4d447922981904571e724f0de2b3b53a5cf1fa130f",
+      "experimental_sha256": "2f00abaef083f9c4115af3e7fb2e1e8f707633d067b70ab64c410803b7fee480"
+    },
+    {
+      "path": "diffuse/solve.c",
+      "main_sha256": "47302596c24e17c0ed5de274e68875f9cbd5ddf04bb2778e6ca07c6cde6babdb",
+      "experimental_sha256": "19f4a7f519190d99b424f188c771b317e4b0899ddd83202a19171aff0b48c26a"
+    },
+    {
+      "path": "finel/FEsolve.c",
+      "main_sha256": "22dda150c49601bb4250f931cf4a77a5465879f2c94c0fa317ae521af74b1792",
+      "experimental_sha256": "10abfa3e009598c8af62997f8c60780111eb5c41abb671d1e1b2620a0785ab7f"
+    },
+    {
+      "path": "include/mesh_trial.h",
+      "main_sha256": "3efbb62539fbb94b7053597d10caa7338f60bf5bce68d10b4c9560ee7cad5263",
+      "experimental_sha256": "4bb8f03a481ce44eb63ac94546954bf8bf12823421e9b7373e53a60276758ac7"
+    },
+    {
+      "path": "keyread/expand.c",
+      "main_sha256": "a761bfb780eb8bc3b2b0aa8b4b89ba3882b5ae5fa51feca2bb2fc657dfea4f3f",
+      "experimental_sha256": null
+    },
+    {
+      "path": "keyread/lexical.c",
+      "main_sha256": "1f80f8de65940b507c9e2adb9f80d1346db363ff7dcda94b6644c3accead2074",
+      "experimental_sha256": null
+    },
+    {
+      "path": "keyread/main.c",
+      "main_sha256": "4257dbb4671a9ac4d4366fefd040f1e6c2278fa80520b7259456a465f6b13d4a",
+      "experimental_sha256": null
+    },
+    {
+      "path": "keyread/parser.c",
+      "main_sha256": "ea798967c1389da88f62fcfd0a732831bfc77f97d2e1b2d6b6d60aefbb65d87b",
+      "experimental_sha256": null
+    },
+    {
+      "path": "keyread/parser.h",
+      "main_sha256": "6a77d67361f47860ddfa5fff8281aa1e4d57912e732b6d965c3f7a35cc72ad20",
+      "experimental_sha256": null
+    },
+    {
+      "path": "keyread/write.c",
+      "main_sha256": "18de446761fccbe9e518ad87aee2413d85da4eb48d56860015cd2fb8fbfabf04",
+      "experimental_sha256": null
+    },
+    {
+      "path": "mesh/structure.c",
+      "main_sha256": "f806cb77afc13a53cee5c30ee2967639d58740ef036d2d5de0da6fbc78b8ae56",
+      "experimental_sha256": "a1e87e8224eb57c773f2bfb77c1b9b410b3bda1e5e321e6076c077fbb1c0c4d3"
+    },
+    {
+      "path": "oxide/viscous.c",
+      "main_sha256": "8e98ca63f9a377e4cc3db69205726a77a651b1d1fa686de091d97a57695e45c7",
+      "experimental_sha256": "c4fe86b1758cbbb9500b738fe215384d625f2a64cfa28e3b171dfe1655ea051f"
+    },
+    {
+      "path": "refine/deposit.c",
+      "main_sha256": "2bf9366f59a988c73adf1e6dd5641e09376fe5b7f07a88a965c412bf4250b9d6",
+      "experimental_sha256": "cf7f29a65c1381c284d14880df5dad986f4d4e916c23af6836e4c62a8ee9dcc6"
+    },
+    {
+      "path": "refine/sp_edge.c",
+      "main_sha256": "8ff3dfa83935151d692f06384b044c2dd085144d691e18fcf631a4ff211f06ca",
+      "experimental_sha256": "d375a4f7d536e354db27c68839fd775c1e43970b145b7ee4d1f579e95a66af78"
+    }
+  ],
+  "patch_sha256": "fbc520152593e92c8f32f6fa3a3a25369f57a1c57d0d11761e79d1849774a166",
+  "note": "Archive only. Includes experimental trust-region, matrix-capture, normal-layer and import-quality code, plus differences in diagnostics. Do not blanket-apply this overlay as a qualified repair. Frozen build manifests identify tested variants. No general launcher promotion."
+}

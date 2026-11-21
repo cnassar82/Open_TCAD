@@ -1,0 +1,24 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_23mela6p/src/suprem4",
+  "binary_sha256": "3371a782a1fcb68b67b7b132dd497edbd77caf76f97e0949f8259b3d3fcd2cb5",
+  "input_sha256": "6501ebd3051db70765fb72f6fdde4c344c44625728b708b6546c963e45e6f039",
+  "initial_sha256": "2e23c85a357bc80bf8b3e10606aa090a7c737bd50dc922e7f4c62a4986e640fe",
+  "phase": "full",
+  "first_minutes": 12,
+  "accepted_full_cmos": false,
+  "runtime_options": {
+    "SUPREM4_NATIVE_JOIN_CAP": "1",
+    "SUPREM4_CHARGED_FLUX": "sg"
+  },
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "checkpoint_restart": false,
+  "timed_out": false,
+  "exit": 0,
+  "elapsed_seconds": 1416.505019417964,
+  "reported_error": false,
+  "execution_completed": true
+}

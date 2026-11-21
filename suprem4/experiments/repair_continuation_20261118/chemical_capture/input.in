@@ -1,0 +1,6 @@
+option chat
+method fermi vertical grid.oxide=0.04
+structure infile=/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/poly_implanted.str
+diffuse time=12 temp=800 nitrogen
+structure outfile=activated.str
+quit

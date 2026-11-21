@@ -10,6 +10,7 @@
 /*   Last Modification : 7/3/91 10:52:44 */
 
 #include "global.h"
+#include "suprem_options.h"
 #include "constant.h"
 #include "geom.h"
 #undef EXTERN
@@ -53,7 +54,7 @@ visco_growth( temp, dt)
     proc_temp = temp;
 
     /*Generate appropriate data structures for the FE method*/
-    if(FEconvert( TRIOX, 3) < 0) return;
+    if(FEconvert( TRIOX, 3) < 0)panic("cannot construct viscous oxidation finite-element problem");
 
     /* Boundary conditions */
     FEoxbc();
@@ -118,7 +119,7 @@ stress_analysis( par, param)
      *  stress-dependent oxidation.
      */    
     FEdesc[0].nel = NEL;
-    FEdesc[0].gaussp = 3;
+    FEdesc[0].gaussp = 7;
     FEdesc[0].stiff = triox_stiff;
     FEdesc[0].coeff = FE_oxbulk;
     FEdesc[0].bound = triox_bc;
@@ -132,7 +133,7 @@ stress_analysis( par, param)
     FEdesc[1].nodal_stress = tri6_Snodal_stress;
 
     FEdesc[2].nel = 7;
-    FEdesc[2].gaussp = 3;
+    FEdesc[2].gaussp = 7;
     FEdesc[2].stiff = tri7_stiff;
     FEdesc[2].coeff = sup4_ecoeff;
     FEdesc[2].bound = noop;
@@ -146,7 +147,7 @@ stress_analysis( par, param)
     FEdesc[3].nodal_stress = NULL;
 
     FEdesc[4].nel = 7;
-    FEdesc[4].gaussp = 3;
+    FEdesc[4].gaussp = 7;
     FEdesc[4].stiff = tri7_stiff;
     FEdesc[4].coeff = sup4_ecoeff;
     FEdesc[4].bound = oxload;
@@ -178,6 +179,16 @@ FEmathset( flow)
     float Oss(), Ovel();
     static double dummy[]={0.0,1.0};
     
+#ifdef SUPREM_FE_UMFPACK
+    {
+        extern void oxide_staged_homotopy(int);
+        /* Introduce the coupled viscosity, reaction and diffusion effects
+         * together. The old path turns diffusion feedback off until the
+         * reaction coupling is already fully active. */
+        oxide_staged_homotopy(!(suprem_option("SUPREM4_FE_OXIDANT_P1") || suprem_option("SUPREM4_FE_BBAR_P1") || suprem_option("SUPREM4_FE_LINEAR_TRACE")));
+    }
+#endif
+
     /* Use B/A to scale velocities */
     if( flow)
 	FEabe[0] = FEabe[1] = Ovel( proc_temp, gas_type, Oss( gas_type, SiO2), dummy, 1.0);

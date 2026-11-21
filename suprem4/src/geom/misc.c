@@ -152,7 +152,7 @@ int tr;
  * IEEE binary32 coordinates is exact in binary64 (at most 48 significant
  * bits, with exponent range safely inside binary64). Error-free TwoSum
  * accumulates the six products without losing small terms near an origin. */
-int orient2d_float_sign(float *a, float *b, float *c)
+int orient2d_float_sign(const float *a, const float *b, const float *c)
 {
     double terms[6], expansion[6], next[6], q, sum, bv, error;
     int i,j,n=0,m;

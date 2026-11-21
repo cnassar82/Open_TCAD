@@ -1,0 +1,1032 @@
+[
+  {
+    "device": "nmos",
+    "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_7bz6swgr/src/suprem4",
+    "through": "metal1",
+    "input_sha256": "bbe738fe49c1c3698c9ddb8f7173e43875332ce1b9d0b25ba0206c77814f547b",
+    "provenance": {
+      "runtime_options": {
+        "SUPREM4_MATERIAL_DOMAINS": "oxide",
+        "SUPREM4_MESH_PATCH_REMOVAL": "1",
+        "SUPREM4_MASS_LUMPING": null,
+        "SUPREM4_TIME_INTEGRATOR": null,
+        "SUPREM4_POSITIVITY_STEP": null,
+        "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+        "SUPREM4_VERTICAL_CONSTRAINTS": null,
+        "SUPREM4_PROCESS_SURFACE": "1",
+        "SUPREM4_MESH_QUALITY": null,
+        "SUPREM4_FE_OXIDANT_P1": "1",
+        "SUPREM4_FE_BBAR_P1": "1",
+        "SUPREM4_FE_LINEAR_TRACE": "1",
+        "SUPREM4_FE_TRUST_REGION": null
+      },
+      "binary_sha256": "3e4877db9a89e941265f4dcd11174cc1941d0f601140c6625e581390c569fbef",
+      "data_sha256": {
+        "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+        "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+        "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+      },
+      "build_manifest_sha256": "5ee0b701c1929a1a337d06d616d8cdb0f4b09fe7fca886d37f11ff1de9b4d75e"
+    },
+    "timed_out": false,
+    "checkpoints": {
+      "initial": {
+        "audit": {
+          "triangles": 9088,
+          "area_by_region_um2": {
+            "1": 80.00000177882596
+          }
+        },
+        "summary": {
+          "points": 4719,
+          "nodes": 4719,
+          "triangles": 9088,
+          "regions": 1,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            0.0,
+            7.999999797903001
+          ],
+          "min_edge": 0.01004210730570776,
+          "min_area": 0.00020327823278316407,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 80.00000177882596,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.0,
+                7.999999797903001
+              ],
+              "triangles": 9088
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 4544,
+          "boundary_pairs_checked": 348,
+          "triangles": 9088,
+          "boundary_edges": 348
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 8.000000073811432e+16
+          }
+        },
+        "device_checks": {}
+      },
+      "pad": {
+        "audit": {
+          "triangles": 9088,
+          "area_by_region_um2": {
+            "1": 79.81257469877448,
+            "2": 0.42233957422829105
+          }
+        },
+        "summary": {
+          "points": 4719,
+          "nodes": 4719,
+          "triangles": 9088,
+          "regions": 2,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.02349124997635954,
+            7.999999797903001
+          ],
+          "min_edge": 0.0033612184324738337,
+          "min_area": 6.803980323575234e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 79.81257469877448,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.018742706515695318,
+                7.999999797903001
+              ],
+              "triangles": 8804
+            },
+            "1": {
+              "area": 0.42233957422829105,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.02349124997635954,
+                0.018742708789432072
+              ],
+              "triangles": 284
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 4634,
+          "boundary_pairs_checked": 348,
+          "triangles": 9088,
+          "boundary_edges": 348
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 7.94508442620328e+16,
+            "1:5": 538900891461619.1
+          }
+        },
+        "device_checks": {}
+      },
+      "well_mask": {
+        "audit": {
+          "triangles": 9256,
+          "area_by_region_um2": {
+            "1": 79.81257469877448,
+            "2": 0.17233955645791502
+          }
+        },
+        "summary": {
+          "points": 4887,
+          "nodes": 4887,
+          "triangles": 9256,
+          "regions": 2,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            0.0015087503868471686,
+            7.999999797903001
+          ],
+          "min_edge": 0.0033612184324738337,
+          "min_area": 6.803980323575234e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 79.81257469877448,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.018742706515695318,
+                7.999999797903001
+              ],
+              "triangles": 8804
+            },
+            "1": {
+              "area": 0.17233955645791502,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.0015087503868471686,
+                0.018742708789432072
+              ],
+              "triangles": 452
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 4855,
+          "boundary_pairs_checked": 516,
+          "triangles": 9256,
+          "boundary_edges": 516
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 8.688978199548178e+17,
+            "1:5": 1.1746182980364152e+16
+          }
+        },
+        "device_checks": {}
+      },
+      "wells": {
+        "audit": {
+          "triangles": 9256,
+          "area_by_region_um2": {
+            "1": 79.81257469877448,
+            "2": 0.17233955645791502
+          }
+        },
+        "summary": {
+          "points": 4887,
+          "nodes": 4887,
+          "triangles": 9256,
+          "regions": 2,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            0.0015087503868471686,
+            7.999999797903001
+          ],
+          "min_edge": 0.0033612184324738337,
+          "min_area": 6.803980323575234e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 79.81257469877448,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.018742706515695318,
+                7.999999797903001
+              ],
+              "triangles": 8804
+            },
+            "1": {
+              "area": 0.17233955645791502,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.0015087503868471686,
+                0.018742708789432072
+              ],
+              "triangles": 452
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 4855,
+          "boundary_pairs_checked": 516,
+          "triangles": 9256,
+          "boundary_edges": 516
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 8.423532662219028e+17,
+            "1:5": 2.1509929831268416e+16
+          }
+        },
+        "device_checks": {
+          "well_0p5um_below_surface": {
+            "boron_cm3": 5.1788070338811976e+16,
+            "phosphorus_cm3": 0.0,
+            "net_donor_cm3": -5.1788070338811976e+16
+          },
+          "deep_substrate": {
+            "boron_cm3": 1000019107929125.2,
+            "phosphorus_cm3": 0.0,
+            "net_donor_cm3": -1000019107929125.2
+          }
+        }
+      },
+      "locos_mask": {
+        "audit": {
+          "triangles": 14235,
+          "area_by_region_um2": {
+            "1": 79.6252391444118,
+            "2": 0.42213824196107386,
+            "3": 0.22500082967154159,
+            "4": 0.9000032399943075
+          }
+        },
+        "summary": {
+          "points": 7474,
+          "nodes": 7474,
+          "triangles": 14235,
+          "regions": 4,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.15473808161914349,
+            7.999999797903001
+          ],
+          "min_edge": 0.0016218573557863019,
+          "min_area": 1.5000771542608677e-06,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 79.6252391444118,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.03747621121874545,
+                7.999999797903001
+              ],
+              "triangles": 8236
+            },
+            "1": {
+              "area": 0.42213824196107386,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.004737811423183302,
+                0.037476477245945716
+              ],
+              "triangles": 446
+            },
+            "2": {
+              "area": 1.1250040696658474,
+              "bbox": [
+                0.4999999873689376,
+                8.999999845400453,
+                -0.15473808161914349,
+                -0.004737490542083833
+              ],
+              "triangles": 5553
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 19659,
+          "boundary_pairs_checked": 711,
+          "triangles": 14235,
+          "boundary_edges": 711
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 2.818346003751255e+18,
+            "1:5": 2.9936072763908044e+16,
+            "2:5": 9742183.819518883
+          }
+        },
+        "device_checks": {}
+      },
+      "locos": {
+        "audit": {
+          "triangles": 9716,
+          "area_by_region_um2": {
+            "1": 78.67358249017153,
+            "2": 0.7634053575735172,
+            "3": 0.8618828159295036,
+            "4": 0.42770749010118564
+          }
+        },
+        "summary": {
+          "points": 5085,
+          "nodes": 5085,
+          "triangles": 9716,
+          "regions": 4,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.33321502996841446,
+            7.999999797903001
+          ],
+          "min_edge": 0.006847824438774018,
+          "min_area": 1.9796345743388073e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 78.67358249017153,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.03747623395611299,
+                7.999999797903001
+              ],
+              "triangles": 7618
+            },
+            "1": {
+              "area": 2.0529956636042064,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.33321502996841446,
+                0.3413235754123889
+              ],
+              "triangles": 2098
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 10512,
+          "boundary_pairs_checked": 452,
+          "triangles": 9716,
+          "boundary_edges": 452
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 1.6162266122424387e+18,
+            "1:5": 1.0939231603046093e+18
+          }
+        },
+        "device_checks": {}
+      },
+      "threshold": {
+        "audit": {
+          "triangles": 9904,
+          "area_by_region_um2": {
+            "1": 78.29513592868277,
+            "2": 0.85698623716821,
+            "3": 1.003124539625823,
+            "4": 0.49784326847079885,
+            "6": 0.4958361818983019,
+            "5": 0.02922902552073692
+          }
+        },
+        "summary": {
+          "points": 5184,
+          "nodes": 5184,
+          "triangles": 9904,
+          "regions": 6,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.35907130950363353,
+            7.999999797903001
+          ],
+          "min_edge": 0.00251152808958915,
+          "min_area": 1.7394341555467208e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 78.29513592868277,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.07238386842800537,
+                7.999999797903001
+              ],
+              "triangles": 7214
+            },
+            "1": {
+              "area": 2.8830192526838663,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.35907130950363353,
+                0.36219451430952176
+              ],
+              "triangles": 2690
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 10824,
+          "boundary_pairs_checked": 462,
+          "triangles": 9904,
+          "boundary_edges": 462
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 1.6288679603663734e+18,
+            "1:5": 1.267299360322685e+18
+          }
+        },
+        "device_checks": {}
+      },
+      "gate_oxide": {
+        "audit": {
+          "triangles": 9015,
+          "area_by_region_um2": {
+            "1": 78.25244956483009,
+            "2": 0.702462210669094,
+            "3": 0.0008309672998810055,
+            "4": 0.7935213486586233,
+            "5": 0.00042987407295979577,
+            "6": 0.0004302676130370121,
+            "7": 0.39262467985791055,
+            "8": 0.0050802238135543906,
+            "9": 0.0784906619963346,
+            "10": 0.0004353099272031064,
+            "11": 0.0003956937609118886,
+            "12": 0.0003987839507863929,
+            "13": 0.00043895735996701715,
+            "14": 0.0022290784522979432,
+            "15": 0.00021567702902922168,
+            "16": 0.00016116624432333554
+          }
+        },
+        "summary": {
+          "points": 4750,
+          "nodes": 4750,
+          "triangles": 9015,
+          "regions": 16,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.260225024248939,
+            7.999999797903001
+          ],
+          "min_edge": 0.00031869709326413925,
+          "min_area": 1.6654798507337922e-06,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 78.25244956483009,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.08139230885717552,
+                7.999999797903001
+              ],
+              "triangles": 7213
+            },
+            "1": {
+              "area": 1.9781449007059104,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.260225024248939,
+                0.3631259096437134
+              ],
+              "triangles": 1802
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 8685,
+          "boundary_pairs_checked": 483,
+          "triangles": 9015,
+          "boundary_edges": 483
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 1.6151561421186678e+18,
+            "1:5": 1.0847023615539703e+18
+          }
+        },
+        "device_checks": {}
+      }
+    },
+    "errors": [
+      "simulator reported a command or mesh error",
+      "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/poly_doped.str'",
+      "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/gate.str'",
+      "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/ldd.str'",
+      "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/spacers.str'",
+      "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/source_drain.str'",
+      "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/annealed.str'",
+      "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/contacts.str'",
+      "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos/metal1.str'"
+    ],
+    "resumed_from": {
+      "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/fresh_masks_embedding",
+      "after": "locos_mask"
+    },
+    "elapsed_seconds": 1148.6287646014243,
+    "returncode": 1,
+    "passed": false
+  },
+  {
+    "device": "pmos",
+    "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_7bz6swgr/src/suprem4",
+    "through": "metal1",
+    "input_sha256": "a84e0ddc6faa91461565826e3c3994402fac916fa183f1a3451598e3f6a3a697",
+    "provenance": {
+      "runtime_options": {
+        "SUPREM4_MATERIAL_DOMAINS": "oxide",
+        "SUPREM4_MESH_PATCH_REMOVAL": "1",
+        "SUPREM4_MASS_LUMPING": null,
+        "SUPREM4_TIME_INTEGRATOR": null,
+        "SUPREM4_POSITIVITY_STEP": null,
+        "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+        "SUPREM4_VERTICAL_CONSTRAINTS": null,
+        "SUPREM4_PROCESS_SURFACE": "1",
+        "SUPREM4_MESH_QUALITY": null,
+        "SUPREM4_FE_OXIDANT_P1": "1",
+        "SUPREM4_FE_BBAR_P1": "1",
+        "SUPREM4_FE_LINEAR_TRACE": "1",
+        "SUPREM4_FE_TRUST_REGION": null
+      },
+      "binary_sha256": "3e4877db9a89e941265f4dcd11174cc1941d0f601140c6625e581390c569fbef",
+      "data_sha256": {
+        "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+        "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5",
+        "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5"
+      },
+      "build_manifest_sha256": "5ee0b701c1929a1a337d06d616d8cdb0f4b09fe7fca886d37f11ff1de9b4d75e"
+    },
+    "timed_out": false,
+    "checkpoints": {
+      "initial": {
+        "audit": {
+          "triangles": 9088,
+          "area_by_region_um2": {
+            "1": 80.00000177882596
+          }
+        },
+        "summary": {
+          "points": 4719,
+          "nodes": 4719,
+          "triangles": 9088,
+          "regions": 1,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            0.0,
+            7.999999797903001
+          ],
+          "min_edge": 0.01004210730570776,
+          "min_area": 0.00020327823278316407,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 80.00000177882596,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.0,
+                7.999999797903001
+              ],
+              "triangles": 9088
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 4544,
+          "boundary_pairs_checked": 348,
+          "triangles": 9088,
+          "boundary_edges": 348
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 8.000000073811432e+16
+          }
+        },
+        "device_checks": {}
+      },
+      "pad": {
+        "audit": {
+          "triangles": 9088,
+          "area_by_region_um2": {
+            "1": 79.81257469877448,
+            "2": 0.42233957422829105
+          }
+        },
+        "summary": {
+          "points": 4719,
+          "nodes": 4719,
+          "triangles": 9088,
+          "regions": 2,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.02349124997635954,
+            7.999999797903001
+          ],
+          "min_edge": 0.0033612184324738337,
+          "min_area": 6.803980323575234e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 79.81257469877448,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.018742706515695318,
+                7.999999797903001
+              ],
+              "triangles": 8804
+            },
+            "1": {
+              "area": 0.42233957422829105,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.02349124997635954,
+                0.018742708789432072
+              ],
+              "triangles": 284
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 4634,
+          "boundary_pairs_checked": 348,
+          "triangles": 9088,
+          "boundary_edges": 348
+        },
+        "chemistry": {
+          "species_checked": [
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:5": 7.94508442620328e+16,
+            "1:5": 538900891461619.1
+          }
+        },
+        "device_checks": {}
+      },
+      "well_mask": {
+        "audit": {
+          "triangles": 11078,
+          "area_by_region_um2": {
+            "1": 78.2508581996258,
+            "2": 3.608115807242918
+          }
+        },
+        "summary": {
+          "points": 5795,
+          "nodes": 5795,
+          "triangles": 11078,
+          "regions": 2,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.18592387277749367,
+            7.999999797903001
+          ],
+          "min_edge": 0.018756636645207738,
+          "min_area": 0.00018025543154191642,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 78.2508581996258,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.17490494428784586,
+                7.999999797903001
+              ],
+              "triangles": 6816
+            },
+            "1": {
+              "area": 3.608115807242918,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.18592387277749367,
+                0.1749365583236795
+              ],
+              "triangles": 4262
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 12378,
+          "boundary_pairs_checked": 510,
+          "triangles": 11078,
+          "boundary_edges": 510
+        },
+        "chemistry": {
+          "species_checked": [
+            3,
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:3": 8.92752862563914e+17,
+            "3:5": 7.782017591951544e+16,
+            "1:3": 6.835712088686715e+16,
+            "1:5": 7.902423840266854e+17
+          }
+        },
+        "device_checks": {}
+      },
+      "wells": {
+        "audit": {
+          "triangles": 11078,
+          "area_by_region_um2": {
+            "1": 78.2508581996258,
+            "2": 3.608115807242918
+          }
+        },
+        "summary": {
+          "points": 5795,
+          "nodes": 5795,
+          "triangles": 11078,
+          "regions": 2,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.18592387277749367,
+            7.999999797903001
+          ],
+          "min_edge": 0.018756636645207738,
+          "min_area": 0.00018025543154191642,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 78.2508581996258,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.17490494428784586,
+                7.999999797903001
+              ],
+              "triangles": 6816
+            },
+            "1": {
+              "area": 3.608115807242918,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.18592387277749367,
+                0.1749365583236795
+              ],
+              "triangles": 4262
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 12378,
+          "boundary_pairs_checked": 510,
+          "triangles": 11078,
+          "boundary_edges": 510
+        },
+        "chemistry": {
+          "species_checked": [
+            3,
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:3": 9.117011919986365e+17,
+            "3:5": 7.747026100412251e+16,
+            "1:3": 4.505840329279986e+16,
+            "1:5": 7.791192005705339e+17
+          }
+        },
+        "device_checks": {
+          "well_0p5um_below_surface": {
+            "boron_cm3": 965279549757101.8,
+            "phosphorus_cm3": 6.061315407069577e+16,
+            "net_donor_cm3": 5.9647874520938664e+16
+          },
+          "deep_substrate": {
+            "boron_cm3": 999999961232867.0,
+            "phosphorus_cm3": 23751358684.778038,
+            "net_donor_cm3": -999976209874182.2
+          }
+        }
+      },
+      "locos_mask": {
+        "audit": {
+          "triangles": 16179,
+          "area_by_region_um2": {
+            "1": 78.06216902314013,
+            "2": 0.4251167226790565,
+            "3": 0.2249991578203189,
+            "4": 0.9000032604593999
+          }
+        },
+        "summary": {
+          "points": 8539,
+          "nodes": 8539,
+          "triangles": 16179,
+          "regions": 4,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            0.0012619442202321807,
+            7.999999797903001
+          ],
+          "min_edge": 0.00022509436176432865,
+          "min_area": 2.7026619350735077e-08,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 78.06216902314013,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.1937740671564825,
+                7.999999797903001
+              ],
+              "triangles": 6816
+            },
+            "1": {
+              "area": 0.4251167226790565,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.15126197467907332,
+                0.1938054629135877
+              ],
+              "triangles": 446
+            },
+            "2": {
+              "area": 1.1250024182797191,
+              "bbox": [
+                0.4999999873689376,
+                8.999999845400453,
+                0.0012619442202321807,
+                0.15127839105844032
+              ],
+              "triangles": 8917
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 27686,
+          "boundary_pairs_checked": 897,
+          "triangles": 16179,
+          "boundary_edges": 897
+        },
+        "chemistry": {
+          "species_checked": [
+            3,
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:3": 9.06131894993824e+17,
+            "3:5": 7.703450415280386e+16,
+            "1:3": 549138542598172.3,
+            "1:5": 433333776018848.44,
+            "2:3": 43835277.535409614,
+            "2:5": 43835277.535409614
+          }
+        },
+        "device_checks": {}
+      },
+      "locos": {
+        "audit": {
+          "triangles": 8010,
+          "area_by_region_um2": {
+            "1": 77.10782671129843,
+            "2": 0.7665492756936593,
+            "3": 0.8640678552269169,
+            "4": 0.4294131314250457
+          }
+        },
+        "summary": {
+          "points": 4231,
+          "nodes": 4231,
+          "triangles": 8010,
+          "regions": 4,
+          "bbox": [
+            0.0,
+            10.000000474974513,
+            -0.17869731891551055,
+            7.999999797903001
+          ],
+          "min_edge": 0.0031597291895742712,
+          "min_area": 1.013477433347556e-05,
+          "missing_tri_vertices": 0,
+          "materials": {
+            "3": {
+              "area": 77.10782671129843,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                0.19377743228687905,
+                7.999999797903001
+              ],
+              "triangles": 6462
+            },
+            "1": {
+              "area": 2.0600302623456224,
+              "bbox": [
+                0.0,
+                10.000000474974513,
+                -0.17869731891551055,
+                0.49871567171067
+              ],
+              "triangles": 1548
+            }
+          }
+        },
+        "partition": {
+          "triangle_pairs_checked": 7877,
+          "boundary_pairs_checked": 450,
+          "triangles": 8010,
+          "boundary_edges": 450
+        },
+        "chemistry": {
+          "species_checked": [
+            3,
+            5
+          ],
+          "inventory_by_material_species": {
+            "3:3": 8.851474710086939e+17,
+            "3:5": 7.57263119033487e+16,
+            "1:3": 4847621382418144.0,
+            "1:5": 1313386066114511.8
+          }
+        },
+        "device_checks": {}
+      }
+    },
+    "errors": [
+      "threshold: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/threshold.str'",
+      "gate_oxide: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/gate_oxide.str'",
+      "poly_doped: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/poly_doped.str'",
+      "gate: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/gate.str'",
+      "ldd: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/ldd.str'",
+      "spacers: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/spacers.str'",
+      "source_drain: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/source_drain.str'",
+      "annealed: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/annealed.str'",
+      "contacts: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/contacts.str'",
+      "metal1: [Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/pmos/metal1.str'"
+    ],
+    "resumed_from": {
+      "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/fresh_masks_embedding",
+      "after": "locos_mask"
+    },
+    "elapsed_seconds": 2311.8191882329993,
+    "returncode": -15,
+    "passed": false
+  }
+]

@@ -1,0 +1,6 @@
+option chat
+method fermi viscous grid.oxide=0.04
+structure infile=/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/pmos_post_viscous/pmos/panic.str
+diffuse time=0.00166666666666667 temp=900 dryo2
+structure outfile=oxidized.str
+quit

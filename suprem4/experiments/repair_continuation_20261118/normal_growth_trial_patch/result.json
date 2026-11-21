@@ -1,0 +1,76 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_t4pr6tts/src/suprem4",
+  "binary_sha256": "d0ec5ccac450f231566e8dbe8f557d21d83c60311ed08b75985f626896689194",
+  "input_sha256": "7bb827f9eb3714e54cc1e0ede5cb86d9a081f9b37df01b99c9c3fcf5be8c4206",
+  "requested_normal_spacing_nm": 1.0,
+  "runtime_options": {
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_NORMAL_LAYERS": "1"
+  },
+  "accepted_full_cmos": false,
+  "exit": 0,
+  "elapsed_seconds": 0.6217952342703938,
+  "cuts": [
+    {
+      "x_um": 0.025,
+      "oxide_thickness_nm": 14.383457340727542,
+      "cut_max_gap_nm": 0.8739325989231923,
+      "intersections": 35
+    },
+    {
+      "x_um": 0.275,
+      "oxide_thickness_nm": 14.383457482836093,
+      "cut_max_gap_nm": 0.9307985645113916,
+      "intersections": 37
+    },
+    {
+      "x_um": 0.525,
+      "oxide_thickness_nm": 14.383457482836093,
+      "cut_max_gap_nm": 0.8739324517405573,
+      "intersections": 36
+    },
+    {
+      "x_um": 0.775,
+      "oxide_thickness_nm": 14.383457056510288,
+      "cut_max_gap_nm": 0.8739333667193705,
+      "intersections": 34
+    },
+    {
+      "x_um": 0.975,
+      "oxide_thickness_nm": 14.383457056510363,
+      "cut_max_gap_nm": 0.8739327873102474,
+      "intersections": 33
+    }
+  ],
+  "points": 462,
+  "independent_audit": {
+    "sha256": "7dd094da3b855da32dfc1f4b9eb7626f66857eb9f591ccc4a5688c2eba5461bd",
+    "topology": {
+      "triangles": 820,
+      "area_by_region_um2": {
+        "1": 0.9939165591838203,
+        "2": 0.014383456920527438
+      }
+    },
+    "partition": {
+      "triangle_pairs_checked": 543,
+      "boundary_pairs_checked": 102,
+      "triangles": 820,
+      "boundary_edges": 102
+    },
+    "chemistry": {
+      "species_checked": [
+        5
+      ],
+      "inventory_by_material_species": {
+        "3:5": 982387379636791.2,
+        "1:5": 17416123479947.809
+      }
+    },
+    "points": 462,
+    "minimum_quality": 0.01310802900595202
+  },
+  "spacing_reset_reported": false,
+  "achieved_requested_edge_spacing": false,
+  "maximum_oxide_edge_normal_span_nm": 1.2410646377247758
+}

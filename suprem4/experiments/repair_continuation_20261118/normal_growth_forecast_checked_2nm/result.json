@@ -1,0 +1,83 @@
+{
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_crwz27yi/src/suprem4",
+  "binary_sha256": "ac82de4ca646f2f234dd6dba14dda71a64630cef48cbe8c708b1cee522558700",
+  "input_sha256": "5e218d919bece45fc5904e367c71144d19bc897dc3bb0e7fc19957a644d6bf1f",
+  "requested_normal_spacing_nm": 2.0,
+  "runtime_options": {
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_NORMAL_LAYERS": "1"
+  },
+  "accepted_full_cmos": false,
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "exit": 0,
+  "elapsed_seconds": 0.2148944907821715,
+  "spacing_reset_reported": false,
+  "achieved_requested_edge_spacing": true,
+  "audit_errors": [],
+  "cuts": [
+    {
+      "x_um": 0.025,
+      "oxide_thickness_nm": 14.508896128972992,
+      "cut_max_gap_nm": 1.3990084706138501,
+      "intersections": 32
+    },
+    {
+      "x_um": 0.275,
+      "oxide_thickness_nm": 14.508896128972992,
+      "cut_max_gap_nm": 1.399008611981561,
+      "intersections": 35
+    },
+    {
+      "x_um": 0.525,
+      "oxide_thickness_nm": 14.508896128972992,
+      "cut_max_gap_nm": 1.3990082350009971,
+      "intersections": 35
+    },
+    {
+      "x_um": 0.775,
+      "oxide_thickness_nm": 14.508896128972992,
+      "cut_max_gap_nm": 1.3990090172463308,
+      "intersections": 36
+    },
+    {
+      "x_um": 0.975,
+      "oxide_thickness_nm": 14.508896128972992,
+      "cut_max_gap_nm": 1.3990087721875484,
+      "intersections": 34
+    }
+  ],
+  "points": 451,
+  "maximum_oxide_edge_normal_span_nm": 1.8653446431926568,
+  "independent_audit": {
+    "sha256": "3b008270f740b8dba3e018da860ab3a1e2c0a6c884ceaeec11ca7d4bae5ef8a7",
+    "topology": {
+      "triangles": 800,
+      "area_by_region_um2": {
+        "1": 0.99385954219502,
+        "2": 0.014508895762447398
+      }
+    },
+    "partition": {
+      "triangle_pairs_checked": 400,
+      "boundary_pairs_checked": 100,
+      "triangles": 800,
+      "boundary_edges": 100
+    },
+    "chemistry": {
+      "species_checked": [
+        5
+      ],
+      "inventory_by_material_species": {
+        "3:5": 982391030331385.0,
+        "1:5": 17541182766479.965
+      }
+    },
+    "points": 451,
+    "minimum_quality": 0.014614622753197932
+  },
+  "passed": true
+}

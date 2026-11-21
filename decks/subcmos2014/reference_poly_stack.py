@@ -88,6 +88,7 @@ def main():
     report={'scope':'same-engine planar diagnostic','controls':{k:v for k,v in vars(args).items() if k not in ('binary','output')},
             'binary':str(binary),'binary_sha256':digest(binary),'deck_sha256':digest(deck),
             'data_sha256':{n:digest(data/n) for n in ('modelrc','suprem.uk','sup4gs.imp')}}
+    report['runtime_options']={k:v for k,v in env.items() if k.startswith('SUPREM4_')}
     print(f'workdir: {work}',flush=True)
     with deck.open('rb') as stdin,(work/'stack.log').open('wb') as log:
         try:r=subprocess.run([str(binary)],stdin=stdin,stdout=log,stderr=subprocess.STDOUT,cwd=work,env=env,timeout=300);report['returncode']=r.returncode

@@ -1,0 +1,26 @@
+[
+  {
+    "join_x_um": 0.475,
+    "passed": true,
+    "exit": 0,
+    "evidence": "native_join_main_shift_0.475"
+  },
+  {
+    "join_x_um": 0.495,
+    "passed": true,
+    "exit": 0,
+    "evidence": "native_join_main_shift_0.495"
+  },
+  {
+    "join_x_um": 0.505,
+    "passed": true,
+    "exit": 0,
+    "evidence": "native_join_main_shift_0.505"
+  },
+  {
+    "join_x_um": 0.525,
+    "passed": true,
+    "exit": 0,
+    "evidence": "native_join_main_shift_0.525"
+  }
+]

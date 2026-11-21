@@ -33,7 +33,6 @@ extern char *alloc_pt(), *alloc_nd(), *alloc_tri();
 
 #define MIN_GRID_SPACE 2.5e-8
 
-
 /*-----------------SP_EDGE----------------------------------------------
  * This does the database grunt work of adding one new point to an edge.
  *----------------------------------------------------------------------*/
@@ -127,6 +126,12 @@ int *p;		/* New point*/
 
     eoth = insert_pt_edg( ie, c, p );
     ip = *p;
+    if (getenv("SUPREM4_PT_TRACE"))
+        fprintf(stderr, "[split] caller=%+ld c=(%.9g,%.9g) edge=(%.9g,%.9g)-(%.9g,%.9g) newpt=%d\n",
+                (long)((char *)__builtin_return_address(0) - (char *)sp_gredg),
+                (double)c[0],(double)c[1],
+                (double)pt[pt_edg(ie,0)]->cord[0],(double)pt[pt_edg(ie,0)]->cord[1],
+                (double)pt[pt_edg(ie,1)]->cord[0],(double)pt[pt_edg(ie,1)]->cord[1], ip);
 
     /*get the current edge ends into local storage*/
     in = node_mat(nd_pt(ip,0), mat_nd(nd_edg(ie,0)));

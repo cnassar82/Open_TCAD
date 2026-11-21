@@ -148,7 +148,7 @@ EXTERN struct edg_str **edg;
 EXTERN struct reg_str *reg[MAXREG];
 
 extern float area_tri();
-extern int orient2d_float_sign(float *, float *, float *);
+extern int orient2d_float_sign(const float *, const float *, const float *);
 
 /*should be in the geom stuff*/
 EXTERN int nreg;	/*the number of regions*/

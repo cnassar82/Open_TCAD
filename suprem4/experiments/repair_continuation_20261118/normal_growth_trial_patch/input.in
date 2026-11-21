@@ -1,0 +1,13 @@
+option quiet
+line x loc=0 spac=0.1 tag=left
+line x loc=1 spac=0.1 tag=right
+line y loc=0 spac=0.01 tag=top
+line y loc=0.1 spac=0.02
+line y loc=1 spac=0.1 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+init boron conc=1e15 orient=100
+method fermi vertical grid.oxide=0.001
+diffuse time=45 temp=900 dryo2
+structure outfile=grown.str
+quit

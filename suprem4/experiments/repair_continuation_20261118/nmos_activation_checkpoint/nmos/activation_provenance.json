@@ -1,0 +1,13 @@
+{
+  "accepted_full_cmos": false,
+  "checkpoint_restart": true,
+  "scope": "NMOS checkpoint assembled from audited original upstream process and exact activation thermal budget split at 12 minutes",
+  "upstream_folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/cmos_mixed_trace/nmos",
+  "poly_doped_sha256": "6c7149e15d5450f0e4e98e73a000764e2ddf88839cdf5fdf789ecfb26735b043",
+  "activation_records": {
+    "activation_sg_production_12min": "4c3c51c6d139fe17392b54cc44bb1a12c43d152ea91e1907b3014f90f1c4a757",
+    "activation_sg_production_remaining": "07da7fa75bbe5faca01c5275d628898be1bbd28405f7a2859562830b3ef30521"
+  },
+  "initial_poly_implanted_sha256": "aa63a2b9ab4028a86d07f218a44930995c5b65d6ed6c8e15746aed05cdd86b94",
+  "gate_barrier_resolution_qualified": false
+}

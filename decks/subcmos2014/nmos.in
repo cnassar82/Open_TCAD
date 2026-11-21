@@ -3,6 +3,7 @@
 # 1 um drawn gate (0.5 um layout lambda); assumed 2D masks.
 option quiet
 method fermi vertical grid.oxide=0.04
+phosphorus oxide Dix.0=7.23 Dix.E=4.44
 line x loc=0 spac=0.2 tag=left
 line x loc=0.5 spac=0.08
 line x loc=2 spac=0.08
@@ -164,13 +165,13 @@ diffuse time=7.5 temp=825 nitrogen continue
 diffuse time=15 temp=800 nitrogen continue
 implant boron dose=7e+11 energy=60 pearson
 structure outfile=threshold.str
-etch oxide dry thick=0.1
+etch oxide dry thick=0.11
 # PDF p.81: 215 gate oxide; ramps discretized in <=50 C intervals.
 diffuse time=12 temp=800 nitrogen
 diffuse time=15 temp=800 nitrogen continue
 diffuse time=5 temp=825 dryo2
 diffuse time=5 temp=875 dryo2 continue
-diffuse time=45 temp=900 dryo2 continue
+diffuse time=40 temp=900 dryo2 continue
 diffuse time=10 temp=875 nitrogen continue
 diffuse time=10 temp=825 nitrogen continue
 diffuse time=15 temp=800 nitrogen continue

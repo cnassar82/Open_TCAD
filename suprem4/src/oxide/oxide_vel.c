@@ -44,7 +44,7 @@ oxide_vel (temp, ornt, oxhow, dt)
 
     /*load the finite element structure*/
     FEdesc[0].nel = NEL;
-    FEdesc[0].gaussp = 3;
+    FEdesc[0].gaussp = 7;
     FEdesc[0].stiff = triox_stiff;
     FEdesc[0].coeff = FE_oxbulk;
     FEdesc[0].bound = triox_bc;
@@ -58,7 +58,7 @@ oxide_vel (temp, ornt, oxhow, dt)
     FEdesc[1].nodal_stress = tri6_Snodal_stress;
 
     FEdesc[2].nel = 7;
-    FEdesc[2].gaussp = 3;
+    FEdesc[2].gaussp = 7;
     FEdesc[2].stiff = tri7_stiff;
     FEdesc[2].coeff = sup4_ecoeff;
     FEdesc[2].bound = noop;
@@ -72,7 +72,7 @@ oxide_vel (temp, ornt, oxhow, dt)
     FEdesc[3].nodal_stress = NULL;
 
     FEdesc[4].nel = 7;
-    FEdesc[4].gaussp = 3;
+    FEdesc[4].gaussp = 7;
     FEdesc[4].stiff = tri7_stiff;
     FEdesc[4].coeff = sup4_ecoeff;
     FEdesc[4].bound = oxload;
@@ -92,7 +92,15 @@ oxide_vel (temp, ornt, oxhow, dt)
 	    if( NeedNewFlow( )) {WipeVel(); elast_growth( temp, dt); SetFuse();}
 		break;
 	case O_VISCOUS:
-	    if( NeedNewFlow( )) {WipeVel(); visco_growth( temp, dt); SetFuse();}
+	    if( NeedNewFlow( )) {
+#ifndef SUPREM_FE_UMFPACK
+                WipeVel();
+#endif
+                /* FE2s4 replaces the complete velocity field after a
+                 * successful solve. Preserve the committed field until
+                 * then so the pivoted solver can use it as an initial guess. */
+                visco_growth(temp,dt);SetFuse();
+            }
 		break;
 	default:
 	    fprintf( stderr, "Unknown oxide model!\n");

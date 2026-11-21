@@ -1,0 +1,20 @@
+{
+  "accepted_full_cmos": false,
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_sb1yops3/src/suprem4",
+  "binary_sha256": "0e82bf099c7d9404f4e463755ade6ad0e298e5da88a0d0d1e8dcaee79b478cdd",
+  "input_sha256": "e62b6e0ebefec20589d0fb30fffe8e6ad73d0b4ebfb49e01fcb70e4f3b7f14df",
+  "runtime_options": {
+    "SUPREM4_NATIVE_JOIN_CAP": "1",
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1"
+  },
+  "errors": [
+    "[Errno 2] No such file or directory: '/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/native_join_cap/stack.str'"
+  ],
+  "exit": -6,
+  "elapsed_seconds": 0.16488310135900974,
+  "continuous_barrier": false,
+  "passed": false
+}

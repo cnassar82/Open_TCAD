@@ -25,7 +25,7 @@
 #include "dbaccess.h"
 #include "material.h"
 #include "skel.h"
-extern int orient2d_float_sign(float *, float *, float *);
+extern int orient2d_float_sign(const float *, const float *, const float *);
 
 static int kn_diag_on()
 {

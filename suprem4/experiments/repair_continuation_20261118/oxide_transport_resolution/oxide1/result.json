@@ -1,0 +1,55 @@
+{
+  "scope": "same-engine planar diagnostic",
+  "controls": {
+    "dimensions": 1,
+    "oxide_divisions": 1,
+    "oxide_um": 0.015,
+    "si_space": 0.001,
+    "time_step": null
+  },
+  "binary": "/home/chris/Open_TCAD/suprem4/build/native64_8h4qh9_l/src/suprem4",
+  "binary_sha256": "25e328ac9db50d4b029ebc1a2a8777413ffc134a4583120638059a3fb34a98a0",
+  "deck_sha256": "b52903a1c90b06ee2c77f110b35e05ec38d5e479a6e49f368cc5d054a8ed08d0",
+  "data_sha256": {
+    "modelrc": "b538a6b87eb32434fdabed08590343d8f7a700cf63d9394372f8e2b565e793c6",
+    "suprem.uk": "09ce620fc2a894c2db7c9c6c7a18c1a1be9ba2d3fda9d2aa788889db608267d5",
+    "sup4gs.imp": "2ef1e12b5443c89a6bdcc0baf33c8426052ce76582b49345ddc1442498b5eff5"
+  },
+  "returncode": 0,
+  "errors": [],
+  "implanted": {
+    "chemical_phosphorus_atoms_cm2_by_material": {
+      "3": 79.99999797903001,
+      "1": 20.566661773440654,
+      "4": 1.9982335834721376e+16
+    },
+    "silicon_phosphorus_cm3_by_depth_um": {
+      "0.005": 100000.0,
+      "0.01": 100000.0,
+      "0.025": 100000.0,
+      "0.05": 100000.0,
+      "0.1": 100000.0,
+      "0.25": 100000.0,
+      "0.5": 100000.0
+    },
+    "elements": 200
+  },
+  "activated": {
+    "chemical_phosphorus_atoms_cm2_by_material": {
+      "3": 970388755881.775,
+      "1": 4425601408160.827,
+      "4": 8661037089066054.0
+    },
+    "silicon_phosphorus_cm3_by_depth_um": {
+      "0.005": 2.0413861612853334e+17,
+      "0.01": 1.8697863426583565e+17,
+      "0.025": 1.4007146614537965e+17,
+      "0.05": 7.876702562455843e+16,
+      "0.1": 1.7077735724139482e+16,
+      "0.25": 9011025065259.125,
+      "0.5": 187926.31912960164
+    },
+    "elements": 200
+  },
+  "passed": true
+}

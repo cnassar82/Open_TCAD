@@ -40,9 +40,12 @@ def main():
     p.add_argument('--output',type=Path)
     p.add_argument('--timeout',type=float,default=1800)
     p.add_argument('--jobs',type=int,default=2)
+    p.add_argument('--deck-dir',type=Path,default=HERE,
+                   help='generated input deck variant; validation still uses the common oracles')
     p.add_argument('--resume',type=Path,help='previous run folder, containing device subfolders')
     p.add_argument('--after',choices=CHECKPOINTS,help='resume after this saved checkpoint')
     args=p.parse_args()
+    deck_dir=args.deck_dir.resolve()
     if bool(args.resume)!=bool(args.after):p.error('--resume and --after must be supplied together')
     if args.after and CHECKPOINTS.index(args.after)>=CHECKPOINTS.index(args.through):
         p.error('--through must follow --after')
@@ -53,11 +56,21 @@ def main():
     missing=sorted(name for name in required_data if not (data/name).is_file())
     if missing:p.error(f'missing candidate data files: {missing} in {data}')
     build_manifest=binary.parent.parent/'build.json'
-    provenance={
-        'runtime_options': {key: os.environ.get(key) for key in
+    runtime_options={key: os.environ.get(key) for key in
                             ('SUPREM4_MATERIAL_DOMAINS', 'SUPREM4_MESH_PATCH_REMOVAL',
                              'SUPREM4_MASS_LUMPING', 'SUPREM4_TIME_INTEGRATOR', 'SUPREM4_POSITIVITY_STEP',
-                             'SUPREM4_DEPOSITION_GEOMETRY','SUPREM4_VERTICAL_CONSTRAINTS','SUPREM4_PROCESS_SURFACE')},
+                             'SUPREM4_DEPOSITION_GEOMETRY','SUPREM4_VERTICAL_CONSTRAINTS','SUPREM4_PROCESS_SURFACE',
+                             'SUPREM4_MESH_QUALITY','SUPREM4_FE_OXIDANT_P1','SUPREM4_FE_BBAR_P1',
+                             'SUPREM4_FE_LINEAR_TRACE','SUPREM4_FE_TRUST_REGION',
+                             'SUPREM4_CHARGED_FLUX','SUPREM4_NORMAL_LAYERS')}
+    runtime_options.update({key:value for key,value in os.environ.items() if key.startswith("SUPREM4_")})
+    provenance={
+        'runtime_options':runtime_options,
+        'auditor_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest()
+                          for path in (Path(__file__).resolve(),HERE/'validate.py',
+                                       ROOT/'suprem4/tests/partition_audit.py',
+                                       ROOT/'suprem4/tests/inventory_audit.py',
+                                       ROOT/'suprem4/tests/run_oxidation_perturbations.py')},
         'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
         'data_sha256':{name:hashlib.sha256((data/name).read_bytes()).hexdigest()
                        for name in sorted(required_data)},
@@ -72,8 +85,8 @@ def main():
         d=work/device
         if d.exists() and any(d.iterdir()):raise ValueError(f'output folder is not empty: {d}')
         d.mkdir(exist_ok=True)
-        shutil.copy2(HERE/'resist_top.dat',d/'resist_top.dat')
-        text=(HERE/(device+'.in')).read_text()
+        shutil.copy2(deck_dir/'resist_top.dat',d/'resist_top.dat')
+        text=(deck_dir/(device+'.in')).read_text()
         if args.through!='metal1':
             marker=f'structure outfile={args.through}.str'
             text=text.split(marker)[0]+marker+'\nquit\n'
@@ -90,7 +103,8 @@ def main():
                 saved=source/(name+'.str');audit(saved)
                 shutil.copy2(saved,d/saved.name)
             settings=[line for line in before.splitlines()
-                      if line.startswith(('method ','oxide ','option '))]
+                      if line.startswith(('method ','oxide ','option ','boron ','phosphorus ',
+                                          'arsenic ','antimony ','interstitial ','vacancy '))]
             text='\n'.join(settings)+f'\nstructure infile={args.after}.str\n'+remaining.lstrip()
         deck=d/(device+'.in');deck.write_text(text)
         env=os.environ.copy()

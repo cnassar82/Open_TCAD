@@ -17,6 +17,8 @@
 /*   Last Modification : 7/3/91 10:50:02 */
 
 #include <stdio.h>
+#include "thin_film.h"
+#include "suprem_options.h"
 #include <sys/times.h>
 #include <math.h>
 
@@ -112,6 +114,16 @@ int diffuse( char *par, struct par_str *param )
 	}
 	lose_impurity( O2);	lose_impurity( H2O);
 	lose_impurity( Sxx);	lose_impurity( Sxy);	lose_impurity( Syy);
+
+	/* Dopant transport through a dielectric barrier needs the film
+	 * resolved through its thickness; a one-element film couples its two
+	 * interfaces directly. The film is stationary in this ambient, and
+	 * conforming bisection leaves every piecewise-linear field unchanged. */
+	{
+	    const char *layers=suprem_option("SUPREM4_THIN_FILM_LAYERS");
+	    if(layers && atoi(layers)>1 && thin_film_conform(atoi(layers)))
+		geom("after thin film conformity");
+	}
     }
 
     if ( is_specified( param, "gold.surf" ) ) {
@@ -139,6 +151,18 @@ int diffuse( char *par, struct par_str *param )
     init_pseudo( temp );
 
     /*initialize the diffusion code*/
+    if(getenv("SUPREM4_MOTION_TRACE")) {
+        int ip, ix, bad = -1;
+        for(ip = 0; ip < np && bad < 0; ip++)
+            for(ix = 0; ix < mode; ix++)
+                if(!isfinite(pt[ip]->vel[ix])) { bad = ip; break; }
+        fprintf(stderr, "[DIAG] pre-init_diffuse: n_imp=%d vx=%d vy=%d np=%d vel_bad_point=%d\n",
+                n_imp, imptosol[XVEL], imptosol[YVEL], np, bad);
+        if(bad >= 0)
+            fprintf(stderr, "[DIAG] vel_bad: x=%.17g y=%.17g vx=%.17g vy=%.17g\n",
+                    (double)pt[bad]->cord[0], (double)pt[bad]->cord[1],
+                    (double)pt[bad]->vel[0], (double)pt[bad]->vel[1]);
+    }
     init_diffuse();
 
     if ( methdata.defmodel == FULLCPL ) {

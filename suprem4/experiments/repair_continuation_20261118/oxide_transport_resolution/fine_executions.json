@@ -1,0 +1,17 @@
+[
+  {
+    "divisions": 32,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide32"
+  },
+  {
+    "divisions": 64,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide64"
+  },
+  {
+    "divisions": 128,
+    "exit": 0,
+    "folder": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/oxide_transport_resolution/oxide128"
+  }
+]

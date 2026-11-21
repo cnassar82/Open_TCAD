@@ -1,0 +1,23 @@
+{
+  "accepted_full_cmos": false,
+  "scope": "0.1 second PMOS stressed snapshot; staged numerical homotopy, same physical endpoint",
+  "binary": "/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/work/build/native64_gj5dfi_y/src/suprem4",
+  "binary_sha256": "b4dadab3cf1326b2b10fafd78985ecdf72f3f85b416b49a2871949b272ad3f18",
+  "input_sha256": "5e93354c55cec0886839c5fe3f32a7c9044f4b2a3b575523e3870a6a10b1a01e",
+  "initial_sha256": "c2f8e8270c245e957d5aaa1d997effb79b216a7caa7165da3bc1aee3a97745e1",
+  "runtime_options": {
+    "SUPREM4_PROCESS_SURFACE": "1",
+    "SUPREM4_DEPOSITION_GEOMETRY": "domain",
+    "SUPREM4_MATERIAL_DOMAINS": "oxide",
+    "SUPREM4_MESH_PATCH_REMOVAL": "1",
+    "SUPREM4_FE_OXIDANT_P1": "1",
+    "SUPREM4_FE_BBAR_P1": "1",
+    "SUPREM4_FE_LINEAR_TRACE": "1",
+    "SUPREM4_FE_STAGED_HOMOTOPY": "1"
+  },
+  "exit": 124,
+  "elapsed_seconds": 120.00627017393708,
+  "execution_completed": false,
+  "staged_option_effective": false,
+  "limitation": "The preceding experimental build forced simultaneous homotopy and did not read this runtime option."
+}

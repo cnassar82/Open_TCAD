@@ -12,6 +12,7 @@
 #include "geom.h"
 #include "matrix.h"
 #include "mesh_trial.h"
+#include "mesh_embedding.h"
 
 struct mesh_trial {
     int points, nodes, triangles, edges;
@@ -132,6 +133,34 @@ static float moved_coordinate(int p, int axis, double dt)
     return (float)((double)pt[p]->cord[axis] + pt[p]->vel[axis]*dt);
 }
 
+/* Read-only validation of the committed embedding (dt=0), or of rounded
+ * candidate coordinates. Callers establish positive element orientations. */
+int mesh_trial_validate_embedding(double dt,int *bad_triangle)
+{
+    int p,k,t,j,count=0,valid;
+    float (*xy)[3];
+    struct embedding_triangle *elements;
+    *bad_triangle=-1;
+    if(!isfinite(dt))return 0;
+    if(mode!=TWOD)return 1;
+    xy=calloc((size_t)np,sizeof(*xy));
+    elements=calloc((size_t)ne,sizeof(*elements));
+    if(!xy || !elements){free(xy);free(elements);return 0;}
+    for(p=0;p<np;p++)for(k=0;k<2;k++)xy[p][k]=dt==0?pt[p]->cord[k]:moved_coordinate(p,k,dt);
+    for(t=0;t<ne;t++) {
+        if(dead_tri(t) || !leaf(tri[t]))continue;
+        elements[count].identity=t;
+        for(j=0;j<3;j++) {
+            elements[count].vertex[j]=pt_nd(vert_tri(t,j));
+            if(tri[t]->nb[(j+2)%3]<0)elements[count].boundary|=1<<j;
+        }
+        count++;
+    }
+    valid=mesh_embedding_check((const float (*)[3])xy,count,elements,bad_triangle);
+    free(xy);free(elements);
+    return valid;
+}
+
 int mesh_trial_move(double dt, int *bad_triangle)
 {
     int p,k,t,j;
@@ -140,7 +169,15 @@ int mesh_trial_move(double dt, int *bad_triangle)
     if(!isfinite(dt))return 0;
     for(p=0;p<np;p++)for(k=0;k<mode;k++)
         if(!isfinite(pt[p]->cord[k]) || !isfinite(pt[p]->vel[k]) ||
-           !isfinite(moved_coordinate(p,k,dt)))return 0;
+           !isfinite(moved_coordinate(p,k,dt))) {
+            if(getenv("SUPREM4_MOTION_TRACE"))
+                fprintf(stderr,"[motion-trace] nonfinite: p=%d axis=%d cord=%.17g vel=%.17g cand=%.17g x=%.17g y=%.17g nn=%d dt=%.17g\n",
+                        p,k,(double)pt[p]->cord[k],(double)pt[p]->vel[k],
+                        (double)moved_coordinate(p,k,dt),
+                        (double)pt[p]->cord[0],(double)pt[p]->cord[1],
+                        pt[p]->nn,dt);
+            return 0;
+        }
     for(t=0;t<ne;t++) {
         if(dead_tri(t) || !leaf(tri[t]))continue;
         for(j=0;j<num_vert(t);j++) {
@@ -152,6 +189,10 @@ int mesh_trial_move(double dt, int *bad_triangle)
             *bad_triangle=t;return 0;
         }
     }
+    /* Validate the represented global embedding before committing any
+     * coordinate. A positive orientation test alone misses collisions of
+     * non-neighboring boundary fans, including the captured LOCOS corner. */
+    if(mode==TWOD && dt!=0 && !mesh_trial_validate_embedding(dt,bad_triangle))return 0;
     if(getenv("SUPREM4_EMBED_TRACE") && dt!=0 && mode==TWOD) {
         double lo,hi;
         FILE *trace;

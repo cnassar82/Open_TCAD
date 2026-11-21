@@ -4,6 +4,7 @@
  * materials and seams represented by distinct material nodes stay protected.
  */
 #include <stdio.h>
+#include "suprem_options.h"
 #include <stdlib.h>
 #include <string.h>
 #include "global.h"
@@ -13,7 +14,7 @@
 #include "material_domain.h"
 int material_domain_normalize(void)
 {
-    const char *policy=getenv("SUPREM4_MATERIAL_DOMAINS");
+    const char *policy=suprem_option("SUPREM4_MATERIAL_DOMAINS");
     struct domain_region *properties=NULL;
     struct domain_triangle *faces=NULL;
     struct reg_str **replacement=NULL;

@@ -33,6 +33,23 @@ I–V curves or reproduce the PDF's threshold-voltage targets.
 
 ## Run
 
+**Fresh full flow (2026-11-19):** both devices complete all 16 audited checkpoints
+through metal1 in one invocation. The installed launcher now uses this build with
+the validated options as built-in defaults, so no environment variables are needed:
+
+```sh
+python3 decks/subcmos2014/run.py --binary suprem4/build/validated-native64/src/suprem4 --through metal1 --timeout 7200
+```
+
+**2026-11-20:** thin gate oxides now get at least 8 element layers before each
+non-oxidizing diffusion. The NMOS channel is now p-type: before, poly phosphorus
+crossed a one-element gate oxide. The remaining 8 nm surface skin from the S/D
+anneal matches an independent 1D solution of the same model. Saved run:
+`results/fresh_full_flow_thinfilm_20261120`. See
+`suprem4/doc/rit_cmos_full_flow_repair_20261119.md`.
+
+The older 2026-11-17 instructions follow.
+
 To reproduce the corrected candidate through first metal:
 
 ```sh

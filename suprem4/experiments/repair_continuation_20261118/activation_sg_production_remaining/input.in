@@ -1,0 +1,16 @@
+option chat
+method fermi vertical grid.oxide=0.04
+structure infile=/home/chris/Open_TCAD/suprem4/experiments/repair_continuation_20261118/activation_sg_production_12min/activated.str
+diffuse time=15 temp=800 nitrogen
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=15 temp=1000 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=15 temp=800 nitrogen continue
+structure outfile=activated.str
+quit

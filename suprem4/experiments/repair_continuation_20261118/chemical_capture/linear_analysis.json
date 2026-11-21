@@ -1,0 +1,74 @@
+{
+  "nodes": 74407,
+  "species": [
+    5,
+    0,
+    1,
+    14,
+    3
+  ],
+  "equations": 372035,
+  "nonzeros": 3505522,
+  "legacy": {
+    "normwise_backward_error": 1.8570585618559213e-12,
+    "componentwise_backward_error": 0.030166406429465192,
+    "scaled_relative_residual": 2.7158026188723917e-06
+  },
+  "independent_pivoted": {
+    "normwise_backward_error": 1.984840679067907e-21,
+    "componentwise_backward_error": 2.35245670716995e-16,
+    "scaled_relative_residual": 3.0225812116938292e-15
+  },
+  "updates": [
+    {
+      "species": 5,
+      "legacy_negative_count": 0,
+      "pivoted_negative_count": 0,
+      "worst_legacy_node": 31586,
+      "current": 100000.0,
+      "legacy_update": -354.53488507928137,
+      "pivoted_update_same_node": -356.19016781232614
+    },
+    {
+      "species": 0,
+      "legacy_negative_count": 0,
+      "pivoted_negative_count": 0,
+      "worst_legacy_node": 660,
+      "current": 1.0,
+      "legacy_update": 0.0,
+      "pivoted_update_same_node": 0.0
+    },
+    {
+      "species": 1,
+      "legacy_negative_count": 0,
+      "pivoted_negative_count": 0,
+      "worst_legacy_node": 660,
+      "current": 1.0,
+      "legacy_update": 0.0,
+      "pivoted_update_same_node": 0.0
+    },
+    {
+      "species": 14,
+      "legacy_negative_count": 25874,
+      "pivoted_negative_count": 25874,
+      "worst_legacy_node": 39043,
+      "current": -0.014479684622877199,
+      "legacy_update": -4.4023453177578244e-06,
+      "pivoted_update_same_node": -4.4023453177578244e-06
+    },
+    {
+      "species": 3,
+      "legacy_negative_count": 3,
+      "pivoted_negative_count": 3,
+      "worst_legacy_node": 68395,
+      "current": 100000.0,
+      "legacy_update": -4703648450961.532,
+      "pivoted_update_same_node": -4703648450961.533,
+      "captured_tail_node_31586": {
+        "current": 100000.0,
+        "legacy_update": -3906061924577.3687,
+        "pivoted_update": -3906061924577.3696
+      }
+    }
+  ]
+}
