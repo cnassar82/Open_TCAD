@@ -21,11 +21,18 @@ add_subdirectory(third_party/mmg EXCLUDE_FROM_ALL)
 add_library(suprem_core STATIC
   src/str_file.cpp
   src/mesh.cpp
-  src/brep.cpp)
+  src/brep.cpp
+  src/locate.cpp
+  src/remesh.cpp)
 target_include_directories(suprem_core PUBLIC include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cdt/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/clipper2/include)
+target_include_directories(suprem_core PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/third_party/mmg/include)
+target_link_libraries(suprem_core PUBLIC libmmg2d_a)
 target_compile_options(suprem_core PRIVATE -Wall -Wextra)
 
 add_executable(core_str tools/core_str.cpp)
 target_link_libraries(core_str suprem_core)
+
+add_executable(core_remesh tools/core_remesh.cpp)
+target_link_libraries(core_remesh suprem_core)

@@ -25,6 +25,7 @@ struct Chain {
     int left_region = 0;
     int right = 0;            // >= 0: region index; < 0: boundary code of the faces
     std::vector<int> point;   // open polyline, endpoints are junctions
+    int loop = -1;            // index of the loop it belongs to
 };
 
 struct Brep {

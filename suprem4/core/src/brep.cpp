@@ -84,14 +84,14 @@ Brep extract_brep(const Mesh &m, std::vector<std::string> &problems)
             size_t n = L.point.size(), s0 = 0;
             while (s0 < n && right[s0] == right[(s0 + n - 1) % n]) ++s0;
             if (s0 == n) {      // one right side all round: closed chain, first point repeated
-                Chain c{r, right[0], L.point};
+                Chain c{r, right[0], L.point, (int)b.loop.size()};
                 c.point.push_back(L.point[0]);
                 b.chain.push_back(c);
             } else {
                 std::vector<int> P(n), R(n);
                 for (size_t k = 0; k < n; ++k) { P[k] = L.point[(s0 + k) % n]; R[k] = right[(s0 + k) % n]; }
                 for (size_t i = 0; i < n;) {
-                    Chain c{r, R[i], {P[i]}};
+                    Chain c{r, R[i], {P[i]}, (int)b.loop.size()};
                     size_t j = i;
                     while (j < n && R[j] == R[i]) { c.point.push_back(P[(j + 1) % n]); ++j; }
                     b.chain.push_back(c);
