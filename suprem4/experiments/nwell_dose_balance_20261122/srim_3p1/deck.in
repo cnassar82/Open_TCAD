@@ -1,0 +1,29 @@
+# N-well dose balance (through_nitride): PMOS wide layout, start at recessed_oxide.str
+option quiet
+method fermi vertical grid.oxide=0.02
+phosphorus oxide Dix.0=7.23 Dix.E=4.44
+structure infile=/home/chris/Open_TCAD/decks/advcmos2014/results/full_wide_20261121/pmos/recessed_oxide.str
+
+implant phosphorus dose=3e+13 energy=170 pearson
+structure outfile=implanted.str
+etch nitride all
+structure outfile=stripped.str
+# PDF p.43: well drive, recipe 11; ramps discretized in <=50 C intervals.
+diffuse time=12 temp=800 nitrogen
+diffuse time=15 temp=800 nitrogen continue
+diffuse time=5 temp=825 nitrogen continue
+diffuse time=5 temp=875 nitrogen continue
+diffuse time=5 temp=925 nitrogen continue
+diffuse time=5 temp=975 nitrogen continue
+diffuse time=5 temp=1025 nitrogen continue
+diffuse time=5 temp=1075 nitrogen continue
+diffuse time=360 temp=1100 nitrogen continue
+diffuse time=5 temp=1100 nitrogen continue
+diffuse time=10 temp=1075 nitrogen continue
+diffuse time=10 temp=1025 nitrogen continue
+diffuse time=10 temp=975 nitrogen continue
+diffuse time=10 temp=925 nitrogen continue
+diffuse time=10 temp=875 nitrogen continue
+diffuse time=10 temp=825 nitrogen continue
+diffuse time=12 temp=800 nitrogen continue
+structure outfile=driven.str

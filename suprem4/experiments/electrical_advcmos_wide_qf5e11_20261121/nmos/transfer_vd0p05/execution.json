@@ -1,0 +1,8 @@
+{
+  "device": "nmos",
+  "case": "transfer_vd0p05",
+  "returncode": 0,
+  "elapsed_seconds": 321.841952340008,
+  "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+  "deck_sha256": "c7c061689afa5789d82dccca448cb2c05be673d4e258c6544a7b37b64cac56e4"
+}

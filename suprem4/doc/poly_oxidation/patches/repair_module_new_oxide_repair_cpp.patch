@@ -1,0 +1,250 @@
+diff --git a/suprem4/src/refine/oxide_repair.cpp b/suprem4/src/refine/oxide_repair.cpp
+new file mode 100644
+index 0000000..1112bce
+--- /dev/null
++++ b/suprem4/src/refine/oxide_repair.cpp
+@@ -0,0 +1,244 @@
++/* Geometric repair for oxidation with moving material boundaries (compress
++ * model, poly re-oxidation), using Clipper2 1.5.4 (Boost license).
++ *
++ * Lagrangian oxidation changes topology: consumed polysilicon collapses at
++ * convex corners, and oxide surfaces growing into a concave corner meet.
++ * Instead of local mesh surgery, the material polygons are repaired with
++ * exact integer Boolean operations and the affected regions are remeshed:
++ *
++ *   poly'  = open(poly, d) intersect poly          (removes slivers < 2d)
++ *   oxide' = (close(oxide, d) U oxide U (poly - poly')) - fixed - poly'
++ *            clipped to the domain side walls         (fuses gaps < 2d)
++ *
++ * "fixed" is the union of every other material (silicon, nitride, ...), whose
++ * meshes are not touched.  Collinear vertices are preserved so that interface
++ * vertices of untouched regions survive exactly.  Coordinates are cm.
++ *
++ * C ABI.  Inputs are region boundary loops (region on the left, i.e. outer
++ * loops positive, holes negative).  Outputs are malloc-allocated; the caller
++ * frees them.  Returns the number of output loops, or -1 on failure.
++ */
++#include "../third_party/clipper2/include/clipper2/clipper.h"
++#include <algorithm>
++#include <cmath>
++#include <cstdio>
++#include <exception>
++#include <cstdlib>
++#include <map>
++#include <set>
++#include <utility>
++#include <vector>
++using namespace Clipper2Lib;
++
++static const double SCALE = 1e11;	/* 1e-11 cm (1e-7 um) integer grid */
++
++static Paths64 boolean_op(ClipType op, const Paths64 &a, const Paths64 &b)
++{
++    Clipper64 c;
++    c.PreserveCollinear(true);
++    c.AddSubject(a);
++    if (!b.empty()) c.AddClip(b);
++    Paths64 out;
++    c.Execute(op, FillRule::NonZero, out);
++    return out;
++}
++static Paths64 unite(const Paths64 &a) { return boolean_op(ClipType::Union, a, Paths64()); }
++static Paths64 offset(const Paths64 &a, double d)
++{
++    if (a.empty()) return a;
++    /* Mitred joins keep convex corners of an opening and concave corners of
++     * a closing sharp, so only features thinner than 2d change. */
++    return InflatePaths(a, d, JoinType::Miter, EndType::Polygon, 1000.0);
++}
++typedef std::set<std::pair<int64_t,int64_t> > PointSet;
++static void add_points(PointSet &s, const Paths64 &ps)
++{
++    for (const auto &p : ps) for (const auto &q : p) s.insert(std::make_pair(q.x, q.y));
++}
++static double area_of(const Paths64 &a)
++{
++    double s = 0;
++    for (const auto &p : a) s += Area(p);
++    return s;
++}
++
++/* Remove, consistently from every loop that contains it, each vertex closer
++ * than h to a loop neighbour unless anchored. */
++static void thin_global(std::vector<Paths64 *> sets, const PointSet &anchors_in, double h)
++{
++    PointSet anchors = anchors_in;
++    std::map<std::pair<int64_t,int64_t>, int> uses;
++    for (auto *ps : sets) for (const auto &p : *ps) for (const auto &q : p) uses[std::make_pair(q.x, q.y)]++;
++    for (const auto &u : uses) if (u.second >= 3) anchors.insert(u.first);	/* junctions */
++    for (int pass = 0; pass < 8; ++pass) {
++	PointSet removed;
++	for (auto *ps : sets) for (const auto &p : *ps) {
++	    size_t n = p.size();
++	    for (size_t i = 0; i < n; ++i) {
++		const Point64 &a = p[i], &b = p[(i+1) % n];
++		auto ka = std::make_pair(a.x, a.y), kb = std::make_pair(b.x, b.y);
++		if (removed.count(ka) || removed.count(kb)) continue;
++		if (std::hypot(double(b.x - a.x), double(b.y - a.y)) >= h) continue;
++		if (!anchors.count(kb)) removed.insert(kb);
++		else if (!anchors.count(ka)) removed.insert(ka);
++	    }
++	}
++	if (removed.empty()) break;
++	for (auto *ps : sets) for (auto &p : *ps) {
++	    Path64 q;
++	    for (const auto &pt : p) if (!removed.count(std::make_pair(pt.x, pt.y))) q.push_back(pt);
++	    if (q.size() >= 3) p = q;
++	}
++    }
++}
++
++extern "C" int suprem_oxide_repair(int nloop, const int *mat, const int *count,
++    const double *xy, int ox_mat, int poly_mat, double delta,
++    double xmin, double xmax, int *changed,
++    int **omat, int **ocount, double **oxy)
++{
++    std::map<int, Paths64> byMat;
++    size_t k = 0;
++    for (int i = 0; i < nloop; ++i) {
++	Path64 p;
++	for (int j = 0; j < count[i]; ++j, ++k)
++	    p.push_back(Point64((int64_t)std::llround(xy[2*k] * SCALE),
++				(int64_t)std::llround(xy[2*k+1] * SCALE)));
++	byMat[mat[i]].push_back(p);
++    }
++    Paths64 ox = unite(byMat[ox_mat]), poly = unite(byMat[poly_mat]), fixed;
++    for (auto &m : byMat)
++	if (m.first != ox_mat && m.first != poly_mat)
++	    for (auto &p : m.second) fixed.push_back(p);
++    fixed = unite(fixed);
++    double d = delta * SCALE;
++    int64_t x0 = std::llround(xmin * SCALE), x1 = std::llround(xmax * SCALE), big = (int64_t)4e15;
++    Paths64 strip = { Path64{ Point64(x0, -big), Point64(x1, -big), Point64(x1, big), Point64(x0, big) } };
++
++    /* 1. morphology: open poly, close oxide (only the filled pieces are
++     *    added, so untouched oxide keeps every vertex) */
++    /* Real events produce pieces about 2d wide; offset rounding produces
++     * slivers a few grid units wide.  An opening by d/16 keeps the former
++     * and drops the latter, and the results are applied to the original
++     * polygons, so untouched boundaries keep their exact vertices. */
++    auto significant = [&](const Paths64 &a) {
++	return a.empty() ? a : boolean_op(ClipType::Intersection, offset(offset(a, -d/16), d/16), a);
++    };
++    Paths64 removed = poly.empty() ? poly :
++	significant(boolean_op(ClipType::Difference, poly, offset(offset(poly, -d), d)));
++    Paths64 polyNew = removed.empty() ? poly : boolean_op(ClipType::Difference, poly, removed);
++    Paths64 filled = significant(boolean_op(ClipType::Difference, offset(offset(ox, d), -d), ox));
++    auto rebuild_oxide = [&](const Paths64 &base) {
++	Paths64 g = base; g.insert(g.end(), filled.begin(), filled.end());
++	g.insert(g.end(), removed.begin(), removed.end());
++	Paths64 b = fixed; b.insert(b.end(), polyNew.begin(), polyNew.end());
++	return boolean_op(ClipType::Intersection,
++			  boolean_op(ClipType::Difference, unite(g), unite(b)), strip);
++    };
++    Paths64 oxNew = rebuild_oxide(ox);
++    double dif = area_of(boolean_op(ClipType::Xor, oxNew, ox)) +
++		 area_of(boolean_op(ClipType::Xor, polyNew, poly));
++    *changed = std::fabs(dif) > 1e-2 * d * d;
++
++    /* 2. thin near-coincident vertices globally, then 3. redo the exact
++     *    Booleans so the result is again simple and conforming */
++    {
++	PointSet anchors;
++	add_points(anchors, fixed);
++	for (const auto &p : oxNew) for (const auto &q : p)
++	    if (q.x == x0 || q.x == x1) anchors.insert(std::make_pair(q.x, q.y));
++	/* only near-coincident vertices (rounding, cuts): well below the
++	 * thinnest real layer (native oxide ~1 nm) */
++	thin_global({ &polyNew, &oxNew }, anchors, d / 8);
++	polyNew = unite(polyNew);
++	oxNew = boolean_op(ClipType::Intersection,
++			   boolean_op(ClipType::Difference, unite(oxNew),
++				      unite([&]{ Paths64 b = fixed; b.insert(b.end(), polyNew.begin(), polyNew.end()); return b; }())),
++			   strip);
++    }
++
++    /* 4. SUPREM regions are simply connected: cut every polygon with holes
++     *    horizontally through a hole, in the widest vertex-free band of its
++     *    height, until all pieces are simple (both sides share the cut). */
++    std::vector<int> m, c; std::vector<double> v;
++    auto emit = [&](const Paths64 &ps, int material) {
++	std::vector<Paths64> work(1, ps);
++	int guard = 0;
++	while (!work.empty() && guard++ < 1000) {
++	    Paths64 piece = work.back(); work.pop_back();
++	    PolyTree64 tree;
++	    Clipper64 cl; cl.PreserveCollinear(true); cl.AddSubject(piece);
++	    cl.Execute(ClipType::Union, FillRule::NonZero, tree);
++	    for (size_t i = 0; i < tree.Count(); ++i) {
++		const PolyPath64 *outer = tree.Child(i);
++		if (outer->Count() == 0) {
++		    const Path64 &p = outer->Polygon();
++		    if (p.size() < 3) continue;
++		    m.push_back(material); c.push_back((int)p.size());
++		    for (const auto &q : p) { v.push_back(q.x / SCALE); v.push_back(q.y / SCALE); }
++		    continue;
++		}
++		Paths64 whole; whole.push_back(outer->Polygon());
++		for (size_t h = 0; h < outer->Count(); ++h) {
++		    whole.push_back(outer->Child(h)->Polygon());
++		    for (size_t g = 0; g < outer->Child(h)->Count(); ++g)
++			work.push_back(PolyTreeToPaths64(*outer->Child(h)->Child(g)));
++		}
++		Rect64 hb = GetBounds(outer->Child(0)->Polygon());
++		int64_t yc = (hb.top + hb.bottom) / 2;
++		std::vector<int64_t> ys;
++		for (const auto &pp : whole) for (const auto &q : pp)
++		    if (q.y > hb.top && q.y < hb.bottom) ys.push_back(q.y);
++		ys.push_back(hb.top); ys.push_back(hb.bottom);
++		std::sort(ys.begin(), ys.end());
++		int64_t gap = -1;
++		for (size_t g = 1; g < ys.size(); ++g)
++		    if (ys[g] - ys[g-1] > gap) { gap = ys[g] - ys[g-1]; yc = (ys[g] + ys[g-1]) / 2; }
++		Paths64 upper = { Path64{ Point64(-big, -big), Point64(big, -big), Point64(big, yc), Point64(-big, yc) } };
++		Paths64 lower = { Path64{ Point64(-big, yc), Point64(big, yc), Point64(big, big), Point64(-big, big) } };
++		work.push_back(boolean_op(ClipType::Intersection, whole, upper));
++		work.push_back(boolean_op(ClipType::Intersection, whole, lower));
++	    }
++	}
++	return guard < 1000;
++    };
++    if (!emit(polyNew, poly_mat) || !emit(oxNew, ox_mat)) return -1;
++
++    *omat = (int *)malloc(sizeof(int) * (m.size() + 1));
++    *ocount = (int *)malloc(sizeof(int) * (c.size() + 1));
++    *oxy = (double *)malloc(sizeof(double) * (v.size() + 1));
++    if (!*omat || !*ocount || !*oxy) return -1;
++    for (size_t i = 0; i < m.size(); ++i) { (*omat)[i] = m[i]; (*ocount)[i] = c[i]; }
++    for (size_t i = 0; i < v.size(); ++i) (*oxy)[i] = v[i];
++    return (int)m.size();
++}
++
++/* Constrained Delaunay triangulation of one simply connected region: the
++ * boundary loop (first nb points, in order) is constrained, the remaining
++ * points are interior.  CDT 1.4.5 (MPL-2.0) with robust predicates handles
++ * collinear boundary points exactly.  Returns the triangle count (vertex
++ * triples, counter-clockwise) or -1 when the input is rejected. */
++#include "../third_party/cdt/include/CDT.h"
++extern "C" int suprem_cdt(int npts, int nb, const double *xy, int **tris)
++{
++    try {
++	CDT::Triangulation<double> cdt(CDT::VertexInsertionOrder::AsProvided,
++				       CDT::IntersectingConstraintEdges::NotAllowed, 0.0);
++	std::vector<CDT::V2d<double> > v;
++	for (int i = 0; i < npts; ++i)		/* micrometres for conditioning */
++	    v.push_back(CDT::V2d<double>(xy[2*i] * 1e4, xy[2*i+1] * 1e4));
++	std::vector<CDT::Edge> e;
++	for (int i = 0; i < nb; ++i) e.push_back(CDT::Edge(i, (i + 1) % nb));
++	cdt.insertVertices(v);
++	cdt.insertEdges(e);
++	cdt.eraseOuterTriangles();
++	if ((int)cdt.vertices.size() != npts) return -1;	/* no Steiner points */
++	*tris = (int *)malloc(sizeof(int) * (3 * cdt.triangles.size() + 1));
++	if (!*tris) return -1;
++	for (size_t t = 0; t < cdt.triangles.size(); ++t)
++	    for (int j = 0; j < 3; ++j) (*tris)[3*t + j] = (int)cdt.triangles[t].vertices[j];
++	return (int)cdt.triangles.size();
++    }
++    catch (const std::exception &e) { fprintf(stderr, "[oxide-repair] CDT: %s\n", e.what()); return -1; }
++    catch (...) { return -1; }
++}

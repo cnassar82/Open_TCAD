@@ -1,0 +1,22 @@
+# Poly line re-oxidation test: 0.4 um poly on 100 A oxide, dry O2 1000 C.
+option quiet
+line x loc=0 spac=0.05 tag=left
+line x loc=0.7 spac=0.01
+line x loc=1.0 spac=0.02
+line x loc=1.3 spac=0.01
+line x loc=2.0 spac=0.05 tag=right
+line y loc=0 spac=0.005 tag=top
+line y loc=0.3 spac=0.03
+line y loc=2 spac=0.3 tag=bottom
+region silicon xlo=left xhi=right ylo=top yhi=bottom
+boundary exposed xlo=left xhi=right ylo=top yhi=top
+boundary backside xlo=left xhi=right ylo=bottom yhi=bottom
+initialize boron conc=1e15 orient=100
+deposit oxide thick=0.01 divisions=2
+deposit poly thick=0.4 divisions=10 space=0.01
+etch poly left p1.x=0.8
+etch poly right p1.x=1.2
+structure outfile=before.str
+method compress grid.oxide=0.01
+diffuse time=51 temp=1000 dryo2
+structure outfile=after.str

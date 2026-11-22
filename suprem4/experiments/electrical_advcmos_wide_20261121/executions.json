@@ -1,0 +1,50 @@
+[
+  {
+    "device": "nmos",
+    "case": "transfer_vd0p05",
+    "returncode": 0,
+    "elapsed_seconds": 378.68270346500503,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "8aa35a9425a043b0964e9a12da64a6c846a3b850478eeb90e24073eb7775d43f"
+  },
+  {
+    "device": "nmos",
+    "case": "transfer_vd3p3",
+    "returncode": 0,
+    "elapsed_seconds": 569.0150262079987,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "7c4af0011f4451c71e4e3bec4c5611aa90ea73e6f8b98a355b6b94fef26eb8ff"
+  },
+  {
+    "device": "nmos",
+    "case": "transfer_neg_vd0p05",
+    "returncode": 0,
+    "elapsed_seconds": 129.72486500699597,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "56fc19cbb57b1e9dca265c2410fd21c4afeec23b89a4d073313b8073d76e6f9b"
+  },
+  {
+    "device": "pmos",
+    "case": "transfer_vd0p05",
+    "returncode": 0,
+    "elapsed_seconds": 307.63782409099804,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "418f53f89306039e41193f3fa4ce729c819a59550318544554193e509ab5ab91"
+  },
+  {
+    "device": "pmos",
+    "case": "transfer_vd3p3",
+    "returncode": 0,
+    "elapsed_seconds": 600.1786341820116,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "cbe5ed60ee9bf12636b5c11eb178ef14af3ca67075bbc8b028a28792311ba8a9"
+  },
+  {
+    "device": "pmos",
+    "case": "transfer_neg_vd0p05",
+    "returncode": 0,
+    "elapsed_seconds": 243.85945239500143,
+    "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+    "deck_sha256": "98c08407cfd52ee7ea9d35b4e9e010683d1c2dd3fa23c1bbffd3d7f666d3ffff"
+  }
+]

@@ -1,0 +1,3 @@
+run < deck.in
+bt 12
+quit

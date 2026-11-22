@@ -1,0 +1,67 @@
+{
+ "through_nitride/implanted/x=5.0": {
+  "oxide": 7078252516596.696,
+  "nitride": 17951269198027.453,
+  "silicon": 5088406226567.144
+ },
+ "through_nitride/implanted/x=1.3": {
+  "oxide": 28992204191212.625,
+  "nitride": 0,
+  "silicon": 480086191656.76605
+ },
+ "through_nitride/stripped/x=5.0": {
+  "oxide": 7078252516596.696,
+  "nitride": 0,
+  "silicon": 5088406226567.144
+ },
+ "through_nitride/stripped/x=1.3": {
+  "oxide": 28992204191212.625,
+  "nitride": 0,
+  "silicon": 480086191656.76605
+ },
+ "through_nitride/driven/x=5.0": {
+  "oxide": 171241723587.39606,
+  "nitride": 0,
+  "silicon": 8067951324433.266
+ },
+ "through_nitride/driven/x=1.3": {
+  "oxide": 27129744820185.125,
+  "nitride": 0,
+  "silicon": 1643266699113.059
+ },
+ "after_strip/implanted/x=5.0": {
+  "oxide": 105374959316.3331,
+  "nitride": 0,
+  "silicon": 29966505040203.523
+ },
+ "after_strip/implanted/x=1.3": {
+  "oxide": 29016510315478.867,
+  "nitride": 0,
+  "silicon": 480086194470.4087
+ },
+ "after_strip/stripped/x=5.0": {
+  "oxide": 105374959316.3331,
+  "nitride": 0,
+  "silicon": 29966505040203.523
+ },
+ "after_strip/stripped/x=1.3": {
+  "oxide": 29016510315478.867,
+  "nitride": 0,
+  "silicon": 480086194470.4087
+ },
+ "after_strip/driven/x=5.0": {
+  "oxide": 25677162778.389725,
+  "nitride": 0,
+  "silicon": 29986445698889.152
+ },
+ "after_strip/driven/x=1.3": {
+  "oxide": 27160851230389.688,
+  "nitride": 0,
+  "silicon": 7223270572204.175
+ },
+ "full_flow_wells.str/x=5.0": {
+  "oxide": 171241723587.72134,
+  "nitride": 0,
+  "silicon": 8067951324439.328
+ }
+}

@@ -1,0 +1,320 @@
+diff --git a/suprem4/src/Makefile.proto b/suprem4/src/Makefile.proto
+index 19aa6e7..ee923ae 100644
+--- a/suprem4/src/Makefile.proto
++++ b/suprem4/src/Makefile.proto
+@@ -217,11 +217,11 @@ MISCOBJS = misc/bsd.o misc/cpu.o misc/echo.o misc/get.o misc/man.o \
+ OXIDESRCS = oxide/FEbc.c oxide/FEconvert.c oxide/Oxidant.c oxide/coeffox.c \
+ 	oxide/elast.c oxide/erfit.c oxide/mater.c oxide/oxgrow.c \
+ 	oxide/oxide_vel.c oxide/oxrate.c oxide/triox.c oxide/vert.c \
+-	oxide/viscous.c
++	oxide/viscous.c oxide/oxide_repair.c
+ OXIDEOBJS = oxide/FEbc.o oxide/FEconvert.o oxide/Oxidant.o oxide/coeffox.o \
+ 	oxide/elast.o oxide/erfit.o oxide/mater.o oxide/oxgrow.o \
+ 	oxide/oxide_vel.o oxide/oxrate.o oxide/triox.o oxide/vert.o \
+-	oxide/viscous.o
++	oxide/viscous.o oxide/oxide_repair.o
+ 
+ PLOTSRCS = plot/contour.c plot/do_1d.c plot/intersect.c plot/label.c \
+ 	plot/matedge.c plot/material.c plot/option.c plot/plot.c \
+diff --git a/suprem4/src/dbase/grid_upd.c b/suprem4/src/dbase/grid_upd.c
+index 888d17a..fce66b6 100644
+--- a/suprem4/src/dbase/grid_upd.c
++++ b/suprem4/src/dbase/grid_upd.c
+@@ -277,12 +277,19 @@ double dt;
+     int fix_conn = 0;
+ 
+     /* add some new grid on the oxide side if we are really simulating it*/
+-    if (oxide_grid != 0)
++    if (oxide_grid != 0) {
+ 	if ( new_layer(Si, SiO2, oxide_grid, dt)) {
+ 	    fix_conn++;
+ 	    UpdateSymbolic++;
+ 	    bd_connect("Grid Addition");
+ 	}
++	/* Polysilicon oxidizes in the compress model; grid its oxide too. */
++	if ( oxide_model == O_ELASTIC && new_layer(Poly, SiO2, oxide_grid, dt)) {
++	    fix_conn++;
++	    UpdateSymbolic++;
++	    bd_connect("Grid Addition (poly)");
++	}
++    }
+ 
+     return( fix_conn);
+ }
+@@ -371,6 +378,9 @@ back_pedal( dt )
+ 	    /* Keep a record of the smallest root encountered */
+ 	    if (minRoot < worst) {
+ 		worst = minRoot;
++		if (getenv("SUPREM4_BACKPEDAL_DIAG"))
++		    fprintf(stderr, "[back-pedal] tri=%d mat=%d root=%.3g dt=%.3g area=%.3g\n",
++			ie, mat_reg(reg_tri(ie)), minRoot, *dt, pxq*1e8/2);
+ 	    }
+ 	}
+ 	break;
+diff --git a/suprem4/src/dbase/mesh_trial.c b/suprem4/src/dbase/mesh_trial.c
+index 82e49ae..a0e2c11 100644
+--- a/suprem4/src/dbase/mesh_trial.c
++++ b/suprem4/src/dbase/mesh_trial.c
+@@ -186,13 +186,32 @@ int mesh_trial_move(double dt, int *bad_triangle)
+         }
+         if((mode==TWOD && orient2d_float_sign(candidate[0],candidate[1],candidate[2])<=0) ||
+            (mode==ONED && candidate[0][0]<=candidate[1][0])) {
+-            *bad_triangle=t;return 0;
++            *bad_triangle=t;
++            if(getenv("SUPREM4_MOTION_TRACE"))
++                fprintf(stderr,"[motion-reason] orientation tri=%d mat=%d dt=%.3g (%.6f,%.6f)(%.6f,%.6f)(%.6f,%.6f)\n",
++                        t,mat_reg(reg_tri(t)),dt,1e4*candidate[0][0],1e4*candidate[0][1],
++                        1e4*candidate[1][0],1e4*candidate[1][1],1e4*candidate[2][0],1e4*candidate[2][1]);
++            if(getenv("SUPREM4_MOTION_TRACE")) for(j=0;j<3;j++){int q=pt_nd(vert_tri(t,j));
++                fprintf(stderr,"[motion-reason]   p%d (%.9f,%.9f) v (%.3e,%.3e) nn=%d\n",q,1e4*pt[q]->cord[0],1e4*pt[q]->cord[1],pt[q]->vel[0],pt[q]->vel[1],pt[q]->nn);}
++            return 0;
+         }
+     }
+     /* Validate the represented global embedding before committing any
+      * coordinate. A positive orientation test alone misses collisions of
+      * non-neighboring boundary fans, including the captured LOCOS corner. */
+-    if(mode==TWOD && dt!=0 && !mesh_trial_validate_embedding(dt,bad_triangle))return 0;
++    if(mode==TWOD && dt!=0 && !mesh_trial_validate_embedding(dt,bad_triangle)) {
++        if(getenv("SUPREM4_MOTION_TRACE"))
++        {   int t=*bad_triangle,j;
++            fprintf(stderr,"[motion-reason] embedding tri=%d dt=%.3g",t,dt);
++            if(t>=0 && t<ne) {
++                fprintf(stderr," mat=%d",mat_reg(reg_tri(t)));
++                for(j=0;j<3;j++){int q=pt_nd(vert_tri(t,j));
++                    fprintf(stderr," p%d=(%.6f,%.6f nn=%d surf=%d v %.2e,%.2e)",q,1e4*pt[q]->cord[0],1e4*pt[q]->cord[1],pt[q]->nn,is_surf(q)?1:0,pt[q]->vel[0],pt[q]->vel[1]);}
++            }
++            fprintf(stderr,"\n");
++        }
++        return 0;
++    }
+     if(getenv("SUPREM4_EMBED_TRACE") && dt!=0 && mode==TWOD) {
+         double lo,hi;
+         FILE *trace;
+diff --git a/suprem4/src/oxide/Oxidant.c b/suprem4/src/oxide/Oxidant.c
+index 399c1b2..7f9e0c9 100644
+--- a/suprem4/src/oxide/Oxidant.c
++++ b/suprem4/src/oxide/Oxidant.c
+@@ -183,12 +183,17 @@ Oboundary (s, bval)
+     h = Trn0( s, mat0, mat1) * exp( -TrnE( s, mat0, mat1) / (kb * bval->temp));
+     m = Seg0( s, mat0, mat1) * exp( -SegE( s, mat0, mat1) / (kb * bval->temp));
+ 
+-    /*special case when mat1 is silicon and mat0 is oxide*/
+-    if (mat1 == Si && mat0 == SiO2) {
++    /*special case when mat1 is silicon (or polysilicon) and mat0 is oxide*/
++    /* Polysilicon reacts only in the compress model (TSUPREM-4: COMPRESS,
++     * VISCOUS, VISCOELA; here compress), keeping other models unchanged. */
++    if ((mat1 == Si || (mat1 == Poly && oxide_model == O_ELASTIC)) && mat0 == SiO2) {
++	extern int Orr_poly;
+ 	
+ 	/*to compute the reaction rate, need the orientation.*/
+-	(void)dlocal_normal( nx0, Si, dln);
++	(void)dlocal_normal( nx0, mat1, dln);
++	Orr_poly = (mat1 == Poly);
+ 	h = Orr(bval->temp, s, dln, noni[ bval->nx[ Nsol]]);
++	Orr_poly = 0;
+ 
+         /*material 1 side derivitive*/
+         f = h * bval->cpl;
+@@ -224,7 +229,7 @@ Oboundary (s, bval)
+ 	
+     }
+     /*disallow update to gas or silicon side*/
+-    if (mat1 == Si || mat1 == GAS) {
++    if (mat1 == Si || (mat1 == Poly && oxide_model == O_ELASTIC) || mat1 == GAS) {
+ 	clear_row(row1, sol);
+ 	left_side (row1, sol, 1.0);
+ 	right_side(row1, sol, bval->rhs, 0.0);
+@@ -252,6 +257,11 @@ float Oss (s, mat)
+  * The reaction rate constant, in its purest form.
+  * Original: CSR 8/87
+  *----------------------------------------------------------------------*/
++/* Polysilicon oxidizes with the silicon model.  Like TSUPREM-4's
++ * POLYSILI defaults, it uses the <110> linear rate.  Callers set this
++ * flag around Orr()/Ovel() when the reacting node is polysilicon. */
++int Orr_poly = 0;
++
+ float Orr (temp, s, normal, noni)
+      int s;			/* Species */
+      float temp;		/* Temperature */
+@@ -267,7 +277,11 @@ float Orr (temp, s, normal, noni)
+     val = B_DealGrove/A_DealGrove * N1(s, SiO2) / (H (s, SiO2) * pressure);
+ 
+     /* Add in orientation dependence */
+-    SupToXtal( normal, XtalDir);
++    if (Orr_poly) {
++	XtalDir[0] = XtalDir[1] = 0.70710678118654752; XtalDir[2] = 0;
++    }
++    else
++	SupToXtal( normal, XtalDir);
+     val *= DoOriDep( XtalDir, oridep);
+ 
+     /* Add in fermi-level enhancement */
+diff --git a/suprem4/src/oxide/elast.c b/suprem4/src/oxide/elast.c
+index 3b93673..8ff58db 100644
+--- a/suprem4/src/oxide/elast.c
++++ b/suprem4/src/oxide/elast.c
+@@ -28,6 +28,9 @@
+ 
+ 
+ #define IAJA(R,C) iaja(ia, aoff, R, C)
++/* Oxidizing (consumed, otherwise rigid) materials.  Polysilicon is
++ * treated like silicon: fixed, with its oxide interface consumed. */
++#define OXSEMI(M) ((M) == Si || (M) == Poly)
+ #define X 0
+ #define Y 1
+ 
+@@ -49,7 +52,7 @@ elast_growth( temp, dt)
+     times( &before);
+ 
+     /* Count # of real variables */
+-    for (j = 0, i = 0; i < nn; i++) if (nd[i]->mater != Si) j++;
++    for (j = 0, i = 0; i < nn; i++) if (!OXSEMI(nd[i]->mater)) j++;
+ 
+     /*
+      * Allocate an initialize A map.
+@@ -83,7 +86,7 @@ elast_growth( temp, dt)
+ 
+     /* Dummy up silicon nodes - a speed hack*/
+     for (n = 0; n < nn; n++) {
+-	if( nd[ n]->mater == Si) {
++	if( OXSEMI(nd[ n]->mater)) {
+ 	    p = nd[ n]->pt;
+ 	    a[ 2*p + X] = 1;	fix[ 2*p + X] = 1;
+ 	    a[ 2*p + Y] = 1;	fix[ 2*p + Y] = 1;
+@@ -97,7 +100,7 @@ elast_growth( temp, dt)
+ 
+ 	/* Find oxide nodes with underlying Si node */
+ 	if ((nd[ n]->mater == SiO2) &&
+-	    ((node_mat (n, Si)) >= 0)) {
++	    ((node_mat (n, Si)) >= 0 || (node_mat (n, Poly)) >= 0)) {
+ 
+ 	    /* Compute the normal velocity here */
+ 	    Onvel( n, ln);
+@@ -132,7 +135,7 @@ elast_growth( temp, dt)
+     /* Set up global stiffness matrix */
+     for (ie = 0; ie < ne; ie++) {
+ 
+-	if( mat_reg(reg_tri(ie)) == Si) continue;
++	if( OXSEMI(mat_reg(reg_tri(ie)))) continue;
+ 
+ 	elem_stiff( ie);
+ 
+@@ -180,7 +183,7 @@ elast_growth( temp, dt)
+     /* Transfer the answer into permanent storage */
+     for (p = 0; p < np; p++) {
+ 	for (nx = pt[ p]->nd, nx1 = nx + pt[ p]->nn; nx < nx1; nx++) {
+-	    mult = (nd[ *nx]->mater != Si)? 1.0 : 1/(1-alpha[SiO2][Si]);
++	    mult = (!OXSEMI(nd[ *nx]->mater))? 1.0 : 1/(1-alpha[SiO2][Si]);
+ 	    nd[ *nx]->sol[ sXVEL] = rhs[ 2*p +X] *mult;
+ 	    nd[ *nx]->sol[ sYVEL] = rhs[ 2*p +Y] *mult;
+ 	}
+@@ -213,7 +216,7 @@ elem_stiff( ie)
+     mat = mat_reg( reg_tri(ie));
+ 
+     /* For now, ignore silicon */
+-    if (mat == Si) {
++    if (OXSEMI(mat)) {
+ 	for (i = 0; i < 6; i++)
+ 	    elstif[ i][ i] = 1.0;
+ 	return;
+@@ -302,7 +305,7 @@ get_elasconn( ind, taken, num)
+ 
+ 	    at = tri[tri_nd(*nx,tx)];
+ 
+-	    if (mat_reg(at->regnum) != Si) {
++	    if (!OXSEMI(mat_reg(at->regnum))) {
+ 
+ 		/*include all the points of that triangle*/
+ 		for (j = at->nd, jj = j + 3; j < jj; j++) {
+diff --git a/suprem4/src/oxide/oxgrow.c b/suprem4/src/oxide/oxgrow.c
+index 5e12199..66d84d8 100644
+--- a/suprem4/src/oxide/oxgrow.c
++++ b/suprem4/src/oxide/oxgrow.c
+@@ -42,6 +42,11 @@ oxgrow (temp, ornt, oxhow, dt )
+     times(&before);
+     mesh_embedding_trace("oxide entry");
+ 
++    /* Compress model: repair the oxide/poly geometry and remesh when the
++     * Lagrangian motion has produced a collision, a collapse or a degenerate
++     * element (oxide/oxide_repair.c). */
++    { extern int oxide_repair(int); if (oxide_repair(0)) UpdateSymbolic++; }
++
+     /* Compute the velocity vector using whatever oxide growth model */
+     oxide_vel (temp, ornt, oxhow, *dt);
+     mesh_embedding_trace("oxide velocities");
+@@ -64,6 +69,23 @@ oxgrow (temp, ornt, oxhow, dt )
+      * consistently before testing volume-element motion. */
+     if(oxide_model==O_VERTICAL)vertical_constraint_refine(*dt);
+ 
++    /* With the repair active, no point moves more than delta/2 per step,
++     * so every collision or collapse is seen by the next repair check. */
++    { extern int oxide_repair_enabled(void);
++      extern double oxide_repair_delta(void), oxide_repair_max_speed(void);
++      if (oxide_repair_enabled()) {
++	  double v = oxide_repair_max_speed(), lim;
++	  if (getenv("SUPREM4_REPAIR_SPEED_DIAG")) {
++	      int n, ng = 0, s = imptosol[gas_type]; double cmax = 0, cmin = 1e30;
++	      for (n = 0; n < nn; n++) {
++		  if (nd[n]->mater == GAS) ng++;
++		  if (nd[n]->mater == SiO2 && s >= 0) { if (nd[n]->sol[s] > cmax) cmax = nd[n]->sol[s]; if (nd[n]->sol[s] < cmin) cmin = nd[n]->sol[s]; }
++	      }
++	      fprintf(stderr, "[repair-speed] vmax %.3e cm/s, gas nodes %d, oxidant %.3e..%.3e\n", v, ng, cmin, cmax);
++	  }
++	  if (v > 0 && *dt > (lim = 0.5*oxide_repair_delta()/v)) *dt = lim;
++      } }
++
+     /*cut the time step back */
+     back_pedal( dt );
+ 
+@@ -91,6 +113,7 @@ point_vel()
+ 
+     /* Move the points */
+     for (ip = 0; ip < np; ip++) {
++	if (dead_pt(ip) || num_nd(ip) == 0) continue;
+ 
+ 	/*
+ 	 * Well, displacement is a function of node and there are
+diff --git a/suprem4/src/oxide/oxide_vel.c b/suprem4/src/oxide/oxide_vel.c
+index 2e598d5..d6a8cfb 100644
+--- a/suprem4/src/oxide/oxide_vel.c
++++ b/suprem4/src/oxide/oxide_vel.c
+@@ -120,17 +120,22 @@ Onvel( io, vel)
+     float vell;
+     double dln[2];		/* local normal for Ovel */
+     double Kt = KB * temperature;
++    int semi = Si;
++    extern int Orr_poly;
+ 
+-    /* Get the normal */
+-    (void)dlocal_normal( io, Si, dln);
+-    
+     if (nd[ io]->mater != SiO2)
+ 	return;
+     else {
+-	is = node_mat( io, Si);	assert(is>=0);
++	/* Silicon first; otherwise the oxide grows on polysilicon. */
++	is = node_mat( io, Si);
++	if (is < 0) { is = node_mat( io, Poly); semi = Poly; }
++	assert(is>=0);
++	(void)dlocal_normal( io, semi, dln);
+ 	myNoni = exp( nd[ is]->sol[Ps] / Kt );
+ 	conc = nd[io]->sol[imptosol[gas_type]];
++	Orr_poly = (semi == Poly);
+ 	vell = Ovel (temperature, gas_type, conc, dln, myNoni);
++	Orr_poly = 0;
+ 	vel[0] = vell * dln[0];
+ 	vel[1] = vell * dln[1];
+     }
+diff --git a/suprem4/tools/build_native64.py b/suprem4/tools/build_native64.py
+index fb801be..b20b2c3 100644
+--- a/suprem4/tools/build_native64.py
++++ b/suprem4/tools/build_native64.py
+@@ -58,7 +58,7 @@ def main():
+     offset_commands = []
+     if args.domain_offset:
+         vendor = work / 'src/third_party/clipper2'
+-        sources = [work / 'src/refine/domain_offset.cpp', *sorted((vendor / 'src').glob('*.cpp'))]
++        sources = [work / 'src/refine/domain_offset.cpp', work / 'src/refine/oxide_repair.cpp', *sorted((vendor / 'src').glob('*.cpp'))]
+         cxxflags = ['-std=c++17', '-g', '-O1', '-I', str(vendor / 'include')]
+         if args.sanitize:
+             cxxflags += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-fno-pie']

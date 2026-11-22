@@ -1,0 +1,8 @@
+{
+  "device": "pmos",
+  "case": "transfer_vd0p05",
+  "returncode": 0,
+  "elapsed_seconds": 386.0533816750103,
+  "binary_sha256": "deefa548eb0d88b05f11bd0bbd0f17c50f5867b947da0b024a4ea9d00dd24c71",
+  "deck_sha256": "53d1970d016f6566f678b0c0a8cf43e80d4b7bdf83cc5d77bebf62eb88b13b87"
+}

@@ -1,0 +1,18 @@
+GLOBAL TExternal=300 DopingScale=1e18 Z.Width=1.0
+IMPORT TIFFile=device.tif
+CONTACT Type=OhmicContact ID=Body Res=0 Cap=0 Ind=0
+CONTACT Type=OhmicContact ID=Source Res=0 Cap=0 Ind=0
+CONTACT Type=GateContact ID=Gate WorkFunction=5.29 Res=0 Cap=0 Ind=0
+CONTACT Type=OhmicContact ID=Drain Res=0 Cap=0 Ind=0
+BOUNDARY Type=InsulatorInterface ID=region_0_to_region_16 QF=3e11
+BOUNDARY Type=InsulatorInterface ID=region_0_to_region_17 QF=3e11
+BOUNDARY Type=InsulatorInterface ID=region_0_to_region_18 QF=3e11
+BOUNDARY Type=InsulatorInterface ID=region_0_to_region_19 QF=3e11
+PMI Region=region_0 Type=Mobility Model=Lucent
+MODEL Region=region_0 Fermi=true
+METHOD Type=DDML1 NS=Basic LS=MUMPS MaxIteration=80 Damping=Potential
+SOLVE Type=EQUILIBRIUM
+SOLVE Type=DC Vscan=Drain Vstart=0 Vstep=-0.05 Vstop=-3.3 out.prefix=drain_prep
+SOLVE Type=DC Vscan=Gate Vstart=0 Vstep=-0.05 Vstop=-3.3 out.prefix=transfer
+EXPORT VTKFile=final.vtu
+END
