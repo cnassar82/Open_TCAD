@@ -1,0 +1,531 @@
+#include "suprem_core/evolve.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
+#include <set>
+#include <stdexcept>
+#include <unordered_map>
+
+#include <CDT.h>
+#include "clipper2/clipper.h"
+
+#include "suprem_core/brep.hpp"
+#include "suprem_core/locate.hpp"
+#include "suprem_core/str_file.hpp"
+#include "suprem_core/transfer.hpp"
+
+namespace suprem_core {
+namespace {
+
+using namespace Clipper2Lib;
+constexpr double S = 1e7;   // grid units per um (1e-7 um = 0.001 A)
+
+Point64 to64(const Point &p) { return Point64((int64_t)std::llround(p.x * S), (int64_t)std::llround(p.y * S)); }
+Point from64(const Point64 &p) { return {p.x / S, p.y / S}; }
+
+Paths64 shape_paths(const Shape &s)
+{
+    Paths64 out;
+    for (const auto &l : s.loops) {
+        Path64 p;
+        for (const Point &q : l) p.push_back(to64(q));
+        out.push_back(p);
+    }
+    return out;
+}
+
+Paths64 open_(const Paths64 &a, double r)
+{
+    if (a.empty()) return a;
+    return InflatePaths(InflatePaths(a, -r, JoinType::Miter, EndType::Polygon, 10.0), r, JoinType::Miter,
+                        EndType::Polygon, 10.0);
+}
+
+// Pieces that are real (wider than about d/8), not offset-rounding slivers.
+Paths64 significant(const Paths64 &a, double d)
+{
+    if (a.empty()) return a;
+    return Intersect(open_(a, d / 16), a, FillRule::NonZero);
+}
+
+double area(const Paths64 &a) { return std::fabs(Area(a)) / (S * S); }
+
+// Split a path set into connected pieces (outer + its holes each).
+std::vector<Paths64> pieces(const Paths64 &a)
+{
+    std::vector<Paths64> out;
+    if (a.empty()) return out;
+    PolyTree64 tree;
+    Clipper64 c;
+    c.AddSubject(a);
+    c.Execute(ClipType::Union, FillRule::NonZero, tree);
+    std::vector<const PolyPath64 *> stack;
+    for (size_t i = 0; i < tree.Count(); ++i) stack.push_back(tree.Child(i));
+    while (!stack.empty()) {
+        const PolyPath64 *outer = stack.back();
+        stack.pop_back();
+        Paths64 p{outer->Polygon()};
+        for (size_t h = 0; h < outer->Count(); ++h) {
+            p.push_back(outer->Child(h)->Polygon());
+            for (size_t g = 0; g < outer->Child(h)->Count(); ++g) stack.push_back(outer->Child(h)->Child(g));
+        }
+        out.push_back(p);
+    }
+    return out;
+}
+
+Point any_point(const Paths64 &p)
+{
+    if (p.empty() || p[0].empty()) return {0, 0};
+    return from64(p[0][0]);
+}
+
+// winding number of loop l around q (doubles)
+int winding(const std::vector<Point> &l, const Point &q)
+{
+    int w = 0;
+    for (size_t i = 0; i < l.size(); ++i) {
+        const Point &a = l[i], &b = l[(i + 1) % l.size()];
+        double c = (b.x - a.x) * (q.y - a.y) - (q.x - a.x) * (b.y - a.y);
+        if (a.y <= q.y) { if (b.y > q.y && c > 0) ++w; }
+        else if (b.y <= q.y && c < 0) --w;
+    }
+    return w;
+}
+
+uint64_t dkey(int a, int b) { return ((uint64_t)(uint32_t)a << 32) | (uint32_t)b; }
+
+double tri_area2(const Mesh &m, int t) { return orient2(m, t); }
+
+}  // namespace
+
+std::vector<Shape> mesh_shapes(const Mesh &m)
+{
+    std::vector<std::string> pr;
+    Brep b = extract_brep(m, pr);
+    std::vector<Shape> s(m.region_material.size());
+    for (size_t r = 0; r < s.size(); ++r) s[r].material = m.region_material[r];
+    for (const Loop &L : b.loop) {
+        std::vector<Point> l;
+        for (int p : L.point) l.push_back(m.point[p]);
+        s[L.region].loops.push_back(l);
+    }
+    return s;
+}
+
+BoundaryCode boundary_codes_of(const Mesh &m)
+{
+    struct Seg { Point a, b; int code; };
+    std::vector<Seg> segs;
+    for (const Triangle &t : m.triangle)
+        for (int j = 0; j < 3; ++j)
+            if (t.nb[j] < 0 && t.nb[j] != EXPOSED)
+                segs.push_back({m.point[t.v[(j + 1) % 3]], m.point[t.v[(j + 2) % 3]], t.nb[j]});
+    return [segs](const Point &a, const Point &b) {
+        const double tol = 1e-6;
+        for (const Seg &s : segs) {
+            double dx = s.b.x - s.a.x, dy = s.b.y - s.a.y, l = std::hypot(dx, dy);
+            if (l == 0) continue;
+            auto off = [&](const Point &p) {
+                double t = ((p.x - s.a.x) * dx + (p.y - s.a.y) * dy) / (l * l);
+                double d = std::fabs((p.x - s.a.x) * dy - (p.y - s.a.y) * dx) / l;
+                return t > -tol / l && t < 1 + tol / l && d < tol;
+            };
+            if (off(a) && off(b)) return s.code;
+        }
+        return EXPOSED;
+    };
+}
+
+std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairOptions &o)
+{
+    std::vector<RepairEvent> ev;
+    std::map<int, Paths64> mat;
+    for (const Shape &s : shapes) {
+        Paths64 p = shape_paths(s);
+        mat[s.material].insert(mat[s.material].end(), p.begin(), p.end());
+    }
+    for (auto &kv : mat) kv.second = Union(kv.second, FillRule::NonZero);
+    const double d = o.delta * S;
+    auto solid = [&]() {
+        Paths64 all;
+        for (auto &kv : mat) all.insert(all.end(), kv.second.begin(), kv.second.end());
+        return Union(all, FillRule::NonZero);
+    };
+    Rect64 bb = GetBounds(solid());
+    const int64_t margin = (int64_t)(20 * d) + 10;
+    Path64 box{Point64(bb.left - margin, bb.top - margin), Point64(bb.right + margin, bb.top - margin),
+               Point64(bb.right + margin, bb.bottom + margin), Point64(bb.left - margin, bb.bottom + margin)};
+    auto shared = [&](const Paths64 &piece, const Paths64 &other) {
+        if (other.empty()) return 0.0;
+        return area(Intersect(InflatePaths(piece, d / 4, JoinType::Miter, EndType::Polygon, 10.0), other,
+                              FillRule::NonZero));
+    };
+    auto rank = [&](int m) {
+        auto it = std::find(o.fill_priority.begin(), o.fill_priority.end(), m);
+        return it == o.fill_priority.end() ? (int)o.fill_priority.size() : (int)(it - o.fill_priority.begin());
+    };
+    // Each piece of space changes owner at most once per repair: a sliver
+    // between two materials is thin for either owner, and would otherwise be
+    // passed back and forth.
+    Paths64 moved;
+    for (int iter = 0; iter < 5; ++iter) {
+        size_t before = ev.size();
+        // thin parts of material regions
+        for (auto &kv : mat) {
+            Paths64 thin = Difference(kv.second, open_(kv.second, d / 2), FillRule::NonZero);
+            if (!moved.empty()) thin = Difference(thin, moved, FillRule::NonZero);
+            thin = significant(thin, d);
+            for (const Paths64 &piece : pieces(thin)) {
+                Paths64 gas = Difference(Paths64{box}, solid(), FillRule::NonZero);
+                int best = GAS;
+                double bs = shared(piece, gas);
+                for (auto &other : mat) {
+                    if (other.first == kv.first) continue;
+                    double sh = shared(piece, other.second);
+                    if (sh > bs) { bs = sh; best = other.first; }
+                }
+                kv.second = Difference(kv.second, piece, FillRule::NonZero);
+                if (best != GAS) mat[best] = Union(mat[best], piece, FillRule::NonZero);
+                moved = Union(moved, piece, FillRule::NonZero);
+                ev.push_back({"thin", kv.first, best, area(piece), any_point(piece)});
+            }
+        }
+        // crumbs: whole connected components narrower than d/8 everywhere
+        // (below the significance filter, e.g. remnants of a removed piece)
+        for (auto &kv : mat) {
+            for (const Paths64 &piece : pieces(kv.second)) {
+                if (!open_(piece, d / 16).empty()) continue;
+                Paths64 gas = Difference(Paths64{box}, solid(), FillRule::NonZero);
+                int best = GAS;
+                double bs = shared(piece, gas);
+                for (auto &other : mat) {
+                    if (other.first == kv.first) continue;
+                    double sh = shared(piece, other.second);
+                    if (sh > bs) { bs = sh; best = other.first; }
+                }
+                kv.second = Difference(kv.second, piece, FillRule::NonZero);
+                if (best != GAS) mat[best] = Union(mat[best], piece, FillRule::NonZero);
+                moved = Union(moved, piece, FillRule::NonZero);
+                ev.push_back({"crumb", kv.first, best, area(piece), any_point(piece)});
+            }
+        }
+        // ambient gaps and enclosed cavities
+        Paths64 gas = Difference(Paths64{box}, solid(), FillRule::NonZero);
+        std::vector<std::pair<Paths64, std::string>> fill;
+        for (const Paths64 &piece : pieces(significant(Difference(gas, open_(gas, d / 2), FillRule::NonZero), d)))
+            fill.push_back({piece, "gap"});
+        for (const Paths64 &piece : pieces(gas)) {
+            Rect64 pb = GetBounds(piece);
+            bool outside = pb.left <= box[0].x || pb.top <= box[0].y || pb.right >= box[2].x || pb.bottom >= box[2].y;
+            if (!outside) fill.push_back({piece, "cavity"});
+        }
+        for (auto &[piece, kind] : fill) {
+            int best = GAS, br = 1 << 30;
+            for (auto &other : mat)
+                if (shared(piece, other.second) > 0 && rank(other.first) < br) { br = rank(other.first); best = other.first; }
+            if (best == GAS) continue;
+            mat[best] = Union(mat[best], piece, FillRule::NonZero);
+            // pieces of the gap that were inside other materials' openings cannot overlap them: remove overlaps
+            for (auto &other : mat)
+                if (other.first != best) other.second = Difference(other.second, piece, FillRule::NonZero);
+            moved = Union(moved, piece, FillRule::NonZero);
+            ev.push_back({kind, GAS, best, area(piece), any_point(piece)});
+        }
+        if (ev.size() == before) break;
+    }
+    if (ev.empty()) return ev;   // shapes untouched (exact)
+    shapes.clear();
+    for (auto &kv : mat)
+        for (const Paths64 &piece : pieces(kv.second)) {
+            Shape s;
+            s.material = kv.first;
+            for (const Path64 &p : piece) {
+                std::vector<Point> l;
+                for (const Point64 &q : p) l.push_back(from64(q));
+                if (l.size() >= 3) s.loops.push_back(l);
+            }
+            if (!s.loops.empty()) shapes.push_back(s);
+        }
+    return ev;
+}
+
+Mesh mesh_from_shapes(const std::vector<Shape> &shapes, const Mesh &reference, const BoundaryCode &code,
+                      const SizeField *size, const RemeshOptions &o, RemeshReport &rep, std::vector<std::string> *notes)
+{
+    // 1. planar straight-line graph on the integer grid
+    std::map<std::pair<int64_t, int64_t>, int> vid;
+    std::vector<Point64> V;
+    auto vertex = [&](const Point64 &p) {
+        auto it = vid.find({p.x, p.y});
+        if (it != vid.end()) return it->second;
+        vid[{p.x, p.y}] = (int)V.size();
+        V.push_back(p);
+        return (int)V.size() - 1;
+    };
+    std::vector<std::pair<int, int>> E;
+    for (const Shape &s : shapes)
+        for (const auto &l : s.loops)
+            for (size_t i = 0; i < l.size(); ++i) {
+                int a = vertex(to64(l[i])), b = vertex(to64(l[(i + 1) % l.size()]));
+                if (a != b) E.push_back({std::min(a, b), std::max(a, b)});
+            }
+    // split edges at vertices lying exactly on them (T-junctions)
+    std::vector<std::pair<int, int>> split;
+    {
+        std::vector<int> order(V.size());
+        for (size_t i = 0; i < V.size(); ++i) order[i] = (int)i;
+        std::sort(order.begin(), order.end(), [&](int a, int b) { return V[a].x < V[b].x; });
+        std::vector<int64_t> xs;
+        for (int i : order) xs.push_back(V[i].x);
+        for (auto [a, b] : E) {
+            int64_t x0 = std::min(V[a].x, V[b].x), x1 = std::max(V[a].x, V[b].x);
+            int64_t y0 = std::min(V[a].y, V[b].y), y1 = std::max(V[a].y, V[b].y);
+            std::vector<std::pair<__int128, int>> on;
+            auto lo = std::lower_bound(xs.begin(), xs.end(), x0) - xs.begin();
+            for (size_t k = lo; k < xs.size() && xs[k] <= x1; ++k) {
+                int c = order[k];
+                if (c == a || c == b || V[c].y < y0 || V[c].y > y1) continue;
+                __int128 cr = (__int128)(V[b].x - V[a].x) * (V[c].y - V[a].y) - (__int128)(V[b].y - V[a].y) * (V[c].x - V[a].x);
+                if (cr != 0) continue;
+                __int128 t = (__int128)(V[c].x - V[a].x) * (V[b].x - V[a].x) + (__int128)(V[c].y - V[a].y) * (V[b].y - V[a].y);
+                on.push_back({t, c});
+            }
+            std::sort(on.begin(), on.end());
+            int prev = a;
+            for (auto &q : on) { split.push_back({std::min(prev, q.second), std::max(prev, q.second)}); prev = q.second; }
+            split.push_back({std::min(prev, b), std::max(prev, b)});
+        }
+    }
+    std::sort(split.begin(), split.end());
+    split.erase(std::unique(split.begin(), split.end()), split.end());
+    // 2. CDT (crossings, which exact Booleans should not produce, are resolved)
+    CDT::Triangulation<double> cdt(CDT::VertexInsertionOrder::Auto, CDT::IntersectingConstraintEdges::TryResolve, 0.0);
+    std::vector<CDT::V2d<double>> cv;
+    for (const Point64 &p : V) cv.push_back(CDT::V2d<double>(p.x / S, p.y / S));
+    cdt.insertVertices(cv);
+    std::vector<CDT::Edge> ce;
+    for (auto [a, b] : split) ce.push_back(CDT::Edge(a, b));
+    cdt.insertEdges(ce);
+    cdt.eraseSuperTriangle();
+    if (notes && cdt.vertices.size() != V.size())
+        notes->push_back(std::to_string(cdt.vertices.size() - V.size()) + " vertices added by the CDT at crossings");
+    std::vector<Point> P;
+    for (const auto &v : cdt.vertices) P.push_back({v.x, v.y});
+    std::vector<std::array<int, 3>> T;
+    for (const auto &t : cdt.triangles) {
+        std::array<int, 3> v{(int)t.vertices[0], (int)t.vertices[1], (int)t.vertices[2]};
+        const Point &a = P[v[0]], &b = P[v[1]], &c = P[v[2]];
+        if ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) < 0) std::swap(v[1], v[2]);
+        T.push_back(v);
+    }
+    // 3. labels: material of the shape containing the centroid (priority = shape order of materials)
+    std::vector<int> label(T.size(), -1);
+    struct Box { double x0, y0, x1, y1; };
+    std::vector<Box> sb;
+    for (const Shape &s : shapes) {
+        Box b{1e300, 1e300, -1e300, -1e300};
+        for (const auto &l : s.loops)
+            for (const Point &q : l) { b.x0 = std::min(b.x0, q.x); b.y0 = std::min(b.y0, q.y); b.x1 = std::max(b.x1, q.x); b.y1 = std::max(b.y1, q.y); }
+        sb.push_back(b);
+    }
+    for (size_t t = 0; t < T.size(); ++t) {
+        Point c{(P[T[t][0]].x + P[T[t][1]].x + P[T[t][2]].x) / 3, (P[T[t][0]].y + P[T[t][1]].y + P[T[t][2]].y) / 3};
+        for (size_t k = 0; k < shapes.size() && label[t] < 0; ++k) {
+            if (c.x < sb[k].x0 || c.x > sb[k].x1 || c.y < sb[k].y0 || c.y > sb[k].y1) continue;
+            int w = 0;
+            for (const auto &l : shapes[k].loops) w += winding(l, c);
+            if (w != 0) label[t] = shapes[k].material;
+        }
+    }
+    std::unordered_map<uint64_t, int> dir;
+    for (size_t t = 0; t < T.size(); ++t)
+        for (int k = 0; k < 3; ++k) dir[dkey(T[t][k], T[t][(k + 1) % 3])] = (int)t;
+    // unlabelled components: ambient if they reach the hull, else filled (safety net; repair_shapes fills cavities)
+    {
+        std::vector<int> comp(T.size(), -1);
+        for (size_t s0 = 0; s0 < T.size(); ++s0) {
+            if (label[s0] >= 0 || comp[s0] >= 0) continue;
+            std::vector<int> members{(int)s0}, stack{(int)s0};
+            comp[s0] = (int)s0;
+            bool hull = false;
+            std::map<int, double> border;
+            while (!stack.empty()) {
+                int t = stack.back(); stack.pop_back();
+                for (int k = 0; k < 3; ++k) {
+                    int a = T[t][k], b = T[t][(k + 1) % 3];
+                    auto it = dir.find(dkey(b, a));
+                    if (it == dir.end()) { hull = true; continue; }
+                    int n = it->second;
+                    if (label[n] >= 0) { border[label[n]] += std::hypot(P[b].x - P[a].x, P[b].y - P[a].y); continue; }
+                    if (comp[n] < 0) { comp[n] = (int)s0; members.push_back(n); stack.push_back(n); }
+                }
+            }
+            if (hull || border.empty()) continue;
+            int best = std::max_element(border.begin(), border.end(), [](auto &x, auto &y) { return x.second < y.second; })->first;
+            for (int t : members) label[t] = best;
+            if (notes) notes->push_back("mesh_from_shapes filled an uncovered interior pocket with material " + std::to_string(best));
+        }
+    }
+    // 4. coarse mesh: regions = connected components per material
+    Mesh c;
+    c.version = reference.version; c.dim = reference.dim; c.nvrt = reference.nvrt; c.nedg = reference.nedg;
+    c.has_model = reference.has_model; c.orientation = reference.orientation;
+    c.last_temperature = reference.last_temperature; c.implanted = reference.implanted;
+    c.trailer = reference.trailer; c.species = reference.species;
+    std::vector<int> local(P.size(), -1), keep;
+    for (size_t t = 0; t < T.size(); ++t) if (label[t] >= 0) keep.push_back((int)t);
+    std::vector<int> region(T.size(), -1);
+    for (int s0 : keep) {
+        if (region[s0] >= 0) continue;
+        int r = (int)c.region_material.size();
+        c.region_material.push_back(label[s0]);
+        std::vector<int> stack{s0};
+        region[s0] = r;
+        while (!stack.empty()) {
+            int t = stack.back(); stack.pop_back();
+            for (int k = 0; k < 3; ++k) {
+                auto it = dir.find(dkey(T[t][(k + 1) % 3], T[t][k]));
+                if (it == dir.end()) continue;
+                int n = it->second;
+                if (label[n] == label[t] && region[n] < 0) { region[n] = r; stack.push_back(n); }
+            }
+        }
+    }
+    std::vector<int> tindex(T.size(), -1);
+    for (int t : keep) {
+        Triangle tr;
+        tr.region = region[t];
+        for (int k = 0; k < 3; ++k) {
+            int p = T[t][k];
+            if (local[p] < 0) { local[p] = (int)c.point.size(); c.point.push_back(P[p]); }
+            tr.v[k] = local[p];
+        }
+        tindex[t] = (int)c.triangle.size();
+        c.triangle.push_back(tr);
+    }
+    for (int t : keep) {
+        Triangle &tr = c.triangle[tindex[t]];
+        for (int j = 0; j < 3; ++j) {
+            int a = T[t][(j + 1) % 3], b = T[t][(j + 2) % 3];
+            auto it = dir.find(dkey(b, a));
+            if (it != dir.end() && label[it->second] >= 0) tr.nb[j] = tindex[it->second];
+            else tr.nb[j] = code(P[a], P[b]);
+        }
+    }
+    std::set<std::pair<int, int>> nodes;
+    for (const Triangle &t : c.triangle)
+        for (int k = 0; k < 3; ++k) {
+            nodes.insert({t.v[k], c.region_material[t.region]});
+            if (t.nb[k] == EXPOSED || t.nb[k] == BACKSIDE) {
+                nodes.insert({t.v[(k + 1) % 3], GAS});
+                nodes.insert({t.v[(k + 2) % 3], GAS});
+            }
+        }
+    for (auto &[p, m] : nodes) c.node.push_back({p, m, std::vector<double>(c.species.size(), 0.0)});
+    c.rebuild_index();
+    if (const char *dir = std::getenv("CORE_DEBUG_DIR")) write_str(to_str(c), std::string(dir) + "/coarse_last.str");
+    try {
+        return remesh(c, o, rep, size);
+    } catch (...) {
+        if (const char *dir = std::getenv("CORE_DEBUG_DIR")) write_str(to_str(c), std::string(dir) + "/coarse_fail.str");
+        throw;
+    }
+}
+
+void evolve(Mesh &m, const Velocity &v, double time, const EvolveOptions &o, EvolveReport &rep)
+{
+    const double step = std::min(o.max_step, o.repair.delta / 4);
+    auto areas = [](const Mesh &x) {
+        std::vector<double> a(x.triangle.size());
+        for (size_t t = 0; t < a.size(); ++t) a[t] = tri_area2(x, (int)t);
+        return a;
+    };
+    std::vector<double> ref = areas(m);
+    // Target sizes come from the mesh as built at the last rebuild, not from
+    // the deformed one: otherwise material compressed by the motion (e.g. a
+    // consumed layer) would get finer at every rebuild without bound.
+    Mesh built = m;
+    auto rebuild = [&](std::vector<Shape> shapes) {
+        BoundaryCode code = boundary_codes_of(m);
+        SizeField h(built, o.remesh.size_mode == "min" ? SizeField::FINEST : SizeField::AREA, o.remesh.scale,
+                    o.remesh.hmin, o.remesh.hmax);
+        h.adapt_to_solution(o.remesh.solution_decades);
+        RemeshReport rr;
+        Mesh fresh = mesh_from_shapes(shapes, m, code, &h, o.remesh, rr, &rep.notes);
+        TransferReport tr;
+        transfer_fields(m, fresh, tr);
+        m = std::move(fresh);
+        built = m;
+        ref = areas(m);
+        rep.rebuilds++;
+    };
+    double t = 0;
+    while (t < time * (1 - 1e-12)) {
+        if (rep.steps >= o.max_steps) { rep.failures.push_back("step limit reached"); return; }
+        std::vector<Point> V(m.point.size());
+        double vmax = 0;
+        for (size_t i = 0; i < V.size(); ++i) {
+            V[i] = v(m.point[i], t);
+            vmax = std::max(vmax, std::hypot(V[i].x, V[i].y));
+        }
+        double dt = time - t;
+        if (vmax > 0) dt = std::min(dt, step / vmax);
+        Mesh moved;
+        bool ok = false;
+        for (int h = 0; h < 40; ++h) {
+            moved = m;
+            for (size_t i = 0; i < V.size(); ++i) { moved.point[i].x += dt * V[i].x; moved.point[i].y += dt * V[i].y; }
+            ok = true;
+            for (size_t k = 0; k < moved.triangle.size() && ok; ++k)
+                ok = tri_area2(moved, (int)k) > o.min_area_ratio * tri_area2(m, (int)k);
+            if (ok) {   // boundaries must stay simple (gaps between fronts have no triangles)
+                std::vector<std::string> pr;
+                Brep b = extract_brep(moved, pr);
+                ok = pr.empty() && check_brep(moved, b, 1).empty();
+            }
+            if (ok) break;
+            dt *= 0.5;
+            rep.halvings++;
+        }
+        if (!ok) {   // cannot move without degenerating: rebuild first
+            std::vector<Shape> sh = mesh_shapes(m);
+            auto ev = repair_shapes(sh, o.repair);
+            rep.events.insert(rep.events.end(), ev.begin(), ev.end());
+            rebuild(ev.empty() ? mesh_shapes(m) : sh);
+            continue;
+        }
+        m = std::move(moved);
+        t += dt;
+        rep.steps++;
+        if (std::getenv("CORE_EVOLVE_TRACE"))
+            std::fprintf(stderr, "step %d t %.6g dt %.3g points %zu rebuilds %d halvings %d\n", rep.steps, t, dt,
+                         m.point.size(), rep.rebuilds, rep.halvings);
+        std::vector<Shape> sh = mesh_shapes(m);
+        auto ev = repair_shapes(sh, o.repair);
+        bool degraded = false;
+        for (size_t k = 0; k < m.triangle.size() && !degraded; ++k)
+            degraded = tri_area2(m, (int)k) < o.rebuild_area_ratio * ref[k];
+        if (!ev.empty() || degraded) {
+            rep.events.insert(rep.events.end(), ev.begin(), ev.end());
+            rebuild(ev.empty() ? mesh_shapes(m) : sh);
+        }
+        if (o.check_every_step) {
+            auto bad = check_invariants(m, 3);
+            std::vector<std::string> pr;
+            Brep b = extract_brep(m, pr);
+            auto bb = check_brep(m, b, 3);
+            bad.insert(bad.end(), pr.begin(), pr.end());
+            bad.insert(bad.end(), bb.begin(), bb.end());
+            for (auto &x : bad) rep.failures.push_back("step " + std::to_string(rep.steps) + ": " + x);
+            if (!bad.empty()) return;
+        }
+    }
+}
+
+}  // namespace suprem_core

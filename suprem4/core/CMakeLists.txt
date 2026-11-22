@@ -18,13 +18,18 @@ set(USE_VTK OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/mmg EXCLUDE_FROM_ALL)
 
+set(CLIPPER2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/clipper2)
 add_library(suprem_core STATIC
   src/str_file.cpp
   src/mesh.cpp
   src/brep.cpp
   src/locate.cpp
   src/remesh.cpp
-  src/transfer.cpp)
+  src/transfer.cpp
+  src/evolve.cpp
+  ${CLIPPER2_DIR}/src/clipper.engine.cpp
+  ${CLIPPER2_DIR}/src/clipper.offset.cpp
+  ${CLIPPER2_DIR}/src/clipper.rectclip.cpp)
 target_include_directories(suprem_core PUBLIC include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cdt/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/clipper2/include)
@@ -37,3 +42,6 @@ target_link_libraries(core_str suprem_core)
 
 add_executable(core_remesh tools/core_remesh.cpp)
 target_link_libraries(core_remesh suprem_core)
+
+add_executable(core_evolve_test tools/core_evolve_test.cpp)
+target_link_libraries(core_evolve_test suprem_core)

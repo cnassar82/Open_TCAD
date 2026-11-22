@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <unordered_map>
@@ -242,8 +243,34 @@ int coarsen_chains(Geo &g, const SizeField &h, double tol, RemeshReport &rep)
         }
         c.pt = out;
     }
+    // loop areas before coarsening (orientation must be preserved)
+    auto loop_area = [&](const LoopRef &l) {
+        double a = 0;
+        for (const Seg &sg : g.loop_segments(l)) a += 0.5 * (g.P[sg.a].x * g.P[sg.b].y - g.P[sg.b].x * g.P[sg.a].y);
+        return a;
+    };
+    std::vector<double> area0;
+    for (int c = 0; c < (int)g.C.size(); ++c) std::swap(g.C[c].pt, original[c]);
+    for (const LoopRef &l : g.L) area0.push_back(loop_area(l));
+    for (int c = 0; c < (int)g.C.size(); ++c) std::swap(g.C[c].pt, original[c]);
     for (int round = 0; round < 10; ++round) {
         std::set<int> bad = crossing_chains(g);
+        // duplicate segments (two chains collapsed onto each other) ...
+        std::map<std::pair<int, int>, int> seen;
+        for (int c = 0; c < (int)g.C.size(); ++c)
+            for (size_t i = 0; i + 1 < g.C[c].pt.size(); ++i) {
+                std::pair<int, int> k{std::min(g.C[c].pt[i], g.C[c].pt[i + 1]), std::max(g.C[c].pt[i], g.C[c].pt[i + 1])};
+                auto it = seen.find(k);
+                if (it != seen.end()) { bad.insert(c); bad.insert(it->second); }
+                else seen[k] = c;
+            }
+        // ... and loops whose orientation flipped or area collapsed (a region
+        // narrower than the tolerance)
+        for (size_t li = 0; li < g.L.size(); ++li) {
+            double a = loop_area(g.L[li]);
+            if (a * area0[li] <= 0 || std::fabs(a) < 0.5 * std::fabs(area0[li]))
+                for (auto &[c, rev] : g.L[li].part) bad.insert(c);
+        }
         int restored = 0;
         for (int c : bad)
             if (g.C[c].pt != original[c]) {
@@ -252,10 +279,10 @@ int coarsen_chains(Geo &g, const SizeField &h, double tol, RemeshReport &rep)
                 ++restored;
             }
         if (!restored) {
-            if (!bad.empty()) throw std::runtime_error("input chains intersect");
+            if (!bad.empty()) throw std::runtime_error("input chains intersect or loops are degenerate");
             break;
         }
-        rep.notes.push_back("coarsening of " + std::to_string(restored) + " chains undone (would intersect)");
+        rep.notes.push_back("coarsening of " + std::to_string(restored) + " chains undone (intersection, duplicate or collapsed loop)");
     }
     return removed;
 }
@@ -683,7 +710,9 @@ std::vector<std::pair<int, int>> encroached(const Work &w, double limit_deg)
 // edge with an opposite angle above the limit is split at its midpoint in the
 // working mesh (both adjacent triangles split) and in its chain.  Returns the
 // number of splits.
-int split_encroached(Work &w, Geo &g, double limit_deg)
+// Ruppert does not terminate near small input angles (the same edges are
+// halved down to rounding); no split creates edges shorter than min_len.
+int split_encroached(Work &w, Geo &g, double limit_deg, double min_len)
 {
     std::unordered_set<uint64_t> con;
     for (auto &e : constrained_edges(w)) con.insert(ukey(e[0], e[1]));
@@ -702,6 +731,7 @@ int split_encroached(Work &w, Geo &g, double limit_deg)
             if (!con.count(ukey(a, b)) || angle_at(w.P[c], w.P[a], w.P[b]) <= lim) continue;
             int pa = w.pid[a], pb = w.pid[b];
             if (pa < 0 || pb < 0) continue;
+            if (dist(w.P[a], w.P[b]) < 2 * min_len) continue;
             auto other = dir.find(dkey(b, a));
             if (other != dir.end() && touched[other->second.first]) continue;
             Point mid{0.5 * (w.P[a].x + w.P[b].x), 0.5 * (w.P[a].y + w.P[b].y)};
@@ -830,15 +860,21 @@ std::string format_quality(const Quality &q)
     return buf;
 }
 
-Mesh remesh(const Mesh &m, const RemeshOptions &o, RemeshReport &rep)
+Mesh remesh(const Mesh &m, const RemeshOptions &o, RemeshReport &rep, const SizeField *size)
 {
     std::vector<std::string> problems;
     Brep b = extract_brep(m, problems);
     auto bad = check_brep(m, b);
     bad.insert(bad.begin(), problems.begin(), problems.end());
     if (!bad.empty()) throw std::runtime_error("input B-rep invalid: " + bad.front());
-    SizeField h(m, o.size_mode == "min" ? SizeField::FINEST : SizeField::AREA, o.scale, o.hmin, o.hmax);
-    h.adapt_to_solution(o.solution_decades);
+    std::unique_ptr<SizeField> own;
+    if (!size) {
+        own = std::make_unique<SizeField>(m, o.size_mode == "min" ? SizeField::FINEST : SizeField::AREA, o.scale,
+                                          o.hmin, o.hmax);
+        own->adapt_to_solution(o.solution_decades);
+        size = own.get();
+    }
+    const SizeField &h = *size;
     Geo g = build_geo(m, b);
     rep.coarsened = coarsen_chains(g, h, o.coarsen_tol, rep);
     refine_chains(g, h);
@@ -855,7 +891,7 @@ Mesh remesh(const Mesh &m, const RemeshOptions &o, RemeshReport &rep)
             if (!run_mmg(w, h, o, rep)) break;
     if (o.flips) rep.flips += delaunay_flips(w);
     for (int round = 0; round < o.encroach_rounds; ++round) {
-        int n = split_encroached(w, g, o.encroach_angle);
+        int n = split_encroached(w, g, o.encroach_angle, o.min_split_length);
         if (!n) break;
         rep.encroach_splits += n;
         rep.flips += delaunay_flips(w);

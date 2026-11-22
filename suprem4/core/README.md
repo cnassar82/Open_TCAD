@@ -21,6 +21,7 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
 | 2 | `brep` loops/chains, closure/simplicity/area/twin checks | 36/36 + negative tests (broken repair/merge meshes flagged) |
 | 3 | `remesh` mesh generation from the B-rep | `tests/remesh_suite.py`: 72/72 SubCmos2014 (two runs) + 36/36 AdvCmos2014 checkpoints |
 | 4 | `transfer` field transfer + inventory restoration; solution-adaptive size field | suite (transfer checks) + SUPREM reload/anneal and mesh-convergence test |
+| 5 | `evolve` motion, events (thin / crumb / gap / cavity), Clipper2 repair, rebuild from polygons | `core_evolve_test`: shrink, merge, slit pass |
 
 ## WP3 remesh pipeline (`src/remesh.cpp`)
 
@@ -136,10 +137,53 @@ AdvCmos2014 0.25 um (geometric poly re-ox run, 18 checkpoints x 2): 36/36 pass,
 up to 85 s for the 120k-point metal structures (Mmg dominates; a runtime
 target belongs to WP7).
 
+## WP5 motion, events, repair (`src/evolve.cpp`)
+
+- `evolve(mesh, velocity(p, t), time)`: sub-steps with travel <= min(max_step,
+  delta/4) (a gap closing from both sides is seen before the fronts cross), no
+  triangle losing more than half its area per step, boundaries kept simple
+  (checked; the step is halved otherwise).
+- After each step the geometry (per material, Clipper2 integer grid 1e-7 um)
+  is checked for events of size delta (1 nm):
+  - thin: part of a region narrower than delta (opening) -> neighbour with
+    the longest shared boundary (removed if that is the ambient);
+  - crumb: connected component narrower than delta/8 everywhere -> as thin;
+  - gap: ambient gap narrower than delta -> highest-priority adjacent
+    material (SiO2 > OxNi > Si3N4 > poly > Si ...);
+  - cavity: ambient pocket enclosed by material -> as gap.
+  Each piece of space changes owner at most once per repair (no ping-pong
+  of slivers between two materials).
+- Rebuild (on events, or when a triangle has lost 70 % of its area since the
+  last rebuild): planar graph of all polygon edges (T-junctions split exactly,
+  crossings resolved by the CDT), point-in-polygon labels, regions = connected
+  components per material (touching same-material regions merge), then the
+  WP3 remesh with the target sizes of the mesh *as built at the last rebuild*
+  (sizes from the deformed mesh ratchet: compressed material got finer at
+  every rebuild, 2.8k -> 8k points before this was fixed), then the WP4
+  transfer.
+
+Synthetic tests (`core_evolve_test REFERENCE.str [OUTDIR]`, every step checked):
+
+| test | what happens | events | result |
+|---|---|---|---|
+| shrink | poly square in oxide consumed from all sides | thin poly -> oxide | one oxide region, area 1, 3.4 s |
+| merge | silicon slot closing from both sides, top first | gap + trapped cavity -> Si | one Si region, no ambient below the surface, 1.7 s |
+| slit | slit through oxide on Si closing | gap + cavity -> oxide | one oxide + one Si region, 1.1 s |
+
+Fixes in WP2/WP3 found by these tests: closed interface chains (an island
+inside one region) compared independent of start point; chains split at
+pinch vertices (boundary-graph degree > 2) so both sides split identically;
+chain coarsening also rejected when it duplicates a segment or collapses /
+flips a loop (regions thinner than the tolerance); Ruppert splitting stops at
+edges of 2 x 1e-9 um, ~1e6 ulp (it does not terminate near small input
+angles; floors of 2 x hmin and 1e-6 um were tried first and left encroached
+edges in the 0.2 A slivers of the spacer structures).
+
 ## Tools
 
 - `core_str IN.str [--write OUT.str]`: summary, invariants, B-rep, round trip.
 - `core_remesh IN.str OUT.str [--size area|min] [--scale S] [--hmin H] [--hmax H]
   [--hgrad G] [--coarsen-tol T] [--film-threshold T] [--film-layers N] [--passes N]
   [--encroach-rounds N] [--no-mmg] [--no-flips] [--worst N | --worst-max N]`.
+- `core_evolve_test REFERENCE.str [OUTDIR]` (env `CORE_EVOLVE_ONLY=name`, `CORE_EVOLVE_TRACE=1`).
 - `tests/roundtrip.py CORE_STR DIR...`, `tests/remesh_suite.py CORE_REMESH DIR... [--out D]`.

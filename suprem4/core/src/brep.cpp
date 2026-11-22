@@ -46,6 +46,16 @@ Brep extract_brep(const Mesh &m, std::vector<std::string> &problems)
             edges[tr.region].push_back({a, c, nb >= 0 ? m.triangle[nb].region : nb});
         }
     }
+    // junctions: vertices where more than two (undirected) boundary edges
+    // meet; chains are split there too, so both sides of a pinch point split
+    // identically and every interface chain has an exact twin
+    std::map<int, int> degree;
+    {
+        std::set<std::pair<int, int>> und;
+        for (const auto &E : edges)
+            for (const Edge &e : E) und.insert({std::min(e.a, e.b), std::max(e.a, e.b)});
+        for (auto &u : und) { degree[u.first]++; degree[u.second]++; }
+    }
     for (int r = 0; r < nr; ++r) {
         auto &E = edges[r];
         std::multimap<int, int> from;
@@ -82,18 +92,24 @@ Brep extract_brep(const Mesh &m, std::vector<std::string> &problems)
             // chains: rotate the loop to start where the right side changes,
             // then group consecutive edges with the same right side
             size_t n = L.point.size(), s0 = 0;
-            while (s0 < n && right[s0] == right[(s0 + n - 1) % n]) ++s0;
+            auto split_at = [&](size_t k) {   // between edge k-1 and edge k, at vertex L.point[k]
+                return right[k] != right[(k + n - 1) % n] || degree[L.point[k]] > 2;
+            };
+            while (s0 < n && !split_at(s0)) ++s0;
             if (s0 == n) {      // one right side all round: closed chain, first point repeated
                 Chain c{r, right[0], L.point, (int)b.loop.size()};
                 c.point.push_back(L.point[0]);
                 b.chain.push_back(c);
             } else {
                 std::vector<int> P(n), R(n);
-                for (size_t k = 0; k < n; ++k) { P[k] = L.point[(s0 + k) % n]; R[k] = right[(s0 + k) % n]; }
+                std::vector<char> cut(n);
+                for (size_t k = 0; k < n; ++k) {
+                    P[k] = L.point[(s0 + k) % n]; R[k] = right[(s0 + k) % n]; cut[k] = split_at((s0 + k) % n);
+                }
                 for (size_t i = 0; i < n;) {
                     Chain c{r, R[i], {P[i]}, (int)b.loop.size()};
                     size_t j = i;
-                    while (j < n && R[j] == R[i]) { c.point.push_back(P[(j + 1) % n]); ++j; }
+                    do { c.point.push_back(P[(j + 1) % n]); ++j; } while (j < n && !cut[j]);
                     b.chain.push_back(c);
                     i = j;
                 }
@@ -118,7 +134,16 @@ std::vector<std::string> check_brep(const Mesh &m, const Brep &b, size_t max_rep
             report("region " + std::to_string(r + 1) + ": loop area " + std::to_string(loop_area[r]) +
                    " != triangle area " + std::to_string(tri_area[r]));
     }
-    // interface chains have reversed twins
+    // interface chains have reversed twins; a closed chain (an island fully
+    // bounded by one other region) is compared independent of its start point
+    auto canonical = [](std::vector<int> v) {
+        if (v.size() > 2 && v.front() == v.back()) {
+            v.pop_back();
+            std::rotate(v.begin(), std::min_element(v.begin(), v.end()), v.end());
+            v.push_back(v.front());
+        }
+        return v;
+    };
     std::map<std::pair<int, int>, std::vector<const Chain *>> by_pair;
     for (const Chain &c : b.chain) if (c.right >= 0) by_pair[{c.left_region, c.right}].push_back(&c);
     for (const Chain &c : b.chain) {
@@ -126,7 +151,7 @@ std::vector<std::string> check_brep(const Mesh &m, const Brep &b, size_t max_rep
         bool found = false;
         for (const Chain *o : by_pair[{c.right, c.left_region}]) {
             std::vector<int> rev(o->point.rbegin(), o->point.rend());
-            if (rev == c.point) { found = true; break; }
+            if (canonical(rev) == canonical(c.point)) { found = true; break; }
         }
         if (!found) report("interface chain " + std::to_string(c.left_region + 1) + "|" + std::to_string(c.right + 1) +
                            " (" + std::to_string(c.point.size()) + " points) has no exact twin");
