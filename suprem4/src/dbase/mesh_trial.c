@@ -186,13 +186,32 @@ int mesh_trial_move(double dt, int *bad_triangle)
         }
         if((mode==TWOD && orient2d_float_sign(candidate[0],candidate[1],candidate[2])<=0) ||
            (mode==ONED && candidate[0][0]<=candidate[1][0])) {
-            *bad_triangle=t;return 0;
+            *bad_triangle=t;
+            if(getenv("SUPREM4_MOTION_TRACE"))
+                fprintf(stderr,"[motion-reason] orientation tri=%d mat=%d dt=%.3g (%.6f,%.6f)(%.6f,%.6f)(%.6f,%.6f)\n",
+                        t,mat_reg(reg_tri(t)),dt,1e4*candidate[0][0],1e4*candidate[0][1],
+                        1e4*candidate[1][0],1e4*candidate[1][1],1e4*candidate[2][0],1e4*candidate[2][1]);
+            if(getenv("SUPREM4_MOTION_TRACE")) for(j=0;j<3;j++){int q=pt_nd(vert_tri(t,j));
+                fprintf(stderr,"[motion-reason]   p%d (%.9f,%.9f) v (%.3e,%.3e) nn=%d\n",q,1e4*pt[q]->cord[0],1e4*pt[q]->cord[1],pt[q]->vel[0],pt[q]->vel[1],pt[q]->nn);}
+            return 0;
         }
     }
     /* Validate the represented global embedding before committing any
      * coordinate. A positive orientation test alone misses collisions of
      * non-neighboring boundary fans, including the captured LOCOS corner. */
-    if(mode==TWOD && dt!=0 && !mesh_trial_validate_embedding(dt,bad_triangle))return 0;
+    if(mode==TWOD && dt!=0 && !mesh_trial_validate_embedding(dt,bad_triangle)) {
+        if(getenv("SUPREM4_MOTION_TRACE"))
+        {   int t=*bad_triangle,j;
+            fprintf(stderr,"[motion-reason] embedding tri=%d dt=%.3g",t,dt);
+            if(t>=0 && t<ne) {
+                fprintf(stderr," mat=%d",mat_reg(reg_tri(t)));
+                for(j=0;j<3;j++){int q=pt_nd(vert_tri(t,j));
+                    fprintf(stderr," p%d=(%.6f,%.6f nn=%d surf=%d v %.2e,%.2e)",q,1e4*pt[q]->cord[0],1e4*pt[q]->cord[1],pt[q]->nn,is_surf(q)?1:0,pt[q]->vel[0],pt[q]->vel[1]);}
+            }
+            fprintf(stderr,"\n");
+        }
+        return 0;
+    }
     if(getenv("SUPREM4_EMBED_TRACE") && dt!=0 && mode==TWOD) {
         double lo,hi;
         FILE *trace;

@@ -28,6 +28,9 @@
 
 
 #define IAJA(R,C) iaja(ia, aoff, R, C)
+/* Oxidizing (consumed, otherwise rigid) materials.  Polysilicon is
+ * treated like silicon: fixed, with its oxide interface consumed. */
+#define OXSEMI(M) ((M) == Si || (M) == Poly)
 #define X 0
 #define Y 1
 
@@ -49,7 +52,7 @@ elast_growth( temp, dt)
     times( &before);
 
     /* Count # of real variables */
-    for (j = 0, i = 0; i < nn; i++) if (nd[i]->mater != Si) j++;
+    for (j = 0, i = 0; i < nn; i++) if (!OXSEMI(nd[i]->mater)) j++;
 
     /*
      * Allocate an initialize A map.
@@ -83,7 +86,7 @@ elast_growth( temp, dt)
 
     /* Dummy up silicon nodes - a speed hack*/
     for (n = 0; n < nn; n++) {
-	if( nd[ n]->mater == Si) {
+	if( OXSEMI(nd[ n]->mater)) {
 	    p = nd[ n]->pt;
 	    a[ 2*p + X] = 1;	fix[ 2*p + X] = 1;
 	    a[ 2*p + Y] = 1;	fix[ 2*p + Y] = 1;
@@ -97,7 +100,7 @@ elast_growth( temp, dt)
 
 	/* Find oxide nodes with underlying Si node */
 	if ((nd[ n]->mater == SiO2) &&
-	    ((node_mat (n, Si)) >= 0)) {
+	    ((node_mat (n, Si)) >= 0 || (node_mat (n, Poly)) >= 0)) {
 
 	    /* Compute the normal velocity here */
 	    Onvel( n, ln);
@@ -132,7 +135,7 @@ elast_growth( temp, dt)
     /* Set up global stiffness matrix */
     for (ie = 0; ie < ne; ie++) {
 
-	if( mat_reg(reg_tri(ie)) == Si) continue;
+	if( OXSEMI(mat_reg(reg_tri(ie)))) continue;
 
 	elem_stiff( ie);
 
@@ -180,7 +183,7 @@ elast_growth( temp, dt)
     /* Transfer the answer into permanent storage */
     for (p = 0; p < np; p++) {
 	for (nx = pt[ p]->nd, nx1 = nx + pt[ p]->nn; nx < nx1; nx++) {
-	    mult = (nd[ *nx]->mater != Si)? 1.0 : 1/(1-alpha[SiO2][Si]);
+	    mult = (!OXSEMI(nd[ *nx]->mater))? 1.0 : 1/(1-alpha[SiO2][Si]);
 	    nd[ *nx]->sol[ sXVEL] = rhs[ 2*p +X] *mult;
 	    nd[ *nx]->sol[ sYVEL] = rhs[ 2*p +Y] *mult;
 	}
@@ -213,7 +216,7 @@ elem_stiff( ie)
     mat = mat_reg( reg_tri(ie));
 
     /* For now, ignore silicon */
-    if (mat == Si) {
+    if (OXSEMI(mat)) {
 	for (i = 0; i < 6; i++)
 	    elstif[ i][ i] = 1.0;
 	return;
@@ -302,7 +305,7 @@ get_elasconn( ind, taken, num)
 
 	    at = tri[tri_nd(*nx,tx)];
 
-	    if (mat_reg(at->regnum) != Si) {
+	    if (!OXSEMI(mat_reg(at->regnum))) {
 
 		/*include all the points of that triangle*/
 		for (j = at->nd, jj = j + 3; j < jj; j++) {

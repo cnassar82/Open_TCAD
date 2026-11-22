@@ -1,0 +1,1 @@
+CDT 1.4.5 (https://github.com/artem-ogre/CDT, tag 1.4.5, commit 2068d015b9db3c92481e869b0c1f669b96a1d70a), MPL-2.0. Header-only constrained Delaunay triangulation used by refine/oxide_repair.cpp.

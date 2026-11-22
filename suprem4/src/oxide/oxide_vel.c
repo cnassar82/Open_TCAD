@@ -120,17 +120,22 @@ Onvel( io, vel)
     float vell;
     double dln[2];		/* local normal for Ovel */
     double Kt = KB * temperature;
+    int semi = Si;
+    extern int Orr_poly;
 
-    /* Get the normal */
-    (void)dlocal_normal( io, Si, dln);
-    
     if (nd[ io]->mater != SiO2)
 	return;
     else {
-	is = node_mat( io, Si);	assert(is>=0);
+	/* Silicon first; otherwise the oxide grows on polysilicon. */
+	is = node_mat( io, Si);
+	if (is < 0) { is = node_mat( io, Poly); semi = Poly; }
+	assert(is>=0);
+	(void)dlocal_normal( io, semi, dln);
 	myNoni = exp( nd[ is]->sol[Ps] / Kt );
 	conc = nd[io]->sol[imptosol[gas_type]];
+	Orr_poly = (semi == Poly);
 	vell = Ovel (temperature, gas_type, conc, dln, myNoni);
+	Orr_poly = 0;
 	vel[0] = vell * dln[0];
 	vel[1] = vell * dln[1];
     }

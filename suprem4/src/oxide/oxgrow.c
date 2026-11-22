@@ -42,6 +42,11 @@ oxgrow (temp, ornt, oxhow, dt )
     times(&before);
     mesh_embedding_trace("oxide entry");
 
+    /* Compress model: repair the oxide/poly geometry and remesh when the
+     * Lagrangian motion has produced a collision, a collapse or a degenerate
+     * element (oxide/oxide_repair.c). */
+    { extern int oxide_repair(int); if (oxide_repair(0)) UpdateSymbolic++; }
+
     /* Compute the velocity vector using whatever oxide growth model */
     oxide_vel (temp, ornt, oxhow, *dt);
     mesh_embedding_trace("oxide velocities");
@@ -63,6 +68,23 @@ oxgrow (temp, ornt, oxhow, dt )
     /* A nonlinear vertical map must sample neighboring constraints
      * consistently before testing volume-element motion. */
     if(oxide_model==O_VERTICAL)vertical_constraint_refine(*dt);
+
+    /* With the repair active, no point moves more than delta/2 per step,
+     * so every collision or collapse is seen by the next repair check. */
+    { extern int oxide_repair_enabled(void);
+      extern double oxide_repair_delta(void), oxide_repair_max_speed(void);
+      if (oxide_repair_enabled()) {
+	  double v = oxide_repair_max_speed(), lim;
+	  if (getenv("SUPREM4_REPAIR_SPEED_DIAG")) {
+	      int n, ng = 0, s = imptosol[gas_type]; double cmax = 0, cmin = 1e30;
+	      for (n = 0; n < nn; n++) {
+		  if (nd[n]->mater == GAS) ng++;
+		  if (nd[n]->mater == SiO2 && s >= 0) { if (nd[n]->sol[s] > cmax) cmax = nd[n]->sol[s]; if (nd[n]->sol[s] < cmin) cmin = nd[n]->sol[s]; }
+	      }
+	      fprintf(stderr, "[repair-speed] vmax %.3e cm/s, gas nodes %d, oxidant %.3e..%.3e\n", v, ng, cmin, cmax);
+	  }
+	  if (v > 0 && *dt > (lim = 0.5*oxide_repair_delta()/v)) *dt = lim;
+      } }
 
     /*cut the time step back */
     back_pedal( dt );
@@ -91,6 +113,7 @@ point_vel()
 
     /* Move the points */
     for (ip = 0; ip < np; ip++) {
+	if (dead_pt(ip) || num_nd(ip) == 0) continue;
 
 	/*
 	 * Well, displacement is a function of node and there are

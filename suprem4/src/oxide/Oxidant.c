@@ -183,12 +183,17 @@ Oboundary (s, bval)
     h = Trn0( s, mat0, mat1) * exp( -TrnE( s, mat0, mat1) / (kb * bval->temp));
     m = Seg0( s, mat0, mat1) * exp( -SegE( s, mat0, mat1) / (kb * bval->temp));
 
-    /*special case when mat1 is silicon and mat0 is oxide*/
-    if (mat1 == Si && mat0 == SiO2) {
+    /*special case when mat1 is silicon (or polysilicon) and mat0 is oxide*/
+    /* Polysilicon reacts only in the compress model (TSUPREM-4: COMPRESS,
+     * VISCOUS, VISCOELA; here compress), keeping other models unchanged. */
+    if ((mat1 == Si || (mat1 == Poly && oxide_model == O_ELASTIC)) && mat0 == SiO2) {
+	extern int Orr_poly;
 	
 	/*to compute the reaction rate, need the orientation.*/
-	(void)dlocal_normal( nx0, Si, dln);
+	(void)dlocal_normal( nx0, mat1, dln);
+	Orr_poly = (mat1 == Poly);
 	h = Orr(bval->temp, s, dln, noni[ bval->nx[ Nsol]]);
+	Orr_poly = 0;
 
         /*material 1 side derivitive*/
         f = h * bval->cpl;
@@ -224,7 +229,7 @@ Oboundary (s, bval)
 	
     }
     /*disallow update to gas or silicon side*/
-    if (mat1 == Si || mat1 == GAS) {
+    if (mat1 == Si || (mat1 == Poly && oxide_model == O_ELASTIC) || mat1 == GAS) {
 	clear_row(row1, sol);
 	left_side (row1, sol, 1.0);
 	right_side(row1, sol, bval->rhs, 0.0);
@@ -252,6 +257,11 @@ float Oss (s, mat)
  * The reaction rate constant, in its purest form.
  * Original: CSR 8/87
  *----------------------------------------------------------------------*/
+/* Polysilicon oxidizes with the silicon model.  Like TSUPREM-4's
+ * POLYSILI defaults, it uses the <110> linear rate.  Callers set this
+ * flag around Orr()/Ovel() when the reacting node is polysilicon. */
+int Orr_poly = 0;
+
 float Orr (temp, s, normal, noni)
      int s;			/* Species */
      float temp;		/* Temperature */
@@ -267,7 +277,11 @@ float Orr (temp, s, normal, noni)
     val = B_DealGrove/A_DealGrove * N1(s, SiO2) / (H (s, SiO2) * pressure);
 
     /* Add in orientation dependence */
-    SupToXtal( normal, XtalDir);
+    if (Orr_poly) {
+	XtalDir[0] = XtalDir[1] = 0.70710678118654752; XtalDir[2] = 0;
+    }
+    else
+	SupToXtal( normal, XtalDir);
     val *= DoOriDep( XtalDir, oridep);
 
     /* Add in fermi-level enhancement */

@@ -58,7 +58,7 @@ def main():
     offset_commands = []
     if args.domain_offset:
         vendor = work / 'src/third_party/clipper2'
-        sources = [work / 'src/refine/domain_offset.cpp', *sorted((vendor / 'src').glob('*.cpp'))]
+        sources = [work / 'src/refine/domain_offset.cpp', work / 'src/refine/oxide_repair.cpp', *sorted((vendor / 'src').glob('*.cpp'))]
         cxxflags = ['-std=c++17', '-g', '-O1', '-I', str(vendor / 'include')]
         if args.sanitize:
             cxxflags += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-fno-pie']

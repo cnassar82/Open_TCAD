@@ -277,12 +277,19 @@ double dt;
     int fix_conn = 0;
 
     /* add some new grid on the oxide side if we are really simulating it*/
-    if (oxide_grid != 0)
+    if (oxide_grid != 0) {
 	if ( new_layer(Si, SiO2, oxide_grid, dt)) {
 	    fix_conn++;
 	    UpdateSymbolic++;
 	    bd_connect("Grid Addition");
 	}
+	/* Polysilicon oxidizes in the compress model; grid its oxide too. */
+	if ( oxide_model == O_ELASTIC && new_layer(Poly, SiO2, oxide_grid, dt)) {
+	    fix_conn++;
+	    UpdateSymbolic++;
+	    bd_connect("Grid Addition (poly)");
+	}
+    }
 
     return( fix_conn);
 }
@@ -371,6 +378,9 @@ back_pedal( dt )
 	    /* Keep a record of the smallest root encountered */
 	    if (minRoot < worst) {
 		worst = minRoot;
+		if (getenv("SUPREM4_BACKPEDAL_DIAG"))
+		    fprintf(stderr, "[back-pedal] tri=%d mat=%d root=%.3g dt=%.3g area=%.3g\n",
+			ie, mat_reg(reg_tri(ie)), minRoot, *dt, pxq*1e8/2);
 	    }
 	}
 	break;
