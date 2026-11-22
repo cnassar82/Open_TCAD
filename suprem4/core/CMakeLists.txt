@@ -1,0 +1,31 @@
+# SUPREM geometry/mesh core (M0, suprem4/doc/plan_m0_geometry_core.md)
+cmake_minimum_required(VERSION 3.16)
+project(suprem_core C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+
+# Mmg v5.8.0 (LGPL-3), 2D library only, static, no optional dependencies.
+set(BUILD MMG2D CACHE STRING "" FORCE)
+set(LIBMMG2D_STATIC ON CACHE BOOL "" FORCE)
+set(LIBMMG2D_SHARED OFF CACHE BOOL "" FORCE)
+set(USE_SCOTCH OFF CACHE BOOL "" FORCE)
+set(USE_ELAS OFF CACHE BOOL "" FORCE)
+set(USE_VTK OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/mmg EXCLUDE_FROM_ALL)
+
+add_library(suprem_core STATIC
+  src/str_file.cpp
+  src/mesh.cpp
+  src/brep.cpp)
+target_include_directories(suprem_core PUBLIC include
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cdt/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/clipper2/include)
+target_compile_options(suprem_core PRIVATE -Wall -Wextra)
+
+add_executable(core_str tools/core_str.cpp)
+target_link_libraries(core_str suprem_core)

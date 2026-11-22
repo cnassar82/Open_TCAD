@@ -1,0 +1,1 @@
+Mmg v5.8.0 (https://github.com/MmgTools/mmg, tag v5.8.0, commit 4d8232c8aebfed877935d75d4d4a67e850962422, 2024-10-29), LGPL-3.0. Vendored: src/, cmake/, scripts/, CMakeLists.txt and licence files (libexamples/ and doc/ omitted). Built as a static 2D library (BUILD=MMG2D) by suprem4/core/CMakeLists.txt.
