@@ -772,7 +772,7 @@ Mesh assemble(const Mesh &old, const Geo &g, const Work &w, RemeshReport &rep)
     for (const Triangle &t : m.triangle)
         for (int k = 0; k < 3; ++k) {
             nodes.insert({t.v[k], m.region_material[t.region]});
-            if (t.nb[k] == EXPOSED) {
+            if (t.nb[k] == EXPOSED || t.nb[k] == BACKSIDE) {   // SUPREM: gas node on surface and backside points
                 nodes.insert({t.v[(k + 1) % 3], GAS});
                 nodes.insert({t.v[(k + 2) % 3], GAS});
             }
@@ -838,6 +838,7 @@ Mesh remesh(const Mesh &m, const RemeshOptions &o, RemeshReport &rep)
     bad.insert(bad.begin(), problems.begin(), problems.end());
     if (!bad.empty()) throw std::runtime_error("input B-rep invalid: " + bad.front());
     SizeField h(m, o.size_mode == "min" ? SizeField::FINEST : SizeField::AREA, o.scale, o.hmin, o.hmax);
+    h.adapt_to_solution(o.solution_decades);
     Geo g = build_geo(m, b);
     rep.coarsened = coarsen_chains(g, h, o.coarsen_tol, rep);
     refine_chains(g, h);
@@ -922,13 +923,13 @@ std::vector<std::string> check_gas_nodes(const Mesh &m, size_t max_reports)
     std::set<int> exposed, gas;
     for (const Triangle &t : m.triangle)
         for (int j = 0; j < 3; ++j)
-            if (t.nb[j] == EXPOSED) { exposed.insert(t.v[(j + 1) % 3]); exposed.insert(t.v[(j + 2) % 3]); }
+            if (t.nb[j] == EXPOSED || t.nb[j] == BACKSIDE) { exposed.insert(t.v[(j + 1) % 3]); exposed.insert(t.v[(j + 2) % 3]); }
     for (const Node &n : m.node)
         if (n.material == GAS) gas.insert(n.point);
     for (int p : exposed)
-        if (!gas.count(p) && bad.size() < max_reports) bad.push_back("exposed point " + std::to_string(p + 1) + " has no gas node");
+        if (!gas.count(p) && bad.size() < max_reports) bad.push_back("exposed/backside point " + std::to_string(p + 1) + " has no gas node");
     for (int p : gas)
-        if (!exposed.count(p) && bad.size() < max_reports) bad.push_back("gas node at non-exposed point " + std::to_string(p + 1));
+        if (!exposed.count(p) && bad.size() < max_reports) bad.push_back("gas node at a point neither exposed nor backside " + std::to_string(p + 1));
     return bad;
 }
 

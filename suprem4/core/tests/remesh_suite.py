@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""WP3 test: remesh every .str in DIR/*.str and DIR/*/*.str with core_remesh.
+"""WP3/WP4 test: remesh (and transfer fields for) every .str in DIR/*.str and DIR/*/*.str with core_remesh.
 
 PASS requires: invariants, B-rep, geometry preservation (within the
-coarsening tolerance) and gas-node checks ok, no Mmg failure, and the box-
+coarsening tolerance), gas-node and transfer (identity exact, inventory
+restored within 1e-6) checks ok, no Mmg failure, and the box-
 method criterion: no edge coupling (cot sum / 2, per region) below
 --min-coupling (default -0.01, i.e. a boundary edge opposite > ~91 deg).
 
@@ -46,7 +47,7 @@ def main():
     fails = 0
     tot_in = tot_out = 0
     print(f'{"structure":28s} {"pts in":>7s} {"out":>7s} {"maxang in":>9s} {"out":>6s} {"neg in":>6s} {"out":>4s} '
-          f'{"worst coupling in":>17s} {"out":>8s} {"sec":>5s}  checks')
+          f'{"worst coupling in":>17s} {"out":>8s} {"inv.err":>8s} {"rt":>6s} {"sec":>5s}  checks')
     for f in files:
         name = f'{f.parent.name}/{f.name}'
         out = out_dir / f'{f.parent.name}_{f.name}'
@@ -56,16 +57,20 @@ def main():
         lines = r.stdout.splitlines()
         qi = quality(next((l for l in lines if l.startswith('input')), ''))
         qo = quality(next((l for l in lines if l.startswith('output')), ''))
-        checks = {k: ('ok' if f'{k} ok' in r.stdout else 'FAIL') for k in ('invariants', 'brep', 'geometry', 'gas-nodes')}
+        checks = {k: ('ok' if f'{k} ok' in r.stdout else 'FAIL') for k in ('invariants', 'brep', 'geometry', 'gas-nodes', 'transfer')}
         mmg_fail = re.search(r'mmg failures (\d+)', r.stdout)
         ok = r.returncode == 0 and qo and all(v == 'ok' for v in checks.values())
         ok = ok and mmg_fail and int(mmg_fail.group(1)) == 0
         ok = ok and qo['worst'] >= a.min_coupling
         fails += not ok
+        m = re.search(r'inventory error interpolated (\S+) final (\S+)', r.stdout)
+        inv = float(m.group(1)) if m else float('nan')
+        m = re.search(r'transfer roundtrip L1 error (\S+)', r.stdout)
+        rt = float(m.group(1)) if m else float('nan')
         if qi and qo:
             tot_in += qi['points']; tot_out += qo['points']
             print(f'{name:28s} {qi["points"]:7.0f} {qo["points"]:7.0f} {qi["max"]:9.1f} {qo["max"]:6.1f} '
-                  f'{qi["neg"]:6.0f} {qo["neg"]:4.0f} {qi["worst"]:17.3g} {qo["worst"]:8.3g} {dt:5.1f}  '
+                  f'{qi["neg"]:6.0f} {qo["neg"]:4.0f} {qi["worst"]:17.3g} {qo["worst"]:8.3g} {inv:8.2g} {rt:6.3f} {dt:5.1f}  '
                   f'{"PASS" if ok else "FAIL"} ' + ' '.join(k for k, v in checks.items() if v != 'ok'))
         else:
             print(f'{name:28s} FAIL rc={r.returncode} {r.stderr.strip()[:200]}')

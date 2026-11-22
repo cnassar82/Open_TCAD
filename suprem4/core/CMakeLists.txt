@@ -23,7 +23,8 @@ add_library(suprem_core STATIC
   src/mesh.cpp
   src/brep.cpp
   src/locate.cpp
-  src/remesh.cpp)
+  src/remesh.cpp
+  src/transfer.cpp)
 target_include_directories(suprem_core PUBLIC include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cdt/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/clipper2/include)

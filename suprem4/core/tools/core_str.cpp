@@ -8,7 +8,9 @@
 
 #include "suprem_core/brep.hpp"
 #include "suprem_core/mesh.hpp"
+#include "suprem_core/remesh.hpp"
 #include "suprem_core/str_file.hpp"
+#include "suprem_core/transfer.hpp"
 
 int main(int argc, char **argv)
 {
@@ -27,6 +29,8 @@ int main(int argc, char **argv)
         std::printf("\n");
         auto bad = suprem_core::check_invariants(m);
         for (auto &b : bad) std::printf("INVARIANT %s\n", b.c_str());
+        for (auto &g : suprem_core::check_gas_nodes(m)) bad.push_back("gas: " + g);
+        for (auto &b2 : bad) if (b2.rfind("gas: ", 0) == 0) std::printf("INVARIANT %s\n", b2.c_str());
         std::printf("invariants %s\n", bad.empty() ? "ok" : "FAILED");
         std::vector<std::string> problems;
         suprem_core::Brep b = suprem_core::extract_brep(m, problems);
@@ -44,6 +48,15 @@ int main(int argc, char **argv)
         for (auto &x : bb) std::printf("BREP %s\n", x.c_str());
         std::printf("brep %s\n", bb.empty() ? "ok" : "FAILED");
         if (!bb.empty()) bad.push_back("brep");
+        auto vol = suprem_core::node_volumes(m);
+        for (size_t s = 0; s < m.species.size(); ++s) {
+            if (!suprem_core::conserved_species(m.species[s])) continue;
+            auto inv = suprem_core::inventory(m, vol, (int)s);
+            std::printf("inventory imp %d:", m.species[s]);
+            for (size_t mat = 0; mat < inv.size(); ++mat)
+                if (inv[mat] != 0) std::printf(" mat%zu=%.9e", mat, inv[mat]);
+            std::printf("\n");
+        }
         if (out) suprem_core::write_str(suprem_core::to_str(m), out);
         return bad.empty() ? 0 : 1;
     } catch (const std::exception &e) {

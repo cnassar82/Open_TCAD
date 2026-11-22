@@ -33,6 +33,7 @@ struct RemeshOptions {
     double scale = 1.0;               // multiplies the old mesh size
     double hmin = 2e-4, hmax = 0.5;   // um
     double hgrad = 1.3;
+    double solution_decades = 0.25;   // max dopant variation (log10) per old element before refining (0: off)
     double coarsen_tol = 1e-5;        // um; chain vertices may be dropped within this (0: keep all)
     double film_threshold = 0.04;     // um
     int film_layers = 2;              // layers across a film ...
@@ -73,7 +74,8 @@ Mesh remesh(const Mesh &m, const RemeshOptions &o, RemeshReport &rep);
 std::vector<std::string> compare_geometry(const Mesh &before, const Mesh &after, double tol = 0,
                                           size_t max_reports = 20);
 
-// Gas nodes: a GAS node at exactly the points on EXPOSED faces.
+// Gas nodes: a GAS node at exactly the points on EXPOSED or BACKSIDE faces
+// (SUPREM mtest1: is_surf(p) || is_back(p)).
 std::vector<std::string> check_gas_nodes(const Mesh &m, size_t max_reports = 20);
 
 }  // namespace suprem_core

@@ -2,9 +2,11 @@
 //   core_remesh IN.str OUT.str [--size area|min] [--scale S] [--hmin H] [--hmax H]
 //               [--hgrad G] [--film-threshold T] [--film-layers N] [--no-mmg]
 //               [--no-flips] [--passes N] [--encroach-rounds N] [-v]
-// Prints quality of the input and output meshes and the WP3 checks
-// (invariants, B-rep, geometry preservation, gas nodes).  Node values are
-// zero in the output (field transfer is WP4).
+// Prints quality of the input and output meshes, the WP3 checks
+// (invariants, B-rep, geometry preservation, gas nodes) and the WP4 field
+// transfer report (inventories per material and conserved species, round-
+// trip interpolation error, identity transfer).  --no-transfer leaves the
+// node values zero; --no-restore skips the inventory restoration.
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -19,6 +21,7 @@
 #include "suprem_core/mesh.hpp"
 #include "suprem_core/remesh.hpp"
 #include "suprem_core/str_file.hpp"
+#include "suprem_core/transfer.hpp"
 
 using namespace suprem_core;
 
@@ -27,7 +30,8 @@ int main(int argc, char **argv)
     if (argc < 3) { std::fprintf(stderr, "usage: core_remesh IN.str OUT.str [options]\n"); return 2; }
     RemeshOptions o;
     int worst = 0;
-    bool worst_by_max = false;
+    bool worst_by_max = false, do_transfer = true, restore = true;
+    Restore rmode = Restore::WEIGHTED;
     for (int i = 3; i < argc; ++i) {
         std::string a = argv[i];
         auto next = [&]() -> const char * {
@@ -39,6 +43,7 @@ int main(int argc, char **argv)
         else if (a == "--hmin") o.hmin = std::atof(next());
         else if (a == "--hmax") o.hmax = std::atof(next());
         else if (a == "--coarsen-tol") o.coarsen_tol = std::atof(next());
+        else if (a == "--solution-decades") o.solution_decades = std::atof(next());
         else if (a == "--hgrad") o.hgrad = std::atof(next());
         else if (a == "--film-threshold") o.film_threshold = std::atof(next());
         else if (a == "--film-layers") o.film_layers = std::atoi(next());
@@ -47,6 +52,9 @@ int main(int argc, char **argv)
         else if (a == "--no-mmg") o.mmg = false;
         else if (a == "--no-flips") o.flips = false;
         else if (a == "-v") o.verbose++;
+        else if (a == "--no-transfer") do_transfer = false;
+        else if (a == "--no-restore") restore = false;
+        else if (a == "--restore-scale") rmode = Restore::SCALE;
         else if (a == "--worst") worst = std::atoi(next());
         else if (a == "--worst-max") { worst = std::atoi(next()); worst_by_max = true; }
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
@@ -91,6 +99,44 @@ int main(int argc, char **argv)
             }
         }
         int failed = 0;
+        std::vector<std::string> transfer_bad;
+        if (do_transfer) {
+            // identity: transferring onto the unchanged mesh must reproduce it exactly
+            Mesh same = in;
+            for (Node &n : same.node) std::fill(n.value.begin(), n.value.end(), -1.0);
+            TransferReport ri;
+            transfer_fields(in, same, ri, restore, true, rmode);
+            for (size_t n = 0; n < in.node.size(); ++n)
+                if (same.node[n].value != in.node[n].value) {
+                    std::string d;
+                    for (size_t k = 0; k < in.species.size(); ++k)
+                        if (same.node[n].value[k] != in.node[n].value[k])
+                            d += " imp " + std::to_string(in.species[k]) + ": " + std::to_string(in.node[n].value[k]) +
+                                 " -> " + std::to_string(same.node[n].value[k]);
+                    transfer_bad.push_back("identity transfer changed node " + std::to_string(n) + " (mat " +
+                                           std::to_string(in.node[n].material) + ")" + d);
+                    break;
+                }
+            auto t1 = std::chrono::steady_clock::now();
+            TransferReport tr;
+            transfer_fields(in, out, tr, restore, true, rmode);
+            double tsec = std::chrono::duration<double>(std::chrono::steady_clock::now() - t1).count();
+            std::printf("transfer %.2f s | nodes exact %d interpolated %d gas %d clipped %d | inventory error "
+                        "interpolated %.3g final %.3g (box-volume inventory change %.3g)\n", tsec, tr.exact, tr.interpolated,
+                        tr.gas, tr.outside, tr.max_rel_interpolated, tr.max_rel_final, tr.max_rel_box);
+            for (auto &r : tr.rows)
+                if (o.verbose || std::fabs(r.interpolated_inv - r.old_inv) > 1e-3 * std::fabs(r.old_inv))
+                    std::printf("  inventory mat %d imp %d: %.6e -> %.6e (interp %+.2e) -> %.6e\n", r.material,
+                                r.impurity, r.old_inv, r.interpolated_inv, (r.interpolated_inv - r.old_inv) / r.old_inv,
+                                r.new_inv);
+            double rt = 0;
+            for (size_t s = 0; s < in.species.size(); ++s)
+                if (conserved_species(in.species[s])) rt = std::max(rt, roundtrip_error(in, out, (int)s));
+            std::printf("transfer roundtrip L1 error %.3g\n", rt);
+            for (auto &n : tr.notes) std::printf("NOTE %s\n", n.c_str());
+            if (restore && tr.max_rel_final > 1e-6)
+                transfer_bad.push_back("inventory error after restoration " + std::to_string(tr.max_rel_final));
+        }
         auto section = [&](const char *name, const std::vector<std::string> &v) {
             for (auto &x : v) std::printf("%s %s\n", name, x.c_str());
             std::printf("%s %s\n", name, v.empty() ? "ok" : "FAILED");
@@ -104,6 +150,7 @@ int main(int argc, char **argv)
         section("brep", bb);
         section("geometry", compare_geometry(in, out, o.coarsen_tol));
         section("gas-nodes", check_gas_nodes(out));
+        if (do_transfer) section("transfer", transfer_bad);
         write_str(to_str(out), argv[2]);
         return failed ? 1 : 0;
     } catch (const std::exception &e) {

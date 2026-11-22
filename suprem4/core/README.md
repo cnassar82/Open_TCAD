@@ -20,6 +20,7 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
 | 1 | `str_file` exact reader/writer, `mesh` semantic model + invariants | `tests/roundtrip.py`: every SubCmos2014 checkpoint byte-identical |
 | 2 | `brep` loops/chains, closure/simplicity/area/twin checks | 36/36 + negative tests (broken repair/merge meshes flagged) |
 | 3 | `remesh` mesh generation from the B-rep | `tests/remesh_suite.py`: 72/72 SubCmos2014 (two runs) + 36/36 AdvCmos2014 checkpoints |
+| 4 | `transfer` field transfer + inventory restoration; solution-adaptive size field | suite (transfer checks) + SUPREM reload/anneal and mesh-convergence test |
 
 ## WP3 remesh pipeline (`src/remesh.cpp`)
 
@@ -53,8 +54,57 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
    region-boundary edges whose opposite angle exceeds 91 deg (midpoint inserted
    in the mesh and the chain, flips restore Delaunay), until none is left.
 8. Assembly: neighbours, boundary codes from the chains, one node per
-   (point, material) and a GAS node on every exposed point.  Node values are
-   zero: field transfer is WP4.
+   (point, material) and a GAS node on every exposed and backside point
+   (SUPREM's `mtest1` rule `is_surf(p) || is_back(p)`; missing backside gas
+   nodes made SUPREM panic on load).
+9. Size field, solution part (WP4): where a conserved dopant varies by more
+   than `solution_decades` (0.25) across an old element, the target size
+   shrinks in proportion, but not below the old mesh's finest local size.
+
+## WP4 field transfer (`src/transfer.cpp`)
+
+- Per material P1 interpolation from the old triangles of that material
+  (interface values stay per material, segregation jumps are kept); points
+  with identical coordinates copy the old node exactly; gas nodes copy the
+  nearest old gas node (ambient values).  Velocities, defects, oxidant,
+  stresses and potential are interpolated.
+- Conserved species (As, P, Sb, B, Au, Cs, ... totals) are restored per
+  material to the old **P1 integral** by the minimum change weighted by
+  each node's interpolation uncertainty (spread of the old values it came
+  from; exact copies unchanged, values kept non-negative); the active
+  concentration follows its total.  A uniform scale (`--restore-scale`) is
+  the alternative; the weighted one gives lower round-trip errors.
+- Why P1 and not SUPREM's mixed-Voronoi box volumes: on SUPREM's sliver /
+  obtuse triangles the box sum is a poor quadrature (pad oxide in `wells.str`:
+  box inventory 25 % below the field integral, which the remesh preserves
+  to 1e-4); restoring the box value would remove real dopant.  The box-volume
+  change is reported.
+- Identity transfer (same mesh) is bit-exact (checked by `core_remesh`).
+
+Results (SubCmos2014 reference run, 36 structures): all pass; inventory error
+after interpolation median 1.3 %, max 14.5 % (P at an exposed oxide surface,
+2.7 decades across one old element); after restoration <= 2.2e-14; transfer
+<= 0.6 s.  AdvCmos2014 (36 structures): all pass; 1.55M -> 2.15M points;
+inventory error after interpolation median 1.8 %, max 20 %; after
+restoration <= 1.7e-14; transfer <= 1.8 s.
+
+SUPREM test (`pmos/gate.str`, then 950 C 20 min N2): SUPREM loads the
+remeshed structure and anneals it (invariants ok).  Mesh convergence after
+the anneal (original 30k points; remesh at scale 1 / 0.7 / 0.5):
+
+| | original | remesh 36k | 60k | 103k |
+|---|---|---|---|---|
+| B in Si | 1.856e17 | 1.9259e17 | 1.9255e17 | 1.9248e17 |
+| B in oxide | 9.88e16 | 9.31e16 | 9.35e16 | 9.36e16 |
+| P in oxide | 6.7e16 | 2.26e17 | 2.91e17 | 3.11e17 |
+| P in Si | 8.8546e17 | 8.8547e17 | 8.8547e17 | 8.8547e17 |
+
+The remeshed results converge (B in Si within 0.06 %) and the original
+SUPREM mesh is the outlier (-3.6 %).  P loss through the exposed oxide
+surface is still mesh dependent at 103k points: exposed surfaces with
+steep profiles need dedicated refinement (WP7 item).  Runtime: 102 s
+on the 36k-point remesh vs 39 s on the original 30k mesh (to be looked at
+in WP6/WP7).
 
 ## Checks (`core_remesh` prints all of them)
 
@@ -69,7 +119,8 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
 
 ## Results (SubCmos2014 0.5 um, all 16 checkpoints x NMOS/PMOS, two runs)
 
-- 72/72 pass; total points 977k -> 1.03M (+5 %); 0.2-18 s per structure.
+- 72/72 pass; total points 977k -> 1.03M (+5 %) with the geometric size
+  field alone, 1.34M (+38 %) with the WP4 solution adaptation; 0.2-80 s per structure.
 - Worst coupling: input down to -2.5e5 (degenerate SUPREM triangles), output
   >= -0.0087 everywhere.  Max angle 180 -> <= 165 deg (interior obtuse
   triangles are Delaunay, hence harmless for the box method).

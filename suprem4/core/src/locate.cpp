@@ -1,4 +1,5 @@
 #include "suprem_core/locate.hpp"
+#include "suprem_core/transfer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -6,7 +7,7 @@
 
 namespace suprem_core {
 
-TriangleLocator::TriangleLocator(const Mesh &m) : m_(m)
+TriangleLocator::TriangleLocator(const Mesh &m, int material) : m_(m)
 {
     if (m.triangle.empty()) return;
     double x1 = -1e300, y1 = -1e300;
@@ -22,6 +23,7 @@ TriangleLocator::TriangleLocator(const Mesh &m) : m_(m)
     cell_ = std::max(w / nx_, h / ny_) * (1 + 1e-12);
     bucket_.assign((size_t)nx_ * ny_, {});
     for (int t = 0; t < (int)m.triangle.size(); ++t) {
+        if (material >= 0 && m.material_of(t) != material) continue;
         double a = 1e300, b = 1e300, c = -1e300, d = -1e300;
         for (int v : m.triangle[t].v) {
             a = std::min(a, m.point[v].x); b = std::min(b, m.point[v].y);
@@ -64,6 +66,7 @@ int TriangleLocator::locate(const Point &p, double bary[3]) const
             }
         if (best >= 0 && (best_s >= -1e-12 || ring >= 1)) break;
     }
+    if (best < 0) return -1;
     if (best_s < 0) {   // outside: clip to the nearest triangle
         double s = 0;
         for (int k = 0; k < 3; ++k) { bary[k] = std::max(0.0, bary[k]); s += bary[k]; }
@@ -73,28 +76,63 @@ int TriangleLocator::locate(const Point &p, double bary[3]) const
 }
 
 SizeField::SizeField(const Mesh &m, Mode mode, double scale, double hmin, double hmax)
-    : m_(m), loc_(m), size_(m.point.size(), 0), mode_(mode), scale_(scale), hmin_(hmin), hmax_(hmax)
+    : m_(m), loc_(m), size_(m.point.size(), 0), finest_(m.point.size(), 0), mode_(mode), scale_(scale), hmin_(hmin),
+      hmax_(hmax)
 {
     // Per triangle: area-equivalent size (side of the equilateral triangle of
-    // equal area) or the smallest altitude; per vertex: area-weighted mean,
-    // so degenerate (near-zero-area) triangles have no influence.
+    // equal area) and smallest altitude; per vertex: area-weighted means, so
+    // degenerate (near-zero-area) triangles have no influence.
     std::vector<double> w(m.point.size(), 0);
     for (int t = 0; t < (int)m.triangle.size(); ++t) {
         const Triangle &tr = m.triangle[t];
-        double area = 0.5 * std::fabs(orient2(m, t)), h;
-        if (mode == AREA) {
-            h = std::sqrt(4 * area / std::sqrt(3.0));
-        } else {
-            double lmax = 0;
-            for (int k = 0; k < 3; ++k) {
-                const Point &p = m.point[tr.v[k]], &q = m.point[tr.v[(k + 1) % 3]];
-                lmax = std::max(lmax, std::hypot(q.x - p.x, q.y - p.y));
-            }
-            h = lmax > 0 ? 2 * area / lmax : 0;
+        double area = 0.5 * std::fabs(orient2(m, t)), lmax = 0;
+        for (int k = 0; k < 3; ++k) {
+            const Point &p = m.point[tr.v[k]], &q = m.point[tr.v[(k + 1) % 3]];
+            lmax = std::max(lmax, std::hypot(q.x - p.x, q.y - p.y));
         }
-        for (int v : tr.v) { size_[v] += area * h; w[v] += area; }
+        double h_area = std::sqrt(4 * area / std::sqrt(3.0)), h_alt = lmax > 0 ? 2 * area / lmax : 0;
+        for (int v : tr.v) {
+            size_[v] += area * (mode == AREA ? h_area : h_alt);
+            finest_[v] += area * h_alt;
+            w[v] += area;
+        }
     }
-    for (size_t p = 0; p < size_.size(); ++p) size_[p] = w[p] > 0 ? size_[p] / w[p] : hmax_;
+    for (size_t p = 0; p < size_.size(); ++p) {
+        size_[p] = w[p] > 0 ? size_[p] / w[p] : hmax_;
+        finest_[p] = w[p] > 0 ? finest_[p] / w[p] : hmax_;
+    }
+}
+
+void SizeField::adapt_to_solution(double decades)
+{
+    if (decades <= 0) return;
+    const Mesh &m = m_;
+    std::vector<double> peak(m.species.size(), 0);
+    for (const Node &n : m.node)
+        for (size_t s = 0; s < m.species.size(); ++s) peak[s] = std::max(peak[s], n.value[s]);
+    std::vector<double> sol(m.point.size(), 1e300);
+    for (int t = 0; t < (int)m.triangle.size(); ++t) {
+        const Triangle &tr = m.triangle[t];
+        int mat = m.material_of(t);
+        double var = 0;
+        for (size_t s = 0; s < m.species.size(); ++s) {
+            if (!conserved_species(m.species[s]) || peak[s] <= 0) continue;
+            double floor = 1e-5 * peak[s], lo = 1e300, hi = -1e300;
+            for (int v : tr.v) {
+                int n = m.node_at(v, mat);
+                if (n < 0) continue;
+                double l = std::log10(std::max(m.node[n].value[s], floor));
+                lo = std::min(lo, l); hi = std::max(hi, l);
+            }
+            var = std::max(var, hi - lo);
+        }
+        if (var <= decades) continue;
+        double area = 0.5 * std::fabs(orient2(m, t));
+        double h = std::sqrt(4 * area / std::sqrt(3.0)) * decades / var;
+        for (int v : tr.v) sol[v] = std::min(sol[v], h);
+    }
+    for (size_t p = 0; p < size_.size(); ++p)
+        if (sol[p] < size_[p]) size_[p] = std::max(finest_[p], sol[p]);
 }
 
 double SizeField::operator()(const Point &p) const
