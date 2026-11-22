@@ -118,6 +118,33 @@ std::vector<Shape> mesh_shapes(const Mesh &m)
     return s;
 }
 
+std::vector<Shape> mesh_shapes_union(const Mesh &m)
+{
+    std::map<int, Paths64> mat;
+    for (size_t t = 0; t < m.triangle.size(); ++t) {
+        const Triangle &tr = m.triangle[t];
+        Path64 p{to64(m.point[tr.v[0]]), to64(m.point[tr.v[1]]), to64(m.point[tr.v[2]])};
+        if (Area(p) < 0) std::reverse(p.begin(), p.end());
+        if (Area(p) == 0) continue;
+        mat[m.material_of((int)t)].push_back(p);
+    }
+    std::vector<Shape> out;
+    for (auto &kv : mat) {
+        Paths64 u = Union(kv.second, FillRule::NonZero);
+        for (const Paths64 &piece : pieces(u)) {
+            Shape s;
+            s.material = kv.first;
+            for (const Path64 &p : piece) {
+                std::vector<Point> l;
+                for (const Point64 &q : p) l.push_back(from64(q));
+                if (l.size() >= 3) s.loops.push_back(l);
+            }
+            if (!s.loops.empty()) out.push_back(s);
+        }
+    }
+    return out;
+}
+
 BoundaryCode boundary_codes_of(const Mesh &m)
 {
     struct Seg { Point a, b; int code; };
@@ -177,7 +204,9 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
     for (int iter = 0; iter < 5; ++iter) {
         size_t before = ev.size();
         // thin parts of material regions
+        auto protected_ = [&](int m) { return std::find(o.protect.begin(), o.protect.end(), m) != o.protect.end(); };
         for (auto &kv : mat) {
+            if (protected_(kv.first)) continue;
             Paths64 thin = Difference(kv.second, open_(kv.second, d / 2), FillRule::NonZero);
             if (!moved.empty()) thin = Difference(thin, moved, FillRule::NonZero);
             thin = significant(thin, d);
@@ -201,6 +230,7 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
         for (auto &kv : mat) {
             for (const Paths64 &piece : pieces(kv.second)) {
                 if (!open_(piece, d / 16).empty()) continue;
+                if (protected_(kv.first) && area(piece) >= o.delta * o.delta) continue;
                 Paths64 gas = Difference(Paths64{box}, solid(), FillRule::NonZero);
                 int best = GAS;
                 double bs = shared(piece, gas);
@@ -316,7 +346,11 @@ Mesh mesh_from_shapes(const std::vector<Shape> &shapes, const Mesh &reference, c
     if (notes && cdt.vertices.size() != V.size())
         notes->push_back(std::to_string(cdt.vertices.size() - V.size()) + " vertices added by the CDT at crossings");
     std::vector<Point> P;
-    for (const auto &v : cdt.vertices) P.push_back({v.x, v.y});
+    for (const auto &v : cdt.vertices) {
+        Point q{v.x, v.y};
+        if (o.float_cm_grid) { q.x = (double)(float)(1e-4 * q.x) * 1e4; q.y = (double)(float)(1e-4 * q.y) * 1e4; }
+        P.push_back(q);
+    }
     std::vector<std::array<int, 3>> T;
     for (const auto &t : cdt.triangles) {
         std::array<int, 3> v{(int)t.vertices[0], (int)t.vertices[1], (int)t.vertices[2]};

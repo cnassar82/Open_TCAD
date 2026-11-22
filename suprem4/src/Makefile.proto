@@ -217,11 +217,11 @@ MISCOBJS = misc/bsd.o misc/cpu.o misc/echo.o misc/get.o misc/man.o \
 OXIDESRCS = oxide/FEbc.c oxide/FEconvert.c oxide/Oxidant.c oxide/coeffox.c \
 	oxide/elast.c oxide/erfit.c oxide/mater.c oxide/oxgrow.c \
 	oxide/oxide_vel.c oxide/oxrate.c oxide/triox.c oxide/vert.c \
-	oxide/viscous.c oxide/oxide_repair.c
+	oxide/viscous.c oxide/oxide_repair.c oxide/geometry_core.c
 OXIDEOBJS = oxide/FEbc.o oxide/FEconvert.o oxide/Oxidant.o oxide/coeffox.o \
 	oxide/elast.o oxide/erfit.o oxide/mater.o oxide/oxgrow.o \
 	oxide/oxide_vel.o oxide/oxrate.o oxide/triox.o oxide/vert.o \
-	oxide/viscous.o oxide/oxide_repair.o
+	oxide/viscous.o oxide/oxide_repair.o oxide/geometry_core.o
 
 PLOTSRCS = plot/contour.c plot/do_1d.c plot/intersect.c plot/label.c \
 	plot/matedge.c plot/material.c plot/option.c plot/plot.c \

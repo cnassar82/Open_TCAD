@@ -23,6 +23,9 @@ def main():
                         help="AMD requires SuiteSparse AMD development headers and library")
     parser.add_argument("--fe-solver", choices=["legacy", "umfpack"], default="legacy",
                         help="scaled pivoted finite-element LU; requires SuiteSparse UMFPACK")
+    parser.add_argument("--geometry-core", type=Path, default=None,
+                        help="CMake build directory of suprem4/core: link the geometry core "
+                             "(active at run time with SUPREM4_GEOMETRY_CORE=1)")
     args = parser.parse_args()
     args.build_root.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="native64_", dir=args.build_root.resolve()))
@@ -67,6 +70,13 @@ def main():
         archive = work / 'src/libdomain_offset.a'
         offset_commands.append(['ar', 'rcs', str(archive), *map(lambda p:str(p.with_suffix('.o')), sources)])
         libraries += [str(archive), '-lstdc++']
+    if args.geometry_core:
+        core = args.geometry_core.resolve()
+        # the hook references the core weakly: force the archive member in
+        libraries = ['-Wl,-u,suprem_core_oxidation_check', str(core / 'libsuprem_core.a'),
+                     str(core / 'third_party/mmg/lib/libmmg2d.a'), *libraries]
+        if '-lstdc++' not in libraries:
+            libraries.append('-lstdc++')
     command.append('LIBS=' + ' '.join([*libraries, '-lm']))
     manifest = {"command": command, "source_root": str(root),
                 "offset_commands": offset_commands,

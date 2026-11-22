@@ -58,6 +58,8 @@ extern int suprem_cdt(int, int, const double *, int **);
 int oxide_repair_enabled(void)
 {
     const char *o = suprem_option("SUPREM4_OXIDE_REPAIR");
+    extern int geometry_core_enabled(void);
+    if (geometry_core_enabled()) return 0;   /* the geometry core replaces this repair */
 #ifdef SUPREM_DOMAIN_OFFSET
     return mode == TWOD && oxide_model == O_ELASTIC && (!getenv("SUPREM4_OXIDE_REPAIR") || o);
 #else

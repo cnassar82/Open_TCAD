@@ -3,7 +3,8 @@
 // Geometry is represented per material as polygons on an exact integer grid
 // (Clipper2, 1e-7 um).  Events are found by morphology with the event size
 // delta (default 1 nm):
-//   thin    part of a material region narrower than delta (opening)
+//   thin    part of a consumed-material region narrower than delta (opening;
+//           protected growing materials such as oxide are exempt)
 //           -> given to the neighbour sharing most of its boundary
 //              (removed if that neighbour is the ambient)
 //   crumb   connected component narrower than delta/8 everywhere (e.g. a
@@ -37,13 +38,19 @@ struct Shape {
 // Boundary code of a domain-boundary segment (EXPOSED, BACKSIDE, BC_OFFSET).
 using BoundaryCode = std::function<int(const Point &, const Point &)>;
 
-std::vector<Shape> mesh_shapes(const Mesh &m);   // one shape per region
+std::vector<Shape> mesh_shapes(const Mesh &m);   // one shape per region (needs a valid B-rep)
+// Per material, the union of its triangles: robust to overlapping or
+// crossing boundaries (a collision produced by the motion).
+std::vector<Shape> mesh_shapes_union(const Mesh &m);
 // Codes taken from the coded (non-exposed) boundary of m; EXPOSED elsewhere.
 BoundaryCode boundary_codes_of(const Mesh &m);
 
 struct RepairOptions {
     double delta = 1e-3;   // um
     std::vector<int> fill_priority = {SIO2, OXNI, SINI, POLY, SI, AL, PHRS, GAAS};
+    // Growing materials: a film thinner than delta is real (native / early
+    // oxide), never thinned away; only their crumbs smaller than delta^2 go.
+    std::vector<int> protect = {SIO2};
 };
 
 struct RepairEvent {

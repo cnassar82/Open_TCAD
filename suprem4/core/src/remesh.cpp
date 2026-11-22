@@ -21,6 +21,19 @@ namespace {
 
 constexpr double PI = 3.14159265358979323846;
 
+// Coordinate grid of the consumer.  SUPREM stores float cm: every point the
+// remesher creates is put on that grid before it is triangulated, so the
+// exact predicates see the coordinates SUPREM will hold.
+thread_local bool g_float_cm = false;
+Point snap(Point p)
+{
+    if (g_float_cm) {
+        p.x = (double)(float)(1e-4 * p.x) * 1e4;
+        p.y = (double)(float)(1e-4 * p.y) * 1e4;
+    }
+    return p;
+}
+
 uint64_t dkey(int a, int b) { return ((uint64_t)(uint32_t)a << 32) | (uint32_t)b; }
 uint64_t ukey(int a, int b) { return a < b ? dkey(a, b) : dkey(b, a); }
 
@@ -298,7 +311,7 @@ void refine_chains(Geo &g, const SizeField &h)
             int n = std::max(1, (int)std::lround(dist(a, b) / hh));
             for (int k = 1; k < n; ++k) {
                 double t = (double)k / n;
-                g.P.push_back({a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)});
+                g.P.push_back(snap({a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)}));
                 out.push_back((int)g.P.size() - 1);
             }
             out.push_back(c.pt[i + 1]);
@@ -382,7 +395,7 @@ void film_pass(Geo &g, const RemeshOptions &o, std::vector<Pair> &pairs)
                 Point a = g.P[K.pt[i]], b = g.P[K.pt[i + 1]];
                 for (const Ins &q : ps) {
                     if (q.p - last < q.sep || 1 - q.p < q.sep) continue;   // would make a sliver segment: unpaired
-                    g.P.push_back({a.x + q.p * (b.x - a.x), a.y + q.p * (b.y - a.y)});
+                    g.P.push_back(snap({a.x + q.p * (b.x - a.x), a.y + q.p * (b.y - a.y)}));
                     out.push_back((int)g.P.size() - 1);
                     pairs.push_back({q.source, (int)g.P.size() - 1, q.region});
                     last = q.p;
@@ -433,7 +446,7 @@ std::vector<Pair> film_pairs(Geo &g, const RemeshOptions &o, std::vector<int> &l
         for (int k = 1; k < n; ++k) {
             double t = (double)k / n;
             const Point &a = g.P[p.v], &b = g.P[p.w];
-            g.P.push_back({a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)});
+            g.P.push_back(snap({a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)}));
             layer_points.push_back((int)g.P.size() - 1);
         }
     }
@@ -479,8 +492,20 @@ Work triangulate(const Geo &g, const std::vector<int> &layer, const std::vector<
 {
     std::vector<int> local(g.P.size(), -1);
     Work w;
+    // points with identical coordinates (possible after snapping to the
+    // consumer's coordinate grid) are one vertex
+    std::map<std::pair<double, double>, int> at;
     auto use = [&](int p) {
-        if (local[p] < 0) { local[p] = (int)w.P.size(); w.P.push_back(g.P[p]); w.pid.push_back(p); }
+        if (local[p] < 0) {
+            auto it = at.find({g.P[p].x, g.P[p].y});
+            if (it != at.end()) local[p] = it->second;
+            else {
+                local[p] = (int)w.P.size();
+                at[{g.P[p].x, g.P[p].y}] = local[p];
+                w.P.push_back(g.P[p]);
+                w.pid.push_back(p);
+            }
+        }
         return local[p];
     };
     std::vector<CDT::Edge> edges;
@@ -488,7 +513,7 @@ Work triangulate(const Geo &g, const std::vector<int> &layer, const std::vector<
     for (const Canon &c : g.C)
         for (size_t i = 0; i + 1 < c.pt.size(); ++i) {
             int a = use(c.pt[i]), b = use(c.pt[i + 1]);
-            if (fixed.insert(ukey(a, b)).second) edges.push_back(CDT::Edge(a, b));
+            if (a != b && fixed.insert(ukey(a, b)).second) edges.push_back(CDT::Edge(a, b));
         }
     for (int p : layer) use(p);
     CDT::Triangulation<double> cdt(CDT::VertexInsertionOrder::Auto, CDT::IntersectingConstraintEdges::NotAllowed, 0.0);
@@ -624,7 +649,7 @@ bool run_mmg(Work &w, const SizeField &h, const RemeshOptions &o, RemeshReport &
         MMG2D_Get_vertex(mesh, &x, &y, &ref, &corner, &required);
         int k = ph.find({x, y}, tol);
         if (k >= 0) { out.P.push_back(w.P[k]); out.pid.push_back(w.pid[k]); }
-        else { out.P.push_back({x, y}); out.pid.push_back(-1); }
+        else { out.P.push_back(snap({x, y})); out.pid.push_back(-1); }
     }
     for (MMG5_int t = 0; t < ont; ++t) {
         MMG5_int a, b, c, ref; int required;
@@ -734,7 +759,7 @@ int split_encroached(Work &w, Geo &g, double limit_deg, double min_len)
             if (dist(w.P[a], w.P[b]) < 2 * min_len) continue;
             auto other = dir.find(dkey(b, a));
             if (other != dir.end() && touched[other->second.first]) continue;
-            Point mid{0.5 * (w.P[a].x + w.P[b].x), 0.5 * (w.P[a].y + w.P[b].y)};
+            Point mid = snap({0.5 * (w.P[a].x + w.P[b].x), 0.5 * (w.P[a].y + w.P[b].y)});
             g.P.push_back(mid);
             int m = (int)w.P.size();
             w.P.push_back(mid);
@@ -862,6 +887,11 @@ std::string format_quality(const Quality &q)
 
 Mesh remesh(const Mesh &m, const RemeshOptions &o, RemeshReport &rep, const SizeField *size)
 {
+    struct Grid {
+        bool old;
+        explicit Grid(bool f) : old(g_float_cm) { g_float_cm = f; }
+        ~Grid() { g_float_cm = old; }
+    } grid_guard(o.float_cm_grid);
     std::vector<std::string> problems;
     Brep b = extract_brep(m, problems);
     auto bad = check_brep(m, b);

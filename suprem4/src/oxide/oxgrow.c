@@ -15,6 +15,7 @@
  *************************************************************************/
 /*   oxgrow.c                Version 5.1     */
 /*   Last Modification : 7/3/91 10:52:33 */
+#include <stdlib.h>
 #include <stdio.h>
 #include <sys/times.h>
 
@@ -41,6 +42,11 @@ oxgrow (temp, ornt, oxhow, dt )
 
     times(&before);
     mesh_embedding_trace("oxide entry");
+
+    /* Geometry core (M0 WP6): events, repair, regeneration and field
+     * transfer for the whole structure; no-op unless SUPREM4_GEOMETRY_CORE
+     * is set in a build linked with the core (oxide/geometry_core.c). */
+    { extern int geometry_core_step(void); if (geometry_core_step()) UpdateSymbolic++; }
 
     /* Compress model: repair the oxide/poly geometry and remesh when the
      * Lagrangian motion has produced a collision, a collapse or a degenerate
@@ -84,6 +90,15 @@ oxgrow (temp, ornt, oxhow, dt )
 	      fprintf(stderr, "[repair-speed] vmax %.3e cm/s, gas nodes %d, oxidant %.3e..%.3e\n", v, ng, cmin, cmax);
 	  }
 	  if (v > 0 && *dt > (lim = 0.5*oxide_repair_delta()/v)) *dt = lim;
+      } }
+
+    /* With the geometry core active no point moves more than delta/4 per
+     * step, so a gap closing from both sides is seen before the fronts cross. */
+    { extern int geometry_core_enabled(void); extern double oxide_repair_max_speed(void);
+      if (geometry_core_enabled()) {
+	  const char *e = getenv("SUPREM4_CORE_DELTA");
+	  double delta = 1e-4 * ((e && *e) ? atof(e) : 1e-3), v = oxide_repair_max_speed(), lim;
+	  if (v > 0 && *dt > (lim = 0.25 * delta / v)) *dt = lim;
       } }
 
     /*cut the time step back */

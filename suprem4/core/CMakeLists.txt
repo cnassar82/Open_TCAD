@@ -27,6 +27,7 @@ add_library(suprem_core STATIC
   src/remesh.cpp
   src/transfer.cpp
   src/evolve.cpp
+  src/capi.cpp
   ${CLIPPER2_DIR}/src/clipper.engine.cpp
   ${CLIPPER2_DIR}/src/clipper.offset.cpp
   ${CLIPPER2_DIR}/src/clipper.rectclip.cpp)

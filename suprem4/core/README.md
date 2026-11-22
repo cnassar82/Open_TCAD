@@ -175,9 +175,11 @@ inside one region) compared independent of start point; chains split at
 pinch vertices (boundary-graph degree > 2) so both sides split identically;
 chain coarsening also rejected when it duplicates a segment or collapses /
 flips a loop (regions thinner than the tolerance); Ruppert splitting stops at
-edges of 2 x 1e-9 um, ~1e6 ulp (it does not terminate near small input
-angles; floors of 2 x hmin and 1e-6 um were tried first and left encroached
-edges in the 0.2 A slivers of the spacer structures).
+edges of 2 x 1e-5 um (it does not terminate near small input angles). The
+floor is also set by SUPREM, which stores coordinates as float cm (~1e-7 um
+resolution): a 1e-9 um floor produced triangles that were flat after
+rounding.  Sub-0.1 A slivers (spacer structures) keep some negative
+couplings; on the oxidation path they are removed as thin/crumb events.
 
 ## Tools
 

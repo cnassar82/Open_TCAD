@@ -41,9 +41,10 @@ struct RemeshOptions {
     double film_max_angle = 100;      // deg: film triangles above this are left to Mmg
     double encroach_angle = 91;       // deg
     int encroach_rounds = 50;
-    double min_split_length = 1e-9;   // um: Ruppert termination guard (small input angles), ~1e6 ulp at 10 um
+    double min_split_length = 1e-5;   // um: Ruppert termination guard; also ~100 float ulps (SUPREM stores float cm)
     int mmg_passes = 2;
     bool mmg = true;
+    bool float_cm_grid = false;       // create points on SUPREM's coordinate grid (float cm)
     bool flips = true;
     int verbose = 0;
 };
