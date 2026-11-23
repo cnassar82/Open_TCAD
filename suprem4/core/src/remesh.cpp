@@ -1,6 +1,9 @@
 #include "suprem_core/remesh.hpp"
 
 #include <algorithm>
+#include <array>
+#include <chrono>
+#include <functional>
 #include <cmath>
 #include <cstdint>
 #include <map>
@@ -75,8 +78,9 @@ struct SegGrid {
         }
         if (s.empty()) { x0 = y0 = 0; x1 = y1 = 1; }
         cell = std::max(2 * total / std::max<size_t>(1, s.size()), 1e-9);
-        nx = std::max(1, std::min(2048, (int)std::ceil((x1 - x0) / cell)));
-        ny = std::max(1, std::min(2048, (int)std::ceil((y1 - y0) / cell)));
+        // clamp in double: a tiny cell (zero-length segments) would overflow the int cast
+        nx = (int)std::clamp(std::ceil((x1 - x0) / cell), 1.0, 2048.0);
+        ny = (int)std::clamp(std::ceil((y1 - y0) / cell), 1.0, 2048.0);
         cell = std::max({(x1 - x0) / nx, (y1 - y0) / ny, 1e-9}) * (1 + 1e-12);
         cells.assign((size_t)nx * ny, {});
         stamp.assign(s.size(), -1);
@@ -220,6 +224,57 @@ std::set<int> crossing_chains(const Geo &g)
     return bad;
 }
 
+// After vertices were removed from chains: chains that now intersect, duplicate
+// another chain's segment or collapse/flip their loop get their original vertex
+// lists back (repeated until none is left).  Returns the number of vertices
+// restored.
+int restore_invalid_chains(Geo &g, std::vector<std::vector<int>> original, RemeshReport &rep, const char *what)
+{
+    int restored_vertices = 0;
+    auto loop_area = [&](const LoopRef &l) {
+        double a = 0;
+        for (const Seg &sg : g.loop_segments(l)) a += 0.5 * (g.P[sg.a].x * g.P[sg.b].y - g.P[sg.b].x * g.P[sg.a].y);
+        return a;
+    };
+    std::vector<double> area0;
+    for (int c = 0; c < (int)g.C.size(); ++c) std::swap(g.C[c].pt, original[c]);
+    for (const LoopRef &l : g.L) area0.push_back(loop_area(l));
+    for (int c = 0; c < (int)g.C.size(); ++c) std::swap(g.C[c].pt, original[c]);
+    for (int round = 0; round < 10; ++round) {
+        std::set<int> bad = crossing_chains(g);
+        // duplicate segments (two chains collapsed onto each other) ...
+        std::map<std::pair<int, int>, int> seen;
+        for (int c = 0; c < (int)g.C.size(); ++c)
+            for (size_t i = 0; i + 1 < g.C[c].pt.size(); ++i) {
+                std::pair<int, int> k{std::min(g.C[c].pt[i], g.C[c].pt[i + 1]), std::max(g.C[c].pt[i], g.C[c].pt[i + 1])};
+                auto it = seen.find(k);
+                if (it != seen.end()) { bad.insert(c); bad.insert(it->second); }
+                else seen[k] = c;
+            }
+        // ... and loops whose orientation flipped or area collapsed (a region
+        // narrower than the tolerance)
+        for (size_t li = 0; li < g.L.size(); ++li) {
+            double a = loop_area(g.L[li]);
+            if (a * area0[li] <= 0 || std::fabs(a) < 0.5 * std::fabs(area0[li]))
+                for (auto &[c, rev] : g.L[li].part) bad.insert(c);
+        }
+        int restored = 0;
+        for (int c : bad)
+            if (g.C[c].pt != original[c]) {
+                restored_vertices += (int)(original[c].size() - g.C[c].pt.size());
+                g.C[c].pt = original[c];
+                ++restored;
+            }
+        if (!restored) {
+            if (!bad.empty()) throw std::runtime_error("input chains intersect or loops are degenerate");
+            break;
+        }
+        rep.notes.push_back(std::string(what) + " of " + std::to_string(restored) +
+                            " chains undone (intersection, duplicate or collapsed loop)");
+    }
+    return restored_vertices;
+}
+
 // Remove chain vertices that are not needed: a vertex goes when the chord
 // that replaces it stays within tol of every removed vertex and is not
 // longer than the target size.  Chain end points and vertices shared with
@@ -256,47 +311,7 @@ int coarsen_chains(Geo &g, const SizeField &h, double tol, RemeshReport &rep)
         }
         c.pt = out;
     }
-    // loop areas before coarsening (orientation must be preserved)
-    auto loop_area = [&](const LoopRef &l) {
-        double a = 0;
-        for (const Seg &sg : g.loop_segments(l)) a += 0.5 * (g.P[sg.a].x * g.P[sg.b].y - g.P[sg.b].x * g.P[sg.a].y);
-        return a;
-    };
-    std::vector<double> area0;
-    for (int c = 0; c < (int)g.C.size(); ++c) std::swap(g.C[c].pt, original[c]);
-    for (const LoopRef &l : g.L) area0.push_back(loop_area(l));
-    for (int c = 0; c < (int)g.C.size(); ++c) std::swap(g.C[c].pt, original[c]);
-    for (int round = 0; round < 10; ++round) {
-        std::set<int> bad = crossing_chains(g);
-        // duplicate segments (two chains collapsed onto each other) ...
-        std::map<std::pair<int, int>, int> seen;
-        for (int c = 0; c < (int)g.C.size(); ++c)
-            for (size_t i = 0; i + 1 < g.C[c].pt.size(); ++i) {
-                std::pair<int, int> k{std::min(g.C[c].pt[i], g.C[c].pt[i + 1]), std::max(g.C[c].pt[i], g.C[c].pt[i + 1])};
-                auto it = seen.find(k);
-                if (it != seen.end()) { bad.insert(c); bad.insert(it->second); }
-                else seen[k] = c;
-            }
-        // ... and loops whose orientation flipped or area collapsed (a region
-        // narrower than the tolerance)
-        for (size_t li = 0; li < g.L.size(); ++li) {
-            double a = loop_area(g.L[li]);
-            if (a * area0[li] <= 0 || std::fabs(a) < 0.5 * std::fabs(area0[li]))
-                for (auto &[c, rev] : g.L[li].part) bad.insert(c);
-        }
-        int restored = 0;
-        for (int c : bad)
-            if (g.C[c].pt != original[c]) {
-                removed -= (int)(original[c].size() - g.C[c].pt.size());
-                g.C[c].pt = original[c];
-                ++restored;
-            }
-        if (!restored) {
-            if (!bad.empty()) throw std::runtime_error("input chains intersect or loops are degenerate");
-            break;
-        }
-        rep.notes.push_back("coarsening of " + std::to_string(restored) + " chains undone (intersection, duplicate or collapsed loop)");
-    }
+    removed -= restore_invalid_chains(g, original, rep, "coarsening");
     return removed;
 }
 
@@ -737,7 +752,9 @@ std::vector<std::pair<int, int>> encroached(const Work &w, double limit_deg)
 // number of splits.
 // Ruppert does not terminate near small input angles (the same edges are
 // halved down to rounding); no split creates edges shorter than min_len.
-int split_encroached(Work &w, Geo &g, double limit_deg, double min_len)
+// allow(pa, pb, apex, region): optional filter on the Geo points of the edge, its apex and the region of the encroached triangle
+using SplitFilter = std::function<bool(int, int, int, int)>;
+int split_encroached(Work &w, Geo &g, double limit_deg, double min_len, const SplitFilter &allow = nullptr)
 {
     std::unordered_set<uint64_t> con;
     for (auto &e : constrained_edges(w)) con.insert(ukey(e[0], e[1]));
@@ -757,6 +774,7 @@ int split_encroached(Work &w, Geo &g, double limit_deg, double min_len)
             int pa = w.pid[a], pb = w.pid[b];
             if (pa < 0 || pb < 0) continue;
             if (dist(w.P[a], w.P[b]) < 2 * min_len) continue;
+            if (allow && !allow(pa, pb, w.pid[c], w.R[t])) continue;
             auto other = dir.find(dkey(b, a));
             if (other != dir.end() && touched[other->second.first]) continue;
             Point mid = snap({0.5 * (w.P[a].x + w.P[b].x), 0.5 * (w.P[a].y + w.P[b].y)});
@@ -997,6 +1015,255 @@ std::vector<std::string> check_gas_nodes(const Mesh &m, size_t max_reports)
     for (int p : gas)
         if (!exposed.count(p) && bad.size() < max_reports) bad.push_back("gas node at a point neither exposed nor backside " + std::to_string(p + 1));
     return bad;
+}
+
+}  // namespace suprem_core
+
+namespace suprem_core {
+
+Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, UpdateReport &rep)
+{
+    // Size fields per material of the reference (each material keeps the
+    // spacing it had, also where it has moved: growing oxide is measured
+    // against the reference oxide, not the silicon it replaced); fallback:
+    // all materials.
+    struct Fields { std::unique_ptr<SizeField> fine, area, longest; };
+    std::map<int, Fields> fields;
+    {
+        std::set<int> mats{-1};
+        for (int t = 0; t < (int)reference.triangle.size(); ++t) mats.insert(reference.material_of(t));
+        for (int mat : mats) {
+            Fields &f = fields[mat];
+            f.fine = std::make_unique<SizeField>(reference, SizeField::FINEST, o.scale, o.hmin, o.hmax, mat);
+            f.area = std::make_unique<SizeField>(reference, SizeField::AREA, o.scale, o.hmin, o.hmax, mat);
+            f.longest = std::make_unique<SizeField>(reference, SizeField::LONGEST, o.scale, o.hmin, o.hmax, mat);
+            f.area->adapt_to_solution(o.solution_decades);
+        }
+    }
+    auto F = [&](int region) -> const Fields & {
+        auto it = region >= 0 ? fields.find(m.region_material[region]) : fields.end();
+        return it != fields.end() ? it->second : fields.at(-1);
+    };
+    auto fine = [&](const Point &x, int region) { return (*F(region).fine)(x); };
+    auto area_h = [&](const Point &x, int region) { return (*F(region).area)(x); };
+    auto longest = [&](const Point &x, int region) { return (*F(region).longest)(x); };
+    // on a chain: the finer of its two sides
+    auto cfine = [&](const Point &x, const Canon &c) { return std::min(fine(x, c.left), c.right >= 0 ? fine(x, c.right) : 1e300); };
+    auto clongest = [&](const Point &x, const Canon &c) {
+        return std::min(longest(x, c.left), c.right >= 0 ? longest(x, c.right) : 1e300);
+    };
+    auto clock0 = std::chrono::steady_clock::now();
+    auto lap = [&](const char *what) {
+        if (!o.timing) return;
+        auto now = std::chrono::steady_clock::now();
+        rep.notes.push_back(std::string("time ") + what + " " + std::to_string(std::chrono::duration<double>(now - clock0).count()) + " s");
+        clock0 = now;
+    };
+    struct Grid {
+        bool old;
+        explicit Grid(bool f) : old(g_float_cm) { g_float_cm = f; }
+        ~Grid() { g_float_cm = old; }
+    } grid_guard(o.float_cm_grid);
+    std::vector<std::string> problems;
+    Brep b = extract_brep(m, problems);
+    auto bad = check_brep(m, b);
+    bad.insert(bad.begin(), problems.begin(), problems.end());
+    if (!bad.empty()) throw std::runtime_error("input B-rep invalid: " + bad.front());
+    const int n0 = (int)m.point.size();
+    RemeshReport rr;
+    Geo g = build_geo(m, b);
+    std::vector<char> on_chain(n0, 0);
+    for (const Canon &c : g.C)
+        for (int p : c.pt) on_chain[p] = 1;
+
+    lap("setup");
+    // 1. chain vertices on short segments (geometry kept within tol)
+    if (o.tol > 0 && o.short_edge > 0) {
+        std::unordered_map<int, int> uses;
+        for (const Canon &c : g.C)
+            for (size_t i = 0; i + 1 < c.pt.size(); ++i) uses[c.pt[i]]++;
+        for (const Canon &c : g.C) { uses[c.pt.front()] += 2; uses[c.pt.back()] += 2; }
+        std::vector<std::vector<int>> original;
+        for (const Canon &c : g.C) original.push_back(c.pt);
+        int removed = 0;
+        for (Canon &c : g.C) {
+            const std::vector<int> v = c.pt;
+            std::vector<int> out{v[0]}, skipped;
+            for (size_t i = 1; i + 1 < v.size(); ++i) {
+                const int p = v[i], prev = out.back(), next = v[i + 1];
+                bool drop = uses[p] == 1;
+                if (drop) {
+                    drop = std::min(dist(g.P[prev], g.P[p]), dist(g.P[p], g.P[next])) < o.short_edge * cfine(g.P[p], c) &&
+                           dist(g.P[prev], g.P[next]) < clongest(g.P[p], c);
+                }
+                for (size_t k = 0; drop && k <= skipped.size(); ++k)
+                    drop = seg_dist(g.P[k < skipped.size() ? skipped[k] : p], g.P[prev], g.P[next]) <= o.tol;
+                if (drop) { skipped.push_back(p); ++removed; }
+                else { out.push_back(p); skipped.clear(); }
+            }
+            out.push_back(v.back());
+            c.pt = out;
+        }
+        removed -= restore_invalid_chains(g, original, rr, "short-edge removal");
+        rep.removed_boundary = removed;
+    }
+    lap("short-edge removal");
+    // 2. long chain segments
+    for (Canon &c : g.C) {
+        std::vector<int> out{c.pt[0]};
+        for (size_t i = 0; i + 1 < c.pt.size(); ++i) {
+            Point a = g.P[c.pt[i]], bb = g.P[c.pt[i + 1]];
+            Point mid{0.5 * (a.x + bb.x), 0.5 * (a.y + bb.y)};
+            double L = std::min({clongest(a, c), clongest(mid, c), clongest(bb, c)});
+            int n = dist(a, bb) > o.long_edge * L ? (int)std::ceil(dist(a, bb) / L) : 1;
+            for (int k = 1; k < n; ++k) {
+                double t = (double)k / n;
+                g.P.push_back(snap({a.x + t * (bb.x - a.x), a.y + t * (bb.y - a.y)}));
+                out.push_back((int)g.P.size() - 1);
+                rep.inserted_boundary++;
+            }
+            out.push_back(c.pt[i + 1]);
+        }
+        c.pt = out;
+    }
+    lap("chain refinement");
+    // 3. interior points: removed near a chain or near an already kept interior point
+    std::vector<int> point_region(n0, -1);
+    for (const Triangle &t : m.triangle)
+        for (int v : t.v) point_region[v] = t.region;
+    std::vector<int> layer;
+    {
+        std::vector<std::pair<Point, Point>> seg;
+        for (const Canon &c : g.C)
+            for (size_t i = 0; i + 1 < c.pt.size(); ++i) seg.push_back({g.P[c.pt[i]], g.P[c.pt[i + 1]]});
+        SegGrid sg;
+        sg.build(seg);
+        std::vector<int> cand;
+        std::vector<std::pair<Point, Point>> dots;
+        for (int p = 0; p < n0; ++p)
+            if (!on_chain[p]) { cand.push_back(p); dots.push_back({g.P[p], g.P[p]}); }
+        SegGrid pg;
+        pg.build(dots);
+        std::vector<char> kept(cand.size(), 0);
+        for (size_t i = 0; i < cand.size(); ++i) {
+            const Point &x = g.P[cand[i]];
+            const double r = o.near * fine(x, point_region[cand[i]]);
+            bool ok = true;
+            sg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
+                if (ok && seg_dist(x, seg[k].first, seg[k].second) < r) ok = false;
+            });
+            if (ok)
+                pg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
+                    if (ok && (size_t)k < i && kept[k] && dist(x, dots[k].first) < r) ok = false;
+                });
+            kept[i] = ok;
+            if (ok) layer.push_back(cand[i]);
+            else rep.removed_interior++;
+        }
+    }
+    lap("interior removal");
+    // 4. triangulation; interior edges longer than long_edge x h get their midpoint
+    RemeshOptions ro;
+    Work w;
+    for (int round = 0;; ++round) {
+        std::vector<char> film(g.P.size(), 0);
+        w = triangulate(g, layer, film, ro, rr);
+        if (round >= o.rounds) break;
+        std::unordered_set<uint64_t> con;
+        for (auto &e : constrained_edges(w)) con.insert(ukey(e[0], e[1]));
+        int added = 0;
+        std::unordered_set<uint64_t> split_edge;
+        for (int t = 0; t < (int)w.T.size(); ++t) {
+            const Point &A = w.P[w.T[t][0]], &B = w.P[w.T[t][1]], &C = w.P[w.T[t][2]];
+            Point cen{(A.x + B.x + C.x) / 3, (A.y + B.y + C.y) / 3};
+            double area = 0.5 * std::fabs(cross(A, B, C)), hc = area_h(cen, w.R[t]);
+            if (area <= o.grow * std::sqrt(3.0) / 4 * hc * hc) continue;
+            int k = 0;   // longest edge v[k] -> v[k+1]
+            for (int j = 1; j < 3; ++j)
+                if (dist(w.P[w.T[t][j]], w.P[w.T[t][(j + 1) % 3]]) > dist(w.P[w.T[t][k]], w.P[w.T[t][(k + 1) % 3]])) k = j;
+            int a = w.T[t][k], bb = w.T[t][(k + 1) % 3];
+            Point x;
+            if (!con.count(ukey(a, bb))) {
+                if (!split_edge.insert(ukey(a, bb)).second) continue;   // neighbour already splits it
+                x = {0.5 * (w.P[a].x + w.P[bb].x), 0.5 * (w.P[a].y + w.P[bb].y)};
+            } else {
+                x = cen;
+            }
+            x = snap(x);
+            bool clear = true;
+            for (int j = 0; j < 3; ++j) clear = clear && dist(x, w.P[w.T[t][j]]) >= o.near * fine(x, w.R[t]);
+            if (!clear) continue;
+            g.P.push_back(x);
+            layer.push_back((int)g.P.size() - 1);
+            ++added;
+        }
+        rep.inserted_interior += added;
+        if (!added) break;
+    }
+    lap("triangulation+insertion");
+    // 5. encroachment repair (as WP3)
+    // Only encroachment the update introduced is repaired: an edge whose
+    // apex already faced it in the old mesh keeps the old quality (thin
+    // films of a SUPREM grid would otherwise be refined down to their
+    // thickness), no split creates a segment that step 1 would remove again,
+    // and the number of splits is bounded.
+    {
+        std::set<std::array<int, 3>> old_faces;   // (min, max, apex) of old triangles
+        for (const Triangle &t : m.triangle)
+            for (int k = 0; k < 3; ++k) {
+                int a = t.v[(k + 1) % 3], bb = t.v[(k + 2) % 3];
+                old_faces.insert({std::min(a, bb), std::max(a, bb), t.v[k]});
+            }
+        const int budget = std::max(100, (int)(o.encroach_budget * n0));
+        SplitFilter allow = [&](int pa, int pb, int apex, int region) {
+            if (pa < n0 && pb < n0 && apex >= 0 && apex < n0 && old_faces.count({std::min(pa, pb), std::max(pa, pb), apex}))
+                return false;
+            Point mid{0.5 * (g.P[pa].x + g.P[pb].x), 0.5 * (g.P[pa].y + g.P[pb].y)};
+            return 0.5 * dist(g.P[pa], g.P[pb]) >= o.short_edge * fine(mid, region);   // never what step 1 would remove
+        };
+        for (int round = 0; round < o.encroach_rounds && rep.encroach_splits < budget; ++round) {
+            int n = split_encroached(w, g, o.encroach_angle, std::max(o.min_split_length, o.hmin), allow);
+            if (!n) break;
+            rep.encroach_splits += n;
+            rep.flips += delaunay_flips(w);
+        }
+        if (rep.encroach_splits >= budget) rep.notes.push_back("encroachment split budget reached");
+    }
+    if (auto enc = encroached(w, o.encroach_angle); !enc.empty())
+        rep.notes.push_back(std::to_string(enc.size()) + " boundary edges still above the encroachment angle");
+    lap("encroachment");
+    Mesh out = assemble(m, g, w, rr);
+    rep.notes.insert(rep.notes.end(), rr.notes.begin(), rr.notes.end());
+
+    lap("assemble");
+    // 6. bookkeeping: origin of every point, points whose neighbourhood changed
+    rep.origin.assign(out.point.size(), -1);
+    rep.changed.assign(out.point.size(), 0);
+    for (size_t i = 0; i < out.point.size(); ++i) {
+        int p = w.pid[i];
+        if (p >= 0 && p < n0) rep.origin[i] = p; else rep.changed[i] = 1;
+    }
+    std::set<std::array<int, 4>> old_tri;
+    for (const Triangle &t : m.triangle) {
+        std::array<int, 4> k{t.v[0], t.v[1], t.v[2], 0};
+        std::sort(k.begin(), k.begin() + 3);
+        k[3] = t.region;
+        old_tri.insert(k);
+    }
+    for (const Triangle &t : out.triangle) {
+        std::array<int, 4> k{rep.origin[t.v[0]], rep.origin[t.v[1]], rep.origin[t.v[2]], 0};
+        std::sort(k.begin(), k.begin() + 3);
+        k[3] = t.region;
+        if (k[0] >= 0 && old_tri.count(k)) continue;
+        rep.new_triangles++;
+        for (int v : t.v) rep.changed[v] = 1;
+    }
+    for (const Node &n : out.node)   // a kept point that gained a material
+        if (rep.origin[n.point] >= 0 && m.node_at(rep.origin[n.point], n.material) < 0) rep.changed[n.point] = 1;
+    rep.kept = 0;
+    for (int p : rep.origin) rep.kept += p >= 0;
+    lap("bookkeeping");
+    return out;
 }
 
 }  // namespace suprem_core

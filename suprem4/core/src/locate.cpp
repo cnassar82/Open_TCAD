@@ -75,15 +75,16 @@ int TriangleLocator::locate(const Point &p, double bary[3]) const
     return best;
 }
 
-SizeField::SizeField(const Mesh &m, Mode mode, double scale, double hmin, double hmax)
-    : m_(m), loc_(m), size_(m.point.size(), 0), finest_(m.point.size(), 0), mode_(mode), scale_(scale), hmin_(hmin),
-      hmax_(hmax)
+SizeField::SizeField(const Mesh &m, Mode mode, double scale, double hmin, double hmax, int material)
+    : m_(m), loc_(m, material), size_(m.point.size(), 0), finest_(m.point.size(), 0), mode_(mode), scale_(scale),
+      hmin_(hmin), hmax_(hmax), material_(material)
 {
     // Per triangle: area-equivalent size (side of the equilateral triangle of
     // equal area) and smallest altitude; per vertex: area-weighted means, so
     // degenerate (near-zero-area) triangles have no influence.
     std::vector<double> w(m.point.size(), 0);
     for (int t = 0; t < (int)m.triangle.size(); ++t) {
+        if (material >= 0 && m.material_of(t) != material) continue;
         const Triangle &tr = m.triangle[t];
         double area = 0.5 * std::fabs(orient2(m, t)), lmax = 0;
         for (int k = 0; k < 3; ++k) {
@@ -92,7 +93,7 @@ SizeField::SizeField(const Mesh &m, Mode mode, double scale, double hmin, double
         }
         double h_area = std::sqrt(4 * area / std::sqrt(3.0)), h_alt = lmax > 0 ? 2 * area / lmax : 0;
         for (int v : tr.v) {
-            size_[v] += area * (mode == AREA ? h_area : h_alt);
+            size_[v] += area * (mode == AREA ? h_area : mode == LONGEST ? lmax : h_alt);
             finest_[v] += area * h_alt;
             w[v] += area;
         }
@@ -114,6 +115,7 @@ void SizeField::adapt_to_solution(double decades)
     for (int t = 0; t < (int)m.triangle.size(); ++t) {
         const Triangle &tr = m.triangle[t];
         int mat = m.material_of(t);
+        if (material_ >= 0 && mat != material_) continue;
         double var = 0;
         for (size_t s = 0; s < m.species.size(); ++s) {
             if (!conserved_species(m.species[s]) || peak[s] <= 0) continue;

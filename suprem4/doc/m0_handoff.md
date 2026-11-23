@@ -90,6 +90,7 @@ script that draws `c`/`t` records of two .str files in a window.  Write one; it 
 | `SUPREM4_CORE_SPEED_DIAG=1` | off | print step limits (`[core-speed]`, `[core-area-limit]`, `[core-collision]`) |
 | `SUPREM4_CORE_KEEP_BAD=1` | off | keep `core_embedding_fail.str` when a reload fails SUPREM's embedding check |
 | `SUPREM4_CORE_TMP` | `.` | directory for the exchange files |
+| `SUPREM4_CORE_DUMP=DIR` | off | save every mesh the hook receives as `DIR/core_in_NNNN.str` (test data) |
 SUPREM's own `SUPREM4_MOTION_TRACE=1` prints why `mesh_trial_move` rejects a step (orientation or
 embedding) and is the most useful diagnostic.
 
@@ -154,6 +155,20 @@ that fails it (`capi.cpp`, rc -4); `core_remesh` reports it as the `suprem` sect
 Suite on `m0_reference_20261122` + AdvCmos `polyreox_geo_20261122`: 68/72; NMOS spacers/source_drain
 outputs have triangles flat in float cm (0.2 A slivers; SUPREM would panic on reload), PMOS
 spacers/source_drain fail the coupling threshold (same with the WP5 build).  See section 4, slivers.
+
+**6b done (core side).**  `update_mesh` / `update_fields` (`core/src/remesh.cpp`, `transfer.cpp`;
+tool `core_update`, test `core/tests/update_suite.py`; details in `core/README.md`) keep SUPREM's
+points and their values and change the mesh only where the spacing left the reference (per-material
+size fields from the grid at the start of the oxidation): short interface segments and interior
+points crowding a chain are removed, long segments / grown triangles get points, CDT with the chains
+as constraints, encroachment repair limited to what the update introduced.  Nodes outside the
+changed set keep their values bit for bit; the conserved inventory is restored on the changed points
+only.  Test data: `SUPREM4_CORE_DUMP=DIR` makes the hook save every mesh it receives
+(`experiments/wp6b_update_20261123/base_dump/dump`, 36 states of the base deck): 36/36 pass, 0.2 s
+per call; 116/118 static structures (the 2 failures are inputs already flat in float cm).  The hook
+does not call it yet: that is 6d.  Lesson: a single size field from the oxidation-start grid
+stripped the film points of the growing oxide (it measured the oxide against the silicon it
+replaced; SUPREM's box dose then moved 1 % per call); per-material fields fixed it.
 
 **Finding for 6e.**  `ChooseKillNodes` (`src/dbase/grid_upd.c`) is an empty stub in the current
 tree: production SUPREM removes **no** nodes during oxidation (the old McCoy passes `CknMcLen` /

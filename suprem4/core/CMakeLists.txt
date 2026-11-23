@@ -50,3 +50,5 @@ target_link_libraries(core_evolve_test suprem_core)
 
 add_executable(core_check_suprem tools/core_check_suprem.cpp)
 target_link_libraries(core_check_suprem suprem_core)
+add_executable(core_update tools/core_update.cpp)
+target_link_libraries(core_update suprem_core)

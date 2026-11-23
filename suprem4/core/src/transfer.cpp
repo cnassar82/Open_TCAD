@@ -221,6 +221,47 @@ void transfer_fields(const Mesh &old, Mesh &neu, TransferReport &rep, bool resto
     }
 }
 
+void update_fields(const Mesh &old, Mesh &neu, const std::vector<char> &changed, TransferReport &rep)
+{
+    transfer_fields(old, neu, rep, false, true);
+    rep.rows.clear();
+    rep.max_rel_final = rep.max_rel_box = 0;
+    const size_t ns = old.species.size();
+    std::vector<double> v0 = node_volumes(old, true), v1 = node_volumes(neu, true);
+    std::vector<double> box0 = node_volumes(old, false), box1 = node_volumes(neu, false);
+    for (size_t s = 0; s < ns; ++s) {
+        if (!conserved_species(old.species[s])) continue;
+        int active = -1;
+        for (size_t a = 0; a < ns; ++a)
+            if (total_of_active(old.species[a]) == old.species[s]) active = (int)a;
+        auto i0 = inventory(old, v0, (int)s), i1 = inventory(neu, v1, (int)s);
+        for (int mat = 0; mat < (int)i0.size(); ++mat) {
+            if (i0[mat] == 0 && i1[mat] == 0) continue;
+            double resid = i0[mat] - i1[mat], local = 0;
+            for (size_t n = 0; n < neu.node.size(); ++n)
+                if (neu.node[n].material == mat && changed[neu.node[n].point]) local += neu.node[n].value[s] * v1[n];
+            if (std::fabs(resid) > 1e-12 * std::fabs(i0[mat])) {
+                if (local > 0 && local + resid > 0) {
+                    double f = (local + resid) / local;
+                    for (size_t n = 0; n < neu.node.size(); ++n)
+                        if (neu.node[n].material == mat && changed[neu.node[n].point]) {
+                            neu.node[n].value[s] *= f;
+                            if (active >= 0) neu.node[n].value[active] *= f;
+                        }
+                } else {
+                    rep.notes.push_back("material " + std::to_string(mat) + " impurity " + std::to_string(old.species[s]) +
+                                        ": inventory change cannot be restored on the changed nodes");
+                }
+            }
+            double fin = inventory(neu, v1, (int)s)[mat];
+            double b0 = inventory(old, box0, (int)s)[mat], b1 = inventory(neu, box1, (int)s)[mat];
+            if (b0 != 0) rep.max_rel_box = std::max(rep.max_rel_box, std::fabs(b1 - b0) / std::fabs(b0));
+            rep.max_rel_final = std::max(rep.max_rel_final, std::fabs(fin - i0[mat]) / std::max(std::fabs(i0[mat]), 1e-300));
+            rep.rows.push_back({mat, old.species[s], i0[mat], i1[mat], fin});
+        }
+    }
+}
+
 double roundtrip_error(const Mesh &old, const Mesh &neu, int slot)
 {
     Mesh back = old;

@@ -26,14 +26,18 @@ class TriangleLocator {
 };
 
 // Isotropic mesh-size field of an existing mesh.  Per triangle the size is
-// the area-equivalent edge length ("area") or the smallest altitude ("min");
+// the area-equivalent edge length ("area"), the smallest altitude ("min")
+// or the longest edge (LONGEST);
 // vertex sizes are area-weighted means (degenerate triangles carry no
 // weight) and are interpolated linearly, then scaled and clamped.
 // Optionally tightened where the dopant profiles are steep.
 class SizeField {
   public:
-    enum Mode { AREA, FINEST };
-    SizeField(const Mesh &m, Mode mode, double scale, double hmin, double hmax);
+    enum Mode { AREA, FINEST, LONGEST };   // LONGEST: area-weighted longest edge
+    // material >= 0: built from the triangles of that material only, and
+    // evaluated in the nearest of them (the size a material had, also where
+    // it has since moved)
+    SizeField(const Mesh &m, Mode mode, double scale, double hmin, double hmax, int material = -1);
     double operator()(const Point &p) const;
     // Solution adaptation: where a conserved dopant varies by more than
     // `decades` (log10) across an old triangle, the size there shrinks in
@@ -51,6 +55,7 @@ class SizeField {
     std::vector<double> finest_;   // per point: area-weighted smallest altitude
     Mode mode_;
     double scale_, hmin_, hmax_;
+    int material_ = -1;
 };
 
 }  // namespace suprem_core

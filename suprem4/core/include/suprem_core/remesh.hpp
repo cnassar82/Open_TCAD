@@ -65,6 +65,58 @@ struct RemeshReport {
     int encroach_splits = 0, flips = 0, mmg_failures = 0;
 };
 
+class SizeField;
+
+// WP6b: Lagrangian update (remesh mode "update").  The points of m and their
+// node values are kept; the mesh is changed only where the spacing no longer
+// matches the reference mesh (the grid at the start of the oxidation).  The
+// reference supplies three size fields, so its anisotropic elements are
+// their own target (an update of the reference itself changes little):
+// finest (smallest altitude), area (area-equivalent edge) and longest edge.
+//  - boundary/interface: a chain vertex (not a junction) is removed when one
+//    of its segments is shorter than short_edge x finest and the chord
+//    replacing it stays within tol of it (chains that would then intersect
+//    or collapse are restored); segments longer than long_edge x longest are
+//    subdivided (exact geometry);
+//  - interior: a point closer than near x finest to a boundary/interface
+//    chain or to an already kept interior point is removed (the encroaching
+//    interface of a consumed material); a triangle whose area exceeds
+//    grow x the reference area there gets a point (midpoint of its longest
+//    edge, or its centroid when that edge is a boundary);
+//  - constrained Delaunay triangulation of the kept and inserted points with
+//    the chains as constraints, then the WP3 encroachment repair, limited to
+//    encroachment the update introduced and to splits not finer than the
+//    reference's finest spacing.
+// The B-rep is kept exactly apart from the tol-bounded vertex removals.
+struct UpdateOptions {
+    double near = 1.0 / 3;         // x finest: interior points this close to a chain / each other are removed
+    double short_edge = 1.0 / 3;   // x finest: chain vertices on shorter segments may be removed ...
+    double tol = 1e-4;             // um: ... when the chord stays this close (0: never)
+    double long_edge = 1.5;        // x longest: chain segments longer than this are subdivided
+    double grow = 2.5;             // x reference area: larger triangles get a point
+    int rounds = 8;                // interior insertion rounds
+    double scale = 1.0, hmin = 2e-4, hmax = 0.5;   // size fields (um)
+    double solution_decades = 0;   // area field: dopant adaptation as in WP3 (0: off)
+    double encroach_angle = 91;    // deg: only encroachment the update introduced is repaired ...
+    int encroach_rounds = 50;
+    double encroach_budget = 0.05; // ... with at most this fraction x points splits (min 100)
+    double min_split_length = 1e-5;   // um; encroachment splits also stop at hmin (features below it are events)
+    bool float_cm_grid = false;    // inserted points on SUPREM's float cm grid
+    bool timing = false;           // stage times as notes
+};
+
+struct UpdateReport {
+    int kept = 0, removed_interior = 0, removed_boundary = 0, inserted_boundary = 0, inserted_interior = 0;
+    int encroach_splits = 0, flips = 0, new_triangles = 0;
+    std::vector<int> origin;       // per new point: old point index, -1 for inserted points
+    std::vector<char> changed;     // per new point: inserted, or a vertex of a triangle the old mesh did not have
+    std::vector<std::string> notes;
+};
+
+// Topology/geometry only: node values of the result are zero; use
+// update_fields (transfer.hpp) with rep.changed.  Throws if m's B-rep is invalid.
+Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, UpdateReport &rep);
+
 Quality measure_quality(const Mesh &m);
 std::string format_quality(const Quality &q);
 

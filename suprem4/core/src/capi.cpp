@@ -157,6 +157,12 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
     };
     try {
         State &st = state();
+        if (const char *dump = std::getenv("SUPREM4_CORE_DUMP"); dump && *dump) {   // test data: every input
+            static int n = 0;
+            char name[1024];
+            std::snprintf(name, sizeof name, "%s/core_in_%04d.str", dump, n++);
+            write_str(read_str(in_path), name);
+        }
         Mesh m = from_str(read_str(in_path));
         if (!st.have_reference) {
             st.reference = m;

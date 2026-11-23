@@ -23,6 +23,7 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
 | 4 | `transfer` field transfer + inventory restoration; solution-adaptive size field | suite (transfer checks) + SUPREM reload/anneal and mesh-convergence test |
 | 5 | `evolve` motion, events (thin / crumb / gap / cavity), Clipper2 repair, rebuild from polygons | `core_evolve_test`: shrink, merge, slit pass |
 | 6a | `suprem_check` SUPREM validity contract (float orientation, nxtel topology, embedding, region loops, mtest1); every core output is gated by it | `tests/suprem_contract.py`: core verdict = SUPREM's own load verdict on 1429/1429 structures + 5 mutations |
+| 6b | `update_mesh` / `update_fields`: Lagrangian update (keep points and values, local removal/insertion, CDT, inventory restored on the changed points only) | `tests/update_suite.py`: 36/36 oxidation states of the base poly deck, 116/118 static structures (2 = inputs already flat in float cm) |
 
 ## WP6a SUPREM validity contract (`src/suprem_check.cpp`, `tools/core_check_suprem`)
 
@@ -66,6 +67,54 @@ reloading them although the WP3 checks passed.  PMOS `spacers` and
 with the WP5 build, so this predates WP6a (the earlier 72/72 was on other
 SubCmos runs).  Both point to the same open item: remove sub-delta slivers by
 events before meshing.
+
+## WP6b Lagrangian update (`update_mesh` in `src/remesh.cpp`, `update_fields` in `src/transfer.cpp`, `tools/core_update`)
+
+Remesh mode "update": instead of regenerating, the mesh SUPREM moved is kept
+and changed only where its spacing no longer matches the reference (the grid
+at the start of the oxidation, as in the hook).  The reference gives three
+size fields **per material** (finest altitude, area-equivalent edge, longest
+edge; a material is measured against its own reference triangles, so growing
+oxide is compared with the reference oxide, not with the silicon it
+replaced, and SUPREM's anisotropic elements are their own target):
+
+1. chain vertex (not a junction) removed when a segment is shorter than
+   1/3 finest and the chord stays within `tol` (1e-4 um); chains that would
+   intersect or collapse are restored (`restore_invalid_chains`, shared
+   with the WP3 coarsening);
+2. chain segments longer than 1.5 x longest subdivided (exact geometry);
+3. interior points closer than 1/3 finest to a chain or to a kept interior
+   point removed (the encroaching interface of a consumed material);
+4. CDT of kept + inserted points with the chains as constraints; triangles
+   larger than 2.5 x the reference area get a point (longest-edge midpoint or
+   centroid), up to 8 rounds;
+5. encroachment repair only where the update introduced it (an edge whose
+   apex already faced it keeps the old quality), no split creating a segment
+   step 1 would remove, at most 5 % x points splits.
+
+Fields (`update_fields`): nodes at kept points copy their values exactly,
+inserted nodes are interpolated (WP4), and the conserved P1 inventory per
+material and species is restored by one factor applied only to the nodes at
+**changed points** (inserted points and vertices of triangles the old mesh did
+not have).  Every other node keeps its old values bit for bit; `core_update`
+checks this (`retained`) together with invariants, B-rep, geometry, gas nodes,
+the WP6a contract and the inventory (1e-10).
+
+Results (`tests/update_suite.py`):
+- 36 oxidation states of the base poly deck (every mesh the hook received
+  with `SUPREM4_CORE_DUMP`, reference = the first): 36/36 pass, 0.2 s each
+  (7-11k points); obtuse boundary edges 0-4, SUPREM's box-volume dose
+  changes ~1e-4 per call in oxide and silicon (with a single global size
+  field it was 1 %, the growing oxide lost its film points);
+- static structures (each its own reference; SubCmos m0_reference, AdvCmos
+  polyreox_geo and the WP3 outputs of both): 116/118 pass; on core meshes the
+  update changes nothing or a few hundred triangles of 10^5; the 2 failures
+  are WP3 outputs that are already flat in float cm (the NMOS 0.2 A sliver,
+  an event for 6c).  Large meshes (120k points) take 30 s, mostly the
+  repeated CDT and flip passes; the hook meshes are far smaller.
+
+Also fixed on the way: `SegGrid` overflowed its int cell count for zero-length
+segments (cell 1e-9 um), degrading to one cell and O(n^2) queries.
 
 ## WP3 remesh pipeline (`src/remesh.cpp`)
 
@@ -231,5 +280,10 @@ couplings; on the oxidation path they are removed as thin/crumb events.
 - `core_remesh IN.str OUT.str [--size area|min] [--scale S] [--hmin H] [--hmax H]
   [--hgrad G] [--coarsen-tol T] [--film-threshold T] [--film-layers N] [--passes N]
   [--encroach-rounds N] [--no-mmg] [--no-flips] [--worst N | --worst-max N]`.
+- `core_update IN.str OUT.str [--reference REF.str] [--float] [--timing] [--near F] [--short F] [--tol T]
+  [--long F] [--grow F] [--scale S] [--hmax H] [--solution-decades D]` (WP6b).
+- `core_check_suprem A.str ...` (WP6a).
 - `core_evolve_test REFERENCE.str [OUTDIR]` (env `CORE_EVOLVE_ONLY=name`, `CORE_EVOLVE_TRACE=1`).
-- `tests/roundtrip.py CORE_STR DIR...`, `tests/remesh_suite.py CORE_REMESH DIR... [--out D]`.
+- `tests/roundtrip.py CORE_STR DIR...`, `tests/remesh_suite.py CORE_REMESH DIR... [--out D]`,
+  `tests/suprem_contract.py CORE_BUILD SUPREM_BUILD [--mutate] PATH...`,
+  `tests/update_suite.py CORE_BUILD [--reference REF.str] PATH...`.

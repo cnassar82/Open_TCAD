@@ -59,6 +59,14 @@ enum class Restore {
 void transfer_fields(const Mesh &old, Mesh &neu, TransferReport &rep, bool restore = true, bool p1_lumping = true,
                      Restore mode = Restore::WEIGHTED);
 
+// WP6b: fields after a Lagrangian update (update_mesh).  Nodes at kept points
+// copy their old values exactly; inserted nodes are interpolated as in
+// transfer_fields.  The conserved inventories (P1, per material) are then
+// restored by one factor per material and species applied only to the nodes
+// at changed points (inserted points and vertices of new triangles), so all
+// other nodes keep their old values bit for bit.
+void update_fields(const Mesh &old, Mesh &neu, const std::vector<char> &changed_point, TransferReport &rep);
+
 // Round-trip profile error: interpolate the new mesh back onto the old
 // nodes; per conserved species, the volume-weighted L1 error relative to
 // the old inventory, max over materials (an interpolation-error measure).
