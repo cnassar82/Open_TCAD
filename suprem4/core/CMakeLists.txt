@@ -28,6 +28,7 @@ add_library(suprem_core STATIC
   src/transfer.cpp
   src/evolve.cpp
   src/capi.cpp
+  src/suprem_check.cpp
   ${CLIPPER2_DIR}/src/clipper.engine.cpp
   ${CLIPPER2_DIR}/src/clipper.offset.cpp
   ${CLIPPER2_DIR}/src/clipper.rectclip.cpp)
@@ -46,3 +47,6 @@ target_link_libraries(core_remesh suprem_core)
 
 add_executable(core_evolve_test tools/core_evolve_test.cpp)
 target_link_libraries(core_evolve_test suprem_core)
+
+add_executable(core_check_suprem tools/core_check_suprem.cpp)
+target_link_libraries(core_check_suprem suprem_core)

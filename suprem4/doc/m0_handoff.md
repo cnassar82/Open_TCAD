@@ -137,6 +137,32 @@ only where a defect is detected, and interpolates only inserted points.  Revised
 Stop after two attempts on any single symptom and re-read section 4b; this work has a strong pull
 towards chains of local patches.
 
+## 3b. Progress on the revised WP6
+
+**6a done.**  `core/src/suprem_check.cpp` (`check_suprem`) and the tool `core_check_suprem` hold
+SUPREM's reload/motion contract as exact ports: no flat triangle in float cm (negative ones are
+swapped on load by `sclk_tri`, so only flatness is fatal), `nxtel` topology, `mesh_embedding_check`,
+one simple border loop per region with turn sum +-2 pi (`skel_reg` + `ck_clock`; an empty region
+segfaults), and `mtest1` (gas nodes; `create_db` adds missing ones at exposed points, not at
+backside points).  Strict-only rules (SUPREM loads the file anyway): counter-clockwise order as
+written, one component and no holes per region, gas nodes written at every exposed point.
+Cross-validation, `core/tests/suprem_contract.py` (SUPREM side: `SUPREM4_LOAD_CHECK=1` makes
+`structure infile=` print the float-orientation count and the embedding verdict): core verdict =
+SUPREM's verdict on all 1429 readable `.str` files under `decks/` (1382 OK, 10 WARN, 37 FAIL, among
+them the saved panic states of earlier work) and on 5 mutations.  The WP6 hook refuses to write a mesh
+that fails it (`capi.cpp`, rc -4); `core_remesh` reports it as the `suprem` section of the suite.
+Suite on `m0_reference_20261122` + AdvCmos `polyreox_geo_20261122`: 68/72; NMOS spacers/source_drain
+outputs have triangles flat in float cm (0.2 A slivers; SUPREM would panic on reload), PMOS
+spacers/source_drain fail the coupling threshold (same with the WP5 build).  See section 4, slivers.
+
+**Finding for 6e.**  `ChooseKillNodes` (`src/dbase/grid_upd.c`) is an empty stub in the current
+tree: production SUPREM removes **no** nodes during oxidation (the old McCoy passes `CknMcLen` /
+`CknMcObt` are dead code; `rem_edg` / `mesh_patch_remove_point` are reachable only from other
+callers).  So 6e is not "add interface points to an existing removal pass" but "design a removal pass
+for oxidation" (candidate selection by approach rate, interface-aware edge collapse validated with the
+6a predicates, local dose conservation).  That is more than the 2 days in the plan and touches the
+fragile database; decide the scope before starting it.
+
 ## 4. Known issues and loose ends
 - `core_evolve_test merge` produced rounding crumbs with the 1e-6 um grid until the wedge-tip fix in
   `significant()`; keep an eye on event counts in the tests (one gap + one cavity is correct).

@@ -143,6 +143,21 @@ struct par_str *param;
 	if ((ier = ig2_read(infile, lflip, scale) < 0)) return(ier);
 
 	create_db( (nn==0) );
+
+	/* Diagnostic (geometry core WP6a cross-validation): report the checks
+	 * SUPREM applies to trial motions on the structure just loaded.
+	 * Read-only; off unless SUPREM4_LOAD_CHECK is set. */
+	if (getenv("SUPREM4_LOAD_CHECK") && mode == TWOD) {
+	    extern int mesh_trial_validate_embedding(double, int *);
+	    extern int orient2d_float_sign(const float *, const float *, const float *);
+	    int t, bad = -1, neg = 0, valid;
+	    for (t = 0; t < ne; t++)
+		if (orient2d_float_sign(cord_arr(pt_nd(vert_tri(t,0))), cord_arr(pt_nd(vert_tri(t,1))),
+					cord_arr(pt_nd(vert_tri(t,2)))) <= 0) neg++;
+	    valid = neg ? 0 : mesh_trial_validate_embedding(0.0, &bad);
+	    fprintf(stderr, "[load-check] %s orientation %d embedding %s triangle %d\n",
+		    infile, neg, neg ? "skipped" : valid ? "ok" : "FAIL", bad + 1);
+	}
     }
 
     /*write out the file if that is asked for*/

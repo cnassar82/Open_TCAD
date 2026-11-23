@@ -57,7 +57,7 @@ def main():
         lines = r.stdout.splitlines()
         qi = quality(next((l for l in lines if l.startswith('input')), ''))
         qo = quality(next((l for l in lines if l.startswith('output')), ''))
-        checks = {k: ('ok' if f'{k} ok' in r.stdout else 'FAIL') for k in ('invariants', 'brep', 'geometry', 'gas-nodes', 'transfer')}
+        checks = {k: ('ok' if f'{k} ok' in r.stdout else 'FAIL') for k in ('invariants', 'brep', 'geometry', 'gas-nodes', 'transfer', 'suprem')}
         mmg_fail = re.search(r'mmg failures (\d+)', r.stdout)
         ok = r.returncode == 0 and qo and all(v == 'ok' for v in checks.values())
         ok = ok and mmg_fail and int(mmg_fail.group(1)) == 0

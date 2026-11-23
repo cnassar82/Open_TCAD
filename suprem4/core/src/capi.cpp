@@ -15,7 +15,8 @@
 //   - (first call) the worst box-method coupling is below min_coupling.
 // The output is made valid in SUPREM's own representation: coordinates are
 // rounded to the float cm values SUPREM will hold and any triangle that is
-// flat or inverted there is repaired by edge flips evaluated on those floats.
+// flat or inverted there is repaired by edge flips evaluated on those floats,
+// and the result must pass check_suprem (suprem_check.hpp) before it is written.
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -34,6 +35,7 @@
 #include "suprem_core/mesh.hpp"
 #include "suprem_core/remesh.hpp"
 #include "suprem_core/str_file.hpp"
+#include "suprem_core/suprem_check.hpp"
 #include "suprem_core/transfer.hpp"
 
 using namespace suprem_core;
@@ -54,12 +56,13 @@ Key key_of(const Triangle &t)
     return k;
 }
 
-// orientation in SUPREM's float cm coordinates (exact in long double for
-// float inputs of similar magnitude)
-long double orient_float(const Mesh &m, int a, int b, int c)
+// exact orientation sign in SUPREM's float cm coordinates (its own predicate)
+int orient_float(const Mesh &m, int a, int b, int c)
 {
-    auto f = [&](int p, int i) { return (long double)(float)(1e-4 * (i ? m.point[p].y : m.point[p].x)); };
-    return (f(b, 0) - f(a, 0)) * (f(c, 1) - f(a, 1)) - (f(b, 1) - f(a, 1)) * (f(c, 0) - f(a, 0));
+    float fa[2] = {suprem_float(m.point[a].x), suprem_float(m.point[a].y)};
+    float fb[2] = {suprem_float(m.point[b].x), suprem_float(m.point[b].y)};
+    float fc[2] = {suprem_float(m.point[c].x), suprem_float(m.point[c].y)};
+    return orient2d_float_sign(fa, fb, fc);
 }
 
 uint64_t dkey(int a, int b) { return ((uint64_t)(uint32_t)a << 32) | (uint32_t)b; }
@@ -234,6 +237,12 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
         if (!bad.empty()) {
             say(why + "rebuilt mesh invalid: " + bad.front());
             return -2;
+        }
+        // WP6a: never hand SUPREM a mesh it cannot reload or move
+        SupremCheck sc = check_suprem(fresh, 3);
+        if (!sc.ok()) {
+            say(why + "rebuilt mesh violates the SUPREM contract: " + (sc.messages.empty() ? std::string("?") : sc.messages.front()));
+            return -4;
         }
         write_str(to_str(fresh), out_path);
         st.built_area.clear();

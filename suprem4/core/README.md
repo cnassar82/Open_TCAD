@@ -22,6 +22,50 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
 | 3 | `remesh` mesh generation from the B-rep | `tests/remesh_suite.py`: 72/72 SubCmos2014 (two runs) + 36/36 AdvCmos2014 checkpoints |
 | 4 | `transfer` field transfer + inventory restoration; solution-adaptive size field | suite (transfer checks) + SUPREM reload/anneal and mesh-convergence test |
 | 5 | `evolve` motion, events (thin / crumb / gap / cavity), Clipper2 repair, rebuild from polygons | `core_evolve_test`: shrink, merge, slit pass |
+| 6a | `suprem_check` SUPREM validity contract (float orientation, nxtel topology, embedding, region loops, mtest1); every core output is gated by it | `tests/suprem_contract.py`: core verdict = SUPREM's own load verdict on 1429/1429 structures + 5 mutations |
+
+## WP6a SUPREM validity contract (`src/suprem_check.cpp`, `tools/core_check_suprem`)
+
+Exact ports of what SUPREM does to a structure it reloads (`ig2_read` +
+`create_db`) and to every trial motion, on the float cm coordinates SUPREM
+holds (`(float)(x_um*1e-4)`):
+
+| Rule | SUPREM source | On reload |
+|---|---|---|
+| orientation: no flat triangle (exact `orient2d_float_sign`) | geom/misc.c, geometry.c | panic "triangle is flat" |
+| (strict) ordering: counter-clockwise as written | clktri.c `sclk_tri` | swapped silently |
+| topology: a point-edge in at most two triangles | element.c `nxtel` | panic in `tnabor` |
+| embedding: no overlap, no outer-boundary contact | include/mesh_embedding.h | every trial motion rejected |
+| loops: each region border simple, turn sum +-2 pi, region not empty | refine/skel.c `skel_reg`, triang.c `ck_clock` | panic / segfault |
+| (strict) components: one loop per region (no holes, one component) | `skel_reg` keeps only the first loop | loads, skeleton wrong |
+| nodes: mtest1 (gas node at backside points, none at unexposed points, one node per material and point, every material node in a triangle) | dbase/check.c | panic "Mesh failed self test" |
+| (strict) gas_added: gas node at every exposed point | make_db.c `create_db` | added on load |
+
+`core_check_suprem A.str ...` prints OK / WARN (reloads, a strict rule fails) /
+FAIL (SUPREM panics, crashes or rejects the embedding).  The cross-validation
+`tests/suprem_contract.py CORE_BUILD SUPREM_BUILD [--mutate] PATH...` loads
+every file in SUPREM too (`SUPREM4_LOAD_CHECK=1` makes `structure infile=`
+print the float-orientation count and the embedding verdict) and requires the
+same verdict.  Result over every .str under `decks/` (1429 structures,
+including the saved panic states of earlier work): 1382 OK/loads, 10
+WARN/loads (two-component oxide regions, rit_pmos_remesh), 36 FAIL/panic or
+crash, 1 FAIL/embedding rejected; no disagreement.  Three further files are debug dumps with a gap in their
+triangle numbering, which SUPREM renumbers silently and the exact WP1 reader
+refuses ("triangles out of order"); the test lists them separately.  The mutation set
+(inverted order, missing exposed gas node, interior gas node, empty region,
+coincident points) agrees as well.  `core_remesh` reports the contract as
+the `suprem` section; the WP6 hook (`capi.cpp`) refuses to write a mesh that
+fails it.
+
+Remesh suite with the contract (`m0_reference_20261122` + AdvCmos
+`polyreox_geo_20261122`, 72 structures): 68/72.  New finding: NMOS `spacers`
+and `source_drain` outputs contain triangles that are **flat in float cm**
+(the 0.2 A oxide slivers near x = 9.96, y = -0.24 um), i.e. SUPREM would panic
+reloading them although the WP3 checks passed.  PMOS `spacers` and
+`source_drain` fail the coupling threshold (worst -9.2 / -12.4); identical
+with the WP5 build, so this predates WP6a (the earlier 72/72 was on other
+SubCmos runs).  Both point to the same open item: remove sub-delta slivers by
+events before meshing.
 
 ## WP3 remesh pipeline (`src/remesh.cpp`)
 

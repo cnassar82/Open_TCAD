@@ -21,6 +21,7 @@
 #include "suprem_core/mesh.hpp"
 #include "suprem_core/remesh.hpp"
 #include "suprem_core/str_file.hpp"
+#include "suprem_core/suprem_check.hpp"
 #include "suprem_core/transfer.hpp"
 
 using namespace suprem_core;
@@ -150,6 +151,10 @@ int main(int argc, char **argv)
         section("brep", bb);
         section("geometry", compare_geometry(in, out, o.coarsen_tol));
         section("gas-nodes", check_gas_nodes(out));
+        {   // WP6a: the contract SUPREM enforces when it reloads the file
+            SupremCheck sc = check_suprem(out, 20);
+            section("suprem", sc.ok() ? std::vector<std::string>{} : sc.messages);
+        }
         if (do_transfer) section("transfer", transfer_bad);
         write_str(to_str(out), argv[2]);
         return failed ? 1 : 0;
