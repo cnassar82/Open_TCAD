@@ -57,12 +57,15 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
         o.hmax = env("SUPREM4_CORE_HMAX", o.hmax);
         o.scale = env("SUPREM4_CORE_SCALE", o.scale);
         o.float_cm_grid = true;
-        // target sizes from the mesh the core built last (in this process), not
-        // from SUPREM's deformed mesh: otherwise sizes ratchet down every call
-        static Mesh built;
-        static bool have_built = false;
-        SizeField h(have_built ? built : m, SizeField::AREA, o.scale, o.hmin, o.hmax);
-        h.adapt_to_solution(o.solution_decades);
+        // Target sizes come from the first mesh seen in this process (the deck's
+        // grid when oxidation starts), never from a mesh the core produced:
+        // regenerated meshes contain thin-film layer elements and compressed
+        // elements, and sizing from them ratchets the mesh finer every call.
+        static Mesh reference;
+        static bool have_reference = false;
+        if (!have_reference) { reference = m; have_reference = true; }
+        SizeField h(reference, SizeField::AREA, o.scale, o.hmin, o.hmax);
+        h.adapt_to_solution(env("SUPREM4_CORE_SOLUTION_DECADES", o.solution_decades));
         RemeshReport rr;
         std::vector<std::string> notes;
         // no event: remesh the mesh itself (exact geometry); events: rebuild
@@ -98,8 +101,6 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
             return -2;
         }
         write_str(to_str(fresh), out_path);
-        built = fresh;
-        have_built = true;
         char buf[512];
         std::snprintf(buf, sizeof buf, "%s%zu events, worst coupling %.3g -> %.3g, points %zu -> %zu, inventory error %.2g",
                       valid ? "" : "crossing boundaries repaired, ", ev.size(), q.worst_coupling, measure_quality(fresh).worst_coupling, m.point.size(),

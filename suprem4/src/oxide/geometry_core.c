@@ -16,6 +16,10 @@
  * (sol[MAXIMP-5], sol[MAXIMP-6]) are not in the file; at this point they equal
  * the current velocities, so they are restored from XVEL / YVEL.
  *
+ * Test switches: SUPREM4_CORE_RELOAD_ONLY=1 (write and reload the structure
+ * unchanged, no core call), SUPREM4_CORE_EVERY=N (force a regeneration every
+ * N calls), SUPREM4_CORE_EVENT_DELTA (event size only, um; the motion
+ * limit keeps SUPREM4_CORE_DELTA).
  * Other settings: SUPREM4_CORE_TMP (directory for the exchange files,
  * default "."), SUPREM4_CORE_FORCE_FIRST=1 (regenerate on the first call),
  * SUPREM4_CORE_HMAX, SUPREM4_CORE_SCALE (mesh size, read by the core).
@@ -67,13 +71,32 @@ int geometry_core_step(void)
     snprintf(in, sizeof in, "%s/.geometry_core_in_%d.str", dir, (int)getpid());
     snprintf(out, sizeof out, "%s/.geometry_core_out_%d.str", dir, (int)getpid());
     force = (calls == 0 && env_double("SUPREM4_CORE_FORCE_FIRST", 0) != 0);
+    {
+	int every = (int)env_double("SUPREM4_CORE_EVERY", 0);
+	if (every > 0 && calls % every == 0) force = 1;
+    }
     calls++;
     if (ig2_write(in, 0, 1.0) < 0) {
 	fprintf(stderr, "[geometry-core] cannot write %s\n", in);
 	return 0;
     }
+    if (env_double("SUPREM4_CORE_RELOAD_ONLY", 0) != 0) {
+	if (!force) { unlink(in); return 0; }
+	if (ig2_read(in, 0, 1.0) < 0) panic("geometry core: cannot reload");
+	create_db(nn == 0);
+	unlink(in);
+	xv = imptosol[XVEL];
+	yv = imptosol[YVEL];
+	if (xv >= 0 && yv >= 0)
+	    for (i = 0; i < nn; i++) {
+		nd[i]->sol[MAXIMP - 5] = nd[i]->sol[xv];
+		nd[i]->sol[MAXIMP - 6] = nd[i]->sol[yv];
+	    }
+	fprintf(stderr, "[geometry-core] call %d: reloaded unchanged (test)\n", calls);
+	return 1;
+    }
     msg[0] = 0;
-    rc = suprem_core_oxidation_check(in, out, env_double("SUPREM4_CORE_DELTA", 1e-3),
+    rc = suprem_core_oxidation_check(in, out, env_double("SUPREM4_CORE_EVENT_DELTA", env_double("SUPREM4_CORE_DELTA", 1e-3)),
 				     env_double("SUPREM4_CORE_MIN_COUPLING", -0.5), force, msg, (int)sizeof msg);
     unlink(in);
     if (rc < 0) {
