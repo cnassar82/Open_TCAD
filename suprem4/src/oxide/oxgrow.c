@@ -16,6 +16,7 @@
 /*   oxgrow.c                Version 5.1     */
 /*   Last Modification : 7/3/91 10:52:33 */
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <stdio.h>
 #include <sys/times.h>
@@ -143,10 +144,14 @@ oxgrow (temp, ornt, oxhow, dt )
 	  if (v > 0 && *dt > (lim = 0.5*oxide_repair_delta()/v)) *dt = lim;
       } }
 
-    /* With the geometry core active no point moves more than delta/4 per
-     * step, so a gap closing from both sides is seen before the fronts cross. */
+    /* Optional (SUPREM4_CORE_SPEED_LIMIT=1): no point moves more than
+     * delta/4 per step.  Off by default since WP6d: the collision prediction
+     * above already limits approaching pairs (relative velocity, so also gaps
+     * closing from both sides); a global speed cap only throttles the step
+     * wherever the oxide grows fastest. */
     { extern int geometry_core_enabled(void); extern double oxide_repair_max_speed(void);
-      if (geometry_core_enabled()) {
+      const char *sl = getenv("SUPREM4_CORE_SPEED_LIMIT");
+      if (geometry_core_enabled() && sl && *sl && strcmp(sl, "0") != 0) {
 	  const char *e = getenv("SUPREM4_CORE_DELTA");
 	  double delta = 1e-4 * ((e && *e) ? atof(e) : 1e-3), v = oxide_repair_max_speed(), lim;
 	  if (getenv("SUPREM4_CORE_SPEED_DIAG")) {

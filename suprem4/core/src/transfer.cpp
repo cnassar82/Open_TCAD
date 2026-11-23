@@ -221,13 +221,13 @@ void transfer_fields(const Mesh &old, Mesh &neu, TransferReport &rep, bool resto
     }
 }
 
-void update_fields(const Mesh &old, Mesh &neu, const std::vector<char> &changed, TransferReport &rep)
+void update_fields(const Mesh &old, Mesh &neu, const std::vector<char> &changed, TransferReport &rep, bool box)
 {
     transfer_fields(old, neu, rep, false, true);
     rep.rows.clear();
     rep.max_rel_final = rep.max_rel_box = 0;
     const size_t ns = old.species.size();
-    std::vector<double> v0 = node_volumes(old, true), v1 = node_volumes(neu, true);
+    std::vector<double> v0 = node_volumes(old, !box), v1 = node_volumes(neu, !box);
     std::vector<double> box0 = node_volumes(old, false), box1 = node_volumes(neu, false);
     for (size_t s = 0; s < ns; ++s) {
         if (!conserved_species(old.species[s])) continue;

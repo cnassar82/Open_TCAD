@@ -14,7 +14,7 @@ Two kinds of input:
   - static structures (no reference: each file is its own reference, so the
     update must change little).
 
-usage: update_suite.py CORE_BUILD [--reference REF.str] [-j N] PATH...
+usage: update_suite.py CORE_BUILD [--reference REF.str] [--events DELTA] [-j N] PATH...
   PATH: .str files or directories (scanned for *.str and */*.str)
 """
 import argparse
@@ -40,11 +40,13 @@ def main():
     ap.add_argument('paths', nargs='+')
     ap.add_argument('--reference')
     ap.add_argument('-j', type=int, default=8)
+    ap.add_argument('--events', help='event size (um): WP6c local repair before the update, as in the hook')
     a = ap.parse_args()
     binary = str(Path(a.core_build).resolve() / 'core_update')
 
     def one(f):
-        cmd = [binary, str(f), '/dev/null', '--float'] + (['--reference', a.reference] if a.reference else [])
+        cmd = [binary, str(f), '/dev/null', '--float'] + (['--reference', a.reference] if a.reference else []) + \
+              (['--events', a.events, '--box'] if a.events else [])
         r = subprocess.run(cmd, capture_output=True, text=True)
         status = {}
         for line in r.stdout.splitlines():

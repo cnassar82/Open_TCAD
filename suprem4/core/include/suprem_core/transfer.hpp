@@ -65,7 +65,10 @@ void transfer_fields(const Mesh &old, Mesh &neu, TransferReport &rep, bool resto
 // restored by one factor per material and species applied only to the nodes
 // at changed points (inserted points and vertices of new triangles), so all
 // other nodes keep their old values bit for bit.
-void update_fields(const Mesh &old, Mesh &neu, const std::vector<char> &changed_point, TransferReport &rep);
+// box: restore the box-volume (mixed Voronoi, SUPREM's own) inventory
+// instead of the P1 lumped one; max_rel_final is then in that measure.
+void update_fields(const Mesh &old, Mesh &neu, const std::vector<char> &changed_point, TransferReport &rep,
+                   bool box = false);
 
 // Round-trip profile error: interpolate the new mesh back onto the old
 // nodes; per conserved species, the volume-weighted L1 error relative to

@@ -60,9 +60,40 @@ struct RepairEvent {
     int to = 0;            // material it went to (GAS = removed)
     double area = 0;       // um^2
     Point at;              // a point of the piece
+    std::vector<std::vector<Point>> piece;   // the piece itself (loops, nonzero winding; um)
 };
 
 std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairOptions &o);
+
+// WP6c: the events applied to the mesh itself, locally.  thin / crumb
+// pieces: the triangles whose centroid lies in the piece change to the
+// receiving material (or are removed when it goes to the ambient); gap /
+// cavity pieces: a constrained triangulation of the boundary points around
+// the piece, and its triangles inside the piece join the receiving material.
+// No point is moved; the only points created are the mouths of gap pieces on
+// the boundary edges (so that the fill fits the piece); everything outside
+// the pieces is unchanged.
+// Node values of new (point, material) pairs are copies from the point's
+// other nodes (the caller transfers the fields from the original mesh).
+struct LocalRepairReport {
+    int relabeled = 0, removed = 0, filled = 0, dropped_points = 0, split = 0;
+    int contacts = 0;            // zipper operations closing surfaces closer than delta/2
+    int needles = 0;             // triangles of sub-delta/8 needles given to their neighbour (also without events)
+    std::vector<int> origin;     // per point of the result: point of the input (-1: split point at a gap mouth)
+    std::vector<char> touched;   // per point of the result: vertex of a changed triangle
+    std::vector<std::string> notes;
+};
+// Returns false (m unchanged) when an event cannot be applied locally;
+// true with nothing changed when every piece is below the mesh scale.
+// delta: event size (um); a fan smaller than delta^2 left touching its region at
+// one point goes to its neighbour material.
+bool local_event_repair(Mesh &m, const std::vector<RepairEvent> &ev, LocalRepairReport &rep, double delta = 1e-3);
+// Detection (mesh_shapes_union + repair_shapes) and local repair, repeated
+// until no event is left (at most `rounds` times): pieces of a piece that
+// were below the mesh scale in one round can be resolved in the next.
+// origin / touched refer to the input mesh; events: all events seen.
+bool apply_events_locally(Mesh &m, const RepairOptions &o, LocalRepairReport &rep, std::vector<RepairEvent> *events = nullptr,
+                          int rounds = 3);
 
 // Before a regeneration: fill every ambient slit narrower than delta that is
 // bounded by material along its length, including those below the

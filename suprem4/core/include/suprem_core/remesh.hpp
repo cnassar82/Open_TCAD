@@ -103,6 +103,8 @@ struct UpdateOptions {
     double min_split_length = 1e-5;   // um; encroachment splits also stop at hmin (features below it are events)
     bool float_cm_grid = false;    // inserted points on SUPREM's float cm grid
     bool timing = false;           // stage times as notes
+    bool keep_triangles = true;    // old triangles stay unless something changed there ...
+    double keep_coupling = -0.01;  // ... or one of their edges has a coupling (cot sum / 2) below this
 };
 
 struct UpdateReport {

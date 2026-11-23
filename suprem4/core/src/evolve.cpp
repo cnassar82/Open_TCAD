@@ -230,7 +230,7 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
                 kv.second = Difference(kv.second, piece, FillRule::NonZero);
                 if (best != GAS) mat[best] = Union(mat[best], piece, FillRule::NonZero);
                 moved = Union(moved, piece, FillRule::NonZero);
-                ev.push_back({"thin", kv.first, best, area(piece), any_point(piece)});
+                ev.push_back({"thin", kv.first, best, area(piece), any_point(piece), [&]() { std::vector<std::vector<Point>> L; for (const Path64 &q : piece) { std::vector<Point> l; for (const Point64 &x : q) l.push_back(from64(x)); L.push_back(l); } return L; }()});
             }
         }
         // crumbs: whole connected components narrower than d/8 everywhere
@@ -250,7 +250,7 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
                 kv.second = Difference(kv.second, piece, FillRule::NonZero);
                 if (best != GAS) mat[best] = Union(mat[best], piece, FillRule::NonZero);
                 moved = Union(moved, piece, FillRule::NonZero);
-                ev.push_back({"crumb", kv.first, best, area(piece), any_point(piece)});
+                ev.push_back({"crumb", kv.first, best, area(piece), any_point(piece), [&]() { std::vector<std::vector<Point>> L; for (const Path64 &q : piece) { std::vector<Point> l; for (const Point64 &x : q) l.push_back(from64(x)); L.push_back(l); } return L; }()});
             }
         }
         // ambient gaps and enclosed cavities
@@ -273,7 +273,7 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
             for (auto &other : mat)
                 if (other.first != best) other.second = Difference(other.second, piece, FillRule::NonZero);
             moved = Union(moved, piece, FillRule::NonZero);
-            ev.push_back({kind, GAS, best, area(piece), any_point(piece)});
+            ev.push_back({kind, GAS, best, area(piece), any_point(piece), [&]() { std::vector<std::vector<Point>> L; for (const Path64 &q : piece) { std::vector<Point> l; for (const Point64 &x : q) l.push_back(from64(x)); L.push_back(l); } return L; }()});
         }
         if (ev.size() == before) break;
     }

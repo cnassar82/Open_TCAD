@@ -209,6 +209,29 @@ int mesh_trial_move(double dt, int *bad_triangle)
                     fprintf(stderr," p%d=(%.6f,%.6f nn=%d surf=%d v %.2e,%.2e)",q,1e4*pt[q]->cord[0],1e4*pt[q]->cord[1],pt[q]->nn,is_surf(q)?1:0,pt[q]->vel[0],pt[q]->vel[1]);}
             }
             fprintf(stderr,"\n");
+            if(t>=0 && t<ne) {   /* the partner of the failing pair (brute force, trace only) */
+                float (*xy)[3]=calloc((size_t)np,sizeof(*xy));
+                int p2,u,bad2,q;
+                struct embedding_triangle two[2];
+                for(p2=0;xy && p2<np;p2++)for(q=0;q<2;q++)xy[p2][q]=moved_coordinate(p2,q,dt);
+                for(u=0;xy && u<ne;u++) {
+                    if(u==t || dead_tri(u) || !leaf(tri[u]))continue;
+                    memset(two,0,sizeof two);
+                    for(j=0;j<3;j++) {
+                        two[0].vertex[j]=pt_nd(vert_tri(t,j)); if(tri[t]->nb[(j+2)%3]<0)two[0].boundary|=1<<j;
+                        two[1].vertex[j]=pt_nd(vert_tri(u,j)); if(tri[u]->nb[(j+2)%3]<0)two[1].boundary|=1<<j;
+                    }
+                    two[0].identity=t; two[1].identity=u;
+                    if(!mesh_embedding_check((const float (*)[3])xy,2,two,&bad2)) {
+                        fprintf(stderr,"[motion-reason]   partner tri=%d mat=%d",u,mat_reg(reg_tri(u)));
+                        for(j=0;j<3;j++){q=pt_nd(vert_tri(u,j));
+                            fprintf(stderr," p%d=(%.9f,%.9f -> %.9f,%.9f v %.2e,%.2e)",q,1e4*pt[q]->cord[0],1e4*pt[q]->cord[1],
+                                    1e4*xy[q][0],1e4*xy[q][1],pt[q]->vel[0],pt[q]->vel[1]);}
+                        fprintf(stderr,"\n");
+                    }
+                }
+                free(xy);
+            }
         }
         return 0;
     }

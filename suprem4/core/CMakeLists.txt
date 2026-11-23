@@ -27,6 +27,7 @@ add_library(suprem_core STATIC
   src/remesh.cpp
   src/transfer.cpp
   src/evolve.cpp
+  src/local_repair.cpp
   src/capi.cpp
   src/suprem_check.cpp
   ${CLIPPER2_DIR}/src/clipper.engine.cpp

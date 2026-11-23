@@ -124,7 +124,7 @@ int geometry_core_step(void)
 	    nd[i]->sol[MAXIMP - 5] = nd[i]->sol[xv];
 	    nd[i]->sol[MAXIMP - 6] = nd[i]->sol[yv];
 	}
-    fprintf(stderr, "[geometry-core] call %d: mesh regenerated: %s\n", calls, msg);
+    fprintf(stderr, "[geometry-core] call %d: mesh replaced: %s\n", calls, msg);
     {   /* SUPREM's own embedding check on the reloaded mesh */
 	extern int mesh_trial_validate_embedding(double, int *);
 	int bad = -1, j;

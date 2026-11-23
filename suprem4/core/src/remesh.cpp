@@ -502,8 +502,10 @@ std::vector<std::array<int, 2>> constrained_edges(const Work &w)
     return out;
 }
 
+// extra: additional constraint edges (Geo point pairs) that do not bound
+// regions, e.g. the edges of old triangles an update keeps as they are
 Work triangulate(const Geo &g, const std::vector<int> &layer, const std::vector<char> &film, const RemeshOptions &o,
-                 RemeshReport &rep)
+                 RemeshReport &rep, const std::vector<std::array<int, 2>> *extra = nullptr)
 {
     std::vector<int> local(g.P.size(), -1);
     Work w;
@@ -531,6 +533,13 @@ Work triangulate(const Geo &g, const std::vector<int> &layer, const std::vector<
             if (a != b && fixed.insert(ukey(a, b)).second) edges.push_back(CDT::Edge(a, b));
         }
     for (int p : layer) use(p);
+    if (extra) {
+        std::unordered_set<uint64_t> seen;
+        for (auto &e : *extra) {
+            int a = use(e[0]), b = use(e[1]);
+            if (a != b && !fixed.count(ukey(a, b)) && seen.insert(ukey(a, b)).second) edges.push_back(CDT::Edge(a, b));
+        }
+    }
     CDT::Triangulation<double> cdt(CDT::VertexInsertionOrder::Auto, CDT::IntersectingConstraintEdges::NotAllowed, 0.0);
     std::vector<CDT::V2d<double>> V;
     for (const Point &p : w.P) V.push_back(CDT::V2d<double>(p.x, p.y));
@@ -693,7 +702,16 @@ bool run_mmg(Work &w, const SizeField &h, const RemeshOptions &o, RemeshReport &
 }
 
 // Lawson flips of non-Delaunay edges inside regions.
-int delaunay_flips(Work &w)
+using Triple = std::array<int, 3>;   // sorted Geo point indices of a triangle
+Triple triple_of(const Work &w, int t)
+{
+    Triple k{w.pid[w.T[t][0]], w.pid[w.T[t][1]], w.pid[w.T[t][2]]};
+    std::sort(k.begin(), k.end());
+    return k;
+}
+
+// keep: triangles (Geo triples) whose shared edges are never flipped
+int delaunay_flips(Work &w, const std::set<Triple> *keep = nullptr)
 {
     int total = 0;
     for (int pass = 0; pass < 200; ++pass) {
@@ -710,6 +728,7 @@ int delaunay_flips(Work &w)
                 if (it == dir.end()) continue;
                 int u = it->second.first;
                 if (touched[u] || w.R[u] != w.R[t]) continue;
+                if (keep && keep->count(triple_of(w, t)) && keep->count(triple_of(w, u))) continue;
                 int d = w.T[u][(it->second.second + 2) % 3];
                 double ac = angle_at(w.P[c], w.P[a], w.P[b]), ad = angle_at(w.P[d], w.P[b], w.P[a]);
                 if (ac + ad <= PI + 1e-9) continue;
@@ -1162,15 +1181,83 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
         }
     }
     lap("interior removal");
+    // 4a. old triangles kept as they are: all three points kept, no boundary
+    // edge changed by steps 1-2, and no edge with a coupling below
+    // keep_coupling (those are left to the Delaunay triangulation).  Their
+    // edges become CDT constraints, so only the rest is re-triangulated.
+    std::set<Triple> keep;
+    if (o.keep_triangles) {
+        std::vector<char> present(g.P.size(), 0);
+        std::unordered_set<uint64_t> chain;
+        for (const Canon &c : g.C)
+            for (size_t i = 0; i < c.pt.size(); ++i) {
+                present[c.pt[i]] = 1;
+                if (i + 1 < c.pt.size()) chain.insert(ukey(c.pt[i], c.pt[i + 1]));
+            }
+        for (int p : layer) present[p] = 1;
+        std::vector<char> ok(m.triangle.size(), 1);
+        auto cot = [&](int c, int a, int b) {   // cotangent of the angle at c in (c, a, b)
+            const Point &C = m.point[c], &A = m.point[a], &B = m.point[b];
+            double ux = A.x - C.x, uy = A.y - C.y, vx = B.x - C.x, vy = B.y - C.y;
+            double cr = std::fabs(ux * vy - uy * vx);
+            return cr > 0 ? (ux * vx + uy * vy) / cr : -1e300;
+        };
+        for (size_t t = 0; t < m.triangle.size(); ++t) {
+            const Triangle &tr = m.triangle[t];
+            for (int j = 0; j < 3; ++j) {
+                if (!present[tr.v[j]]) ok[t] = 0;
+                int a = tr.v[(j + 1) % 3], b = tr.v[(j + 2) % 3], nb = tr.nb[j];
+                bool boundary = nb < 0 || m.triangle[nb].region != tr.region;
+                if (boundary) {
+                    if (!chain.count(ukey(a, b))) ok[t] = 0;
+                } else if ((int)t < nb) {
+                    int d = -1;
+                    for (int v : m.triangle[nb].v)
+                        if (v != a && v != b) d = v;
+                    if (d >= 0 && 0.5 * (cot(tr.v[j], a, b) + cot(d, a, b)) < o.keep_coupling) ok[t] = ok[nb] = 0;
+                }
+            }
+        }
+        for (size_t t = 0; t < m.triangle.size(); ++t)
+            if (ok[t]) {
+                Triple k{m.triangle[t].v[0], m.triangle[t].v[1], m.triangle[t].v[2]};
+                std::sort(k.begin(), k.end());
+                keep.insert(k);
+            }
+    }
+    auto keep_edges = [&]() {
+        std::vector<std::array<int, 2>> e;
+        for (const Triple &k : keep) {
+            e.push_back({k[0], k[1]});
+            e.push_back({k[1], k[2]});
+            e.push_back({k[0], k[2]});
+        }
+        return e;
+    };
     // 4. triangulation; interior edges longer than long_edge x h get their midpoint
     RemeshOptions ro;
     Work w;
     for (int round = 0;; ++round) {
         std::vector<char> film(g.P.size(), 0);
-        w = triangulate(g, layer, film, ro, rr);
+        if (keep.empty()) {
+            w = triangulate(g, layer, film, ro, rr);
+        } else {
+            auto ke = keep_edges();
+            try {
+                w = triangulate(g, layer, film, ro, rr, &ke);
+            } catch (const std::exception &e) {   // e.g. a new chain chord crosses a kept edge
+                rep.notes.push_back(std::string("kept triangles released (") + e.what() + ")");
+                keep.clear();
+                w = triangulate(g, layer, film, ro, rr);
+            }
+        }
         if (round >= o.rounds) break;
         std::unordered_set<uint64_t> con;
         for (auto &e : constrained_edges(w)) con.insert(ukey(e[0], e[1]));
+        std::unordered_map<uint64_t, int> dirw;   // directed edge -> triangle on its left
+        if (!keep.empty())
+            for (int t = 0; t < (int)w.T.size(); ++t)
+                for (int k = 0; k < 3; ++k) dirw[dkey(w.T[t][k], w.T[t][(k + 1) % 3])] = t;
         int added = 0;
         std::unordered_set<uint64_t> split_edge;
         for (int t = 0; t < (int)w.T.size(); ++t) {
@@ -1193,6 +1280,11 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
             bool clear = true;
             for (int j = 0; j < 3; ++j) clear = clear && dist(x, w.P[w.T[t][j]]) >= o.near * fine(x, w.R[t]);
             if (!clear) continue;
+            if (!keep.empty()) {   // the triangles the point goes into are re-triangulated
+                keep.erase(triple_of(w, t));
+                if (!con.count(ukey(a, bb)))
+                    if (auto it = dirw.find(dkey(bb, a)); it != dirw.end()) keep.erase(triple_of(w, it->second));
+            }
             g.P.push_back(x);
             layer.push_back((int)g.P.size() - 1);
             ++added;
@@ -1225,7 +1317,7 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
             int n = split_encroached(w, g, o.encroach_angle, std::max(o.min_split_length, o.hmin), allow);
             if (!n) break;
             rep.encroach_splits += n;
-            rep.flips += delaunay_flips(w);
+            rep.flips += delaunay_flips(w, keep.empty() ? nullptr : &keep);
         }
         if (rep.encroach_splits >= budget) rep.notes.push_back("encroachment split budget reached");
     }

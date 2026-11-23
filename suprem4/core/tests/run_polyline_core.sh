@@ -20,10 +20,10 @@ run() {
 }
 for k in base coarse dry1000_120 narrow025 wet900_20 wide080; do run $k & done
 wait
-printf '%-12s %10s %7s %6s %6s  %s\n' deck t_reached_s points regen reject result
+printf '%-12s %10s %7s %6s %6s %6s  %s\n' deck t_reached_s points update regen reject result
 for k in base coarse dry1000_120 narrow025 wet900_20 wide080; do
   L=$OUT/$k/log
   t=$(grep Solving "$L" | tail -n 1 | awk '{print $6}'); np=$(grep Solving "$L" | tail -n 1 | awk '{print $NF}')
   r=$( [ -f "$OUT/$k/after.str" ] && echo COMPLETED || (grep -h "panic\|ERROR" "$L" | head -n 1 | cut -c1-60) )
-  printf '%-12s %10s %7s %6s %6s  %s\n' $k "${t%,}" "$np" "$(grep -c regenerated "$L")" "$(grep -c continuing "$L")" "$r"
+  printf '%-12s %10s %7s %6s %6s %6s  %s\n' $k "${t%,}" "$np" "$(grep -c 'replaced: update' "$L")" "$(grep -c 'regenerated' "$L")" "$(grep -c continuing "$L")" "$r"
 done
