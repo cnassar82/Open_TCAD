@@ -1,7 +1,7 @@
 // WP5: boundary motion, geometric events and repair.
 //
 // Geometry is represented per material as polygons on an exact integer grid
-// (Clipper2, 1e-7 um).  Events are found by morphology with the event size
+// (Clipper2, 1e-6 um).  Events are found by morphology with the event size
 // delta (default 1 nm):
 //   thin    part of a consumed-material region narrower than delta (opening;
 //           protected growing materials such as oxide are exempt)
@@ -16,7 +16,8 @@
 // The repaired polygons are turned back into a mesh: planar straight-line
 // graph of all polygon edges (T-junctions split, crossings resolved by the
 // CDT), triangles labelled by point in polygon, regions = connected
-// components per material, then the WP3 remesh with the previous mesh's size
+// components per material (cut to be simply connected: SUPREM regions have
+// one boundary loop), then the WP3 remesh with the previous mesh's size
 // field and the WP4 field transfer.
 #pragma once
 #include <functional>
@@ -62,6 +63,15 @@ struct RepairEvent {
 };
 
 std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairOptions &o);
+
+// Before a regeneration: fill every ambient slit narrower than delta that is
+// bounded by material along its length, including those below the
+// significance filter (no event: e.g. a sub-grid slit left between two
+// surfaces, which SUPREM's float coordinates would close by motion), and
+// give needles of any material narrower than delta/8 (folded-back spikes) to
+// their neighbour.
+// Returns the number of pieces resolved.
+int clean_shapes(std::vector<Shape> &shapes, const RepairOptions &o);
 
 // Mesh of the shapes: metadata and species from `reference`, node values zero.
 // size: target sizes (nullptr: from the coarse mesh itself).

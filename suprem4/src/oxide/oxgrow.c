@@ -16,6 +16,7 @@
 /*   oxgrow.c                Version 5.1     */
 /*   Last Modification : 7/3/91 10:52:33 */
 #include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
 #include <sys/times.h>
 
@@ -57,6 +58,11 @@ oxgrow (temp, ornt, oxhow, dt )
     oxide_vel (temp, ornt, oxhow, *dt);
     mesh_embedding_trace("oxide velocities");
 
+    /* With the geometry core active it owns the topology: SUPREM's own loop
+     * removal, node insertion and node removal are not used. */
+    { extern int geometry_core_enabled(void);
+    if (!geometry_core_enabled()) {
+
     /* Check for boundary loops */
     /* Before grid_add to clean up boundary before decorating with new nodes*/
     if(DetectLoop())
@@ -67,9 +73,54 @@ oxgrow (temp, ornt, oxhow, dt )
     if (grid_add(*dt))
 	UpdateSymbolic++;
     mesh_embedding_trace("grid_add");
+    } }
 
     /* Make a pointwise velocity list: do this AFTER np has been bumped */
     point_vel( );
+
+    /* Geometry core: no triangle may lose more than half its area within
+     * the step (predicted from the point velocities); when that limit is far
+     * below the step SUPREM wanted, the core regenerates the squeezed
+     * elements at the next step instead of the step collapsing. */
+    { extern int geometry_core_enabled(void); extern void geometry_core_request(void);
+      if (geometry_core_enabled()) {
+	  double want = *dt, lim = *dt, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, a, b, c, A0, s, t, disc;
+	  int ie;
+	  for (ie = 0; ie < ne; ie++) {
+	      if (dead_tri(ie)) continue;
+	      x0 = xcord(pt_nd(vert_tri(ie,0))); y0 = ycord(pt_nd(vert_tri(ie,0)));
+	      x1 = xcord(pt_nd(vert_tri(ie,1))); y1 = ycord(pt_nd(vert_tri(ie,1)));
+	      x2 = xcord(pt_nd(vert_tri(ie,2))); y2 = ycord(pt_nd(vert_tri(ie,2)));
+	      u0 = pt[pt_nd(vert_tri(ie,0))]->vel[0]; v0 = pt[pt_nd(vert_tri(ie,0))]->vel[1];
+	      u1 = pt[pt_nd(vert_tri(ie,1))]->vel[0]; v1 = pt[pt_nd(vert_tri(ie,1))]->vel[1];
+	      u2 = pt[pt_nd(vert_tri(ie,2))]->vel[0]; v2 = pt[pt_nd(vert_tri(ie,2))]->vel[1];
+	      /* doubled signed area A(t) = A0 + b t + a t^2 */
+	      A0 = (x1-x0)*(y2-y0) - (y1-y0)*(x2-x0);
+	      b = (u1-u0)*(y2-y0) + (x1-x0)*(v2-v0) - (v1-v0)*(x2-x0) - (y1-y0)*(u2-u0);
+	      a = (u1-u0)*(v2-v0) - (v1-v0)*(u2-u0);
+	      if (A0 == 0) continue;
+	      s = (A0 > 0) ? 1 : -1;	/* SUPREM's orientation convention */
+	      /* smallest t > 0 with s*A(t) = 0.5*s*A0:  a t^2 + b t + 0.5 A0 = 0 */
+	      c = 0.5 * A0;
+	      t = HUGE_VAL;
+	      if (a == 0) { if (b != 0 && -c / b > 0) t = -c / b; }
+	      else {
+		  disc = b*b - 4*a*c;
+		  if (disc >= 0) {
+		      double r1 = (-b - sqrt(disc)) / (2*a), r2 = (-b + sqrt(disc)) / (2*a);
+		      if (r1 > 0) t = r1;
+		      if (r2 > 0 && r2 < t) t = r2;
+		  }
+	      }
+	      (void)s;
+	      if (t < lim) lim = t;
+	  }
+	  if (lim < *dt) *dt = lim;
+	  if (lim < 0.2 * want) geometry_core_request();
+	  { extern double geometry_core_collision_dt(double); *dt = geometry_core_collision_dt(*dt); }
+	  if (getenv("SUPREM4_CORE_SPEED_DIAG"))
+	      fprintf(stderr, "[core-area-limit] dt %.3e -> %.3e%s\n", want, *dt, lim < 0.2 * want ? " (regeneration requested)" : "");
+      } }
 
     /* A nonlinear vertical map must sample neighboring constraints
      * consistently before testing volume-element motion. */
@@ -98,6 +149,12 @@ oxgrow (temp, ornt, oxhow, dt )
       if (geometry_core_enabled()) {
 	  const char *e = getenv("SUPREM4_CORE_DELTA");
 	  double delta = 1e-4 * ((e && *e) ? atof(e) : 1e-3), v = oxide_repair_max_speed(), lim;
+	  if (getenv("SUPREM4_CORE_SPEED_DIAG")) {
+	      int p, pm = -1; double vm = 0, s2;
+	      for (p = 0; p < np; p++) if (!dead_pt(p)) { s2 = hypot(pt[p]->vel[0], pt[p]->vel[1]); if (s2 > vm) { vm = s2; pm = p; } }
+	      if (pm >= 0) fprintf(stderr, "[core-speed] vmax %.3e um/s at (%.4f, %.4f), dt %.3e -> %.3e\n", 1e4 * vm,
+				   1e4 * xcord(pm), 1e4 * ycord(pm), *dt, (v > 0 && *dt > 0.25 * delta / v) ? 0.25 * delta / v : *dt);
+	  }
 	  if (v > 0 && *dt > (lim = 0.25 * delta / v)) *dt = lim;
       } }
 
@@ -105,7 +162,7 @@ oxgrow (temp, ornt, oxhow, dt )
     back_pedal( dt );
 
     /* Mark nodes for later removal */
-    ChooseKillNodes( *dt);
+    { extern int geometry_core_enabled(void); if (!geometry_core_enabled()) ChooseKillNodes( *dt); }
 
     /* some barfola statistics */
     times(&after);

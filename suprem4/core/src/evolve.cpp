@@ -23,7 +23,10 @@ namespace suprem_core {
 namespace {
 
 using namespace Clipper2Lib;
-constexpr double S = 1e7;   // grid units per um (1e-7 um = 0.001 A)
+// Integer grid: 1e-6 um.  Coarser than SUPREM's float coordinates (~7e-8 um
+// at device scale), so converting a result to SUPREM's floats can never move a
+// vertex across an edge.
+constexpr double S = 1e6;   // grid units per um
 
 Point64 to64(const Point &p) { return Point64((int64_t)std::llround(p.x * S), (int64_t)std::llround(p.y * S)); }
 Point from64(const Point64 &p) { return {p.x / S, p.y / S}; }
@@ -46,11 +49,16 @@ Paths64 open_(const Paths64 &a, double r)
                         EndType::Polygon, 10.0);
 }
 
-// Pieces that are real (wider than about d/8), not offset-rounding slivers.
+// Pieces that are real (wider than about d/8 somewhere), not offset-rounding
+// slivers.  A real piece keeps all of its connected thin region within d/4,
+// including the narrowest part (the tip of a closing wedge), which would
+// otherwise stay behind and close by motion alone.
 Paths64 significant(const Paths64 &a, double d)
 {
     if (a.empty()) return a;
-    return Intersect(open_(a, d / 16), a, FillRule::NonZero);
+    Paths64 core = Intersect(open_(a, d / 16), a, FillRule::NonZero);
+    if (core.empty()) return core;
+    return Intersect(a, InflatePaths(core, d / 4, JoinType::Miter, EndType::Polygon, 10.0), FillRule::NonZero);
 }
 
 double area(const Paths64 &a) { return std::fabs(Area(a)) / (S * S); }
@@ -285,9 +293,140 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
     return ev;
 }
 
-Mesh mesh_from_shapes(const std::vector<Shape> &shapes, const Mesh &reference, const BoundaryCode &code,
+int clean_shapes(std::vector<Shape> &shapes, const RepairOptions &o)
+{
+    std::map<int, Paths64> mat;
+    for (const Shape &sh : shapes) {
+        Paths64 p = shape_paths(sh);
+        mat[sh.material].insert(mat[sh.material].end(), p.begin(), p.end());
+    }
+    for (auto &kv : mat) kv.second = Union(kv.second, FillRule::NonZero);
+    const double d = o.delta * S;
+    auto solid = [&]() {
+        Paths64 all;
+        for (auto &kv : mat) all.insert(all.end(), kv.second.begin(), kv.second.end());
+        return Union(all, FillRule::NonZero);
+    };
+    Rect64 bb = GetBounds(solid());
+    const int64_t margin = (int64_t)(20 * d) + 10;
+    Path64 box{Point64(bb.left - margin, bb.top - margin), Point64(bb.right + margin, bb.top - margin),
+               Point64(bb.right + margin, bb.bottom + margin), Point64(bb.left - margin, bb.bottom + margin)};
+    auto touches = [&](const Paths64 &piece, const Paths64 &other) {
+        return !other.empty() && !Intersect(InflatePaths(piece, 2.0, JoinType::Miter, EndType::Polygon, 10.0), other,
+                                            FillRule::NonZero).empty();
+    };
+    auto rank = [&](int m) {
+        auto it = std::find(o.fill_priority.begin(), o.fill_priority.end(), m);
+        return it == o.fill_priority.end() ? (int)o.fill_priority.size() : (int)(it - o.fill_priority.begin());
+    };
+    int n = 0;
+    // ambient slits narrower than delta, including sub-grid ones that are no
+    // event.  A slit is bounded by material along its length; the rounding
+    // slivers of the opening along a slanted boundary have the open ambient
+    // on one side and are left alone.
+    Paths64 gas = Difference(Paths64{box}, solid(), FillRule::NonZero);
+    Paths64 open_gas = open_(gas, d / 2), all = solid();
+    auto contact = [&](const Paths64 &piece, const Paths64 &other) {
+        return other.empty() ? 0.0 : area(Intersect(InflatePaths(piece, 2.0, JoinType::Miter, EndType::Polygon, 10.0), other,
+                                                    FillRule::NonZero));
+    };
+    for (const Paths64 &piece : pieces(Difference(gas, open_gas, FillRule::NonZero))) {
+        if (contact(piece, all) < 3 * contact(piece, open_gas)) continue;
+        int best = GAS, br = 1 << 30;
+        for (auto &other : mat)
+            if (touches(piece, other.second) && rank(other.first) < br) { br = rank(other.first); best = other.first; }
+        if (best == GAS) continue;
+        mat[best] = Union(mat[best], piece, FillRule::NonZero);
+        for (auto &other : mat)
+            if (other.first != best) other.second = Difference(other.second, piece, FillRule::NonZero);
+        ++n;
+    }
+    // needles: parts of any material (protected ones included) narrower than
+    // delta/8; a film that thin is no film but geometric debris (e.g. a
+    // folded-back spike), which SUPREM's float coordinates turn into a contact
+    for (auto &kv : mat) {
+        Paths64 raw = Difference(kv.second, open_(kv.second, d / 16), FillRule::NonZero);
+        for (const Paths64 &piece : pieces(raw)) {
+            // a needle sticks out (own material only at its base); a rounding
+            // sliver lies along its own material and is left alone
+            Paths64 rest = Difference(kv.second, piece, FillRule::NonZero);
+            double own = contact(piece, rest), foreign = contact(piece, gas);
+            for (auto &other : mat)
+                if (other.first != kv.first) foreign += contact(piece, other.second);
+            if (own >= 0.25 * foreign) continue;
+            int best = GAS;
+            double bs = contact(piece, gas);
+            for (auto &other : mat) {
+                if (other.first == kv.first) continue;
+                double c = contact(piece, other.second);
+                if (c > bs) { bs = c; best = other.first; }
+            }
+            kv.second = Difference(kv.second, piece, FillRule::NonZero);
+            if (best != GAS) mat[best] = Union(mat[best], piece, FillRule::NonZero);
+            ++n;
+        }
+    }
+    if (!n) return 0;
+    shapes.clear();
+    for (auto &kv : mat)
+        for (const Paths64 &piece : pieces(kv.second)) {
+            Shape sh;
+            sh.material = kv.first;
+            for (const Path64 &p : piece) {
+                std::vector<Point> l;
+                for (const Point64 &q : p) l.push_back(from64(q));
+                if (l.size() >= 3) sh.loops.push_back(l);
+            }
+            if (!sh.loops.empty()) shapes.push_back(sh);
+        }
+    return n;
+}
+
+// SUPREM regions are simply connected (one boundary loop): a shape with holes
+// is cut horizontally through a hole, in the widest vertex-free band of the
+// hole's height, until every piece is simple (both sides share the cut).
+std::vector<Shape> simple_shapes(const std::vector<Shape> &in)
+{
+    std::vector<Shape> out;
+    const int64_t big = (int64_t)4e15;
+    for (const Shape &sh : in) {
+        std::vector<Paths64> work(1, Union(shape_paths(sh), FillRule::NonZero));
+        int guard = 0;
+        while (!work.empty() && guard++ < 1000) {
+            Paths64 cur = work.back();
+            work.pop_back();
+            for (const Paths64 &piece : pieces(cur)) {
+                if (piece.size() == 1) {
+                    Shape s;
+                    s.material = sh.material;
+                    std::vector<Point> l;
+                    for (const Point64 &q : piece[0]) l.push_back(from64(q));
+                    if (l.size() >= 3) { s.loops.push_back(l); out.push_back(s); }
+                    continue;
+                }
+                Rect64 hb = GetBounds(piece[1]);
+                std::vector<int64_t> ys{hb.top, hb.bottom};
+                for (const Path64 &pp : piece)
+                    for (const Point64 &q : pp)
+                        if (q.y > hb.top && q.y < hb.bottom) ys.push_back(q.y);
+                std::sort(ys.begin(), ys.end());
+                int64_t gap = -1, yc = (hb.top + hb.bottom) / 2;
+                for (size_t g = 1; g < ys.size(); ++g)
+                    if (ys[g] - ys[g - 1] > gap) { gap = ys[g] - ys[g - 1]; yc = (ys[g] + ys[g - 1]) / 2; }
+                Paths64 upper{Path64{Point64(-big, -big), Point64(big, -big), Point64(big, yc), Point64(-big, yc)}};
+                Paths64 lower{Path64{Point64(-big, yc), Point64(big, yc), Point64(big, big), Point64(-big, big)}};
+                work.push_back(Intersect(piece, upper, FillRule::NonZero));
+                work.push_back(Intersect(piece, lower, FillRule::NonZero));
+            }
+        }
+    }
+    return out;
+}
+
+Mesh mesh_from_shapes(const std::vector<Shape> &shapes_in, const Mesh &reference, const BoundaryCode &code,
                       const SizeField *size, const RemeshOptions &o, RemeshReport &rep, std::vector<std::string> *notes)
 {
+    const std::vector<Shape> shapes = simple_shapes(shapes_in);
     // 1. planar straight-line graph on the integer grid
     std::map<std::pair<int64_t, int64_t>, int> vid;
     std::vector<Point64> V;
@@ -374,7 +513,7 @@ Mesh mesh_from_shapes(const std::vector<Shape> &shapes, const Mesh &reference, c
             if (c.x < sb[k].x0 || c.x > sb[k].x1 || c.y < sb[k].y0 || c.y > sb[k].y1) continue;
             int w = 0;
             for (const auto &l : shapes[k].loops) w += winding(l, c);
-            if (w != 0) label[t] = shapes[k].material;
+            if (w != 0) label[t] = (int)k;   // shape index (one region per shape)
         }
     }
     std::unordered_map<uint64_t, int> dir;
@@ -403,10 +542,10 @@ Mesh mesh_from_shapes(const std::vector<Shape> &shapes, const Mesh &reference, c
             if (hull || border.empty()) continue;
             int best = std::max_element(border.begin(), border.end(), [](auto &x, auto &y) { return x.second < y.second; })->first;
             for (int t : members) label[t] = best;
-            if (notes) notes->push_back("mesh_from_shapes filled an uncovered interior pocket with material " + std::to_string(best));
+            if (notes) notes->push_back("mesh_from_shapes filled an uncovered interior pocket with material " + std::to_string(shapes[best].material));
         }
     }
-    // 4. coarse mesh: regions = connected components per material
+    // 4. coarse mesh: one region per (simply connected) shape
     Mesh c;
     c.version = reference.version; c.dim = reference.dim; c.nvrt = reference.nvrt; c.nedg = reference.nedg;
     c.has_model = reference.has_model; c.orientation = reference.orientation;
@@ -418,7 +557,7 @@ Mesh mesh_from_shapes(const std::vector<Shape> &shapes, const Mesh &reference, c
     for (int s0 : keep) {
         if (region[s0] >= 0) continue;
         int r = (int)c.region_material.size();
-        c.region_material.push_back(label[s0]);
+        c.region_material.push_back(shapes[label[s0]].material);
         std::vector<int> stack{s0};
         region[s0] = r;
         while (!stack.empty()) {
@@ -491,6 +630,7 @@ void evolve(Mesh &m, const Velocity &v, double time, const EvolveOptions &o, Evo
                     o.remesh.hmin, o.remesh.hmax);
         h.adapt_to_solution(o.remesh.solution_decades);
         RemeshReport rr;
+        clean_shapes(shapes, o.repair);
         Mesh fresh = mesh_from_shapes(shapes, m, code, &h, o.remesh, rr, &rep.notes);
         TransferReport tr;
         transfer_fields(m, fresh, tr);

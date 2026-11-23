@@ -1,6 +1,6 @@
 # SUPREM geometry/mesh core (M0)
 
-Plan: `../doc/plan_m0_geometry_core.md`.  C++17, standalone of the SUPREM C code;
+Plan: `../doc/plan_m0_geometry_core.md`.  **Handoff / current state: `../doc/m0_handoff.md`.**  C++17, standalone of the SUPREM C code;
 it reads and writes SUPREM `.str` structure files.
 
 ```

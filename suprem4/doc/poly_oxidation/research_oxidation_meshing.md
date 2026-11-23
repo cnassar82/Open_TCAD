@@ -50,3 +50,37 @@ poly re-oxidation in SUPREM-IV.GS?
   a B-rep (as Sentaurus Plan B does) rather than delete and rebuild regions inside the database, which
   is where its bookkeeping failures came from.
 - Expect mesh sensitivity of the gate-edge stress/shape even when it runs.
+
+## Addendum (2026-11-22, after the WP6 integration attempts)
+Further sources:
+- Sentaurus Process User Guide (I-2013.12, A-2007.12): in **2D the mesh movement during oxidation is
+  done by the TSUPREM-4 mesh library** (Lagrangian motion + local operations); a global MGOALS remesh
+  (`grid remesh`) is *recommended after* an oxidation step, not performed every step.  Linear (default)
+  or logarithmic interpolation of dopants when MGOALS changes the mesh.
+- Synopsys patent US 9,477,798 (2016), "Moving mesh system and method for finite element/finite
+  volume simulations" (the 3D MovingMesh of SISPAD 2013):
+  - per step: reaction solve -> mechanics (per-vertex velocities; **velocity not interpolated**) ->
+    max increment keeping all elements positive -> diffusion with bulk vertices moving -> cleanup;
+  - the interface is a separate surface mesh moved with the bulk velocities; it is **repaired only when
+    triggered** (min dihedral angle < ~5 deg, local feature size below a threshold, angles > ~179 deg;
+    "only a small fraction of the time increments"), by a multi-level-set filter that "preserve[s] most
+    parts of the geometry unchanged except where the problematical features exist", then Delaunay
+    refinement of the surface;
+  - the bulk mesh is regenerated **from the moved Lagrangian points**: points move with the material,
+    points in front of an encroaching interface are removed, points are added behind a moving
+    interface; **retained vertices keep their values exactly**, only inserted vertices (and neighbours
+    of removed ones) are interpolated;
+  - dose = concentration x control volume; the volume change from motion is handled by extra flux
+    terms; segregation with values on both sides of the interface.
+
+What this says about our WP6 attempt: it regenerated the *whole* mesh from a rounded union of
+triangles, with a new point set and interpolation of *all* values, every few steps, with SUPREM's
+local operations switched off.  Every regeneration perturbed the solution and the whole boundary,
+and every SUPREM validity rule (float orientation, embedding, single-loop regions) surfaced only as a
+crash.  The production tools keep the Lagrangian points and their values, change the geometry only
+locally where a defect is detected, and regenerate globally only after the step.
+
+Sources: [Sentaurus Process UG](https://dunham.ece.uw.edu/protected/PDFManual/data/sprocess_ug.pdf),
+[Sentaurus UG I-2013.12](https://usermanual.wiki/Document/SentaurusSProcessUserGuide.519283346/html),
+[US 9,477,798](https://patents.google.com/patent/US9477798),
+[SISPAD 2013 P01](https://in4.iue.tuwien.ac.at/pdfs/sispad2013/P01.pdf).

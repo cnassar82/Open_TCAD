@@ -65,6 +65,35 @@ Order: WP0 -> WP1 -> WP2 -> WP3 -> WP4 (WP7 harness grows alongside) -> WP5 -> W
 WP1-WP4 are independent of oxidation and are useful on their own (a robust remesh command for any
 SUPREM structure, e.g. before device export).
 
+## 4b. Revision after the WP6 integration attempts (2026-11-22)
+
+Status: WP0-WP5 done (core builds, exact I/O, B-rep, remesh, transfer, evolve with events; suites pass
+on 72 SubCmos + 36 AdvCmos checkpoints).  WP6 (hook in `oxgrow`, `src/oxide/geometry_core.c`, core C
+API `capi.cpp`) runs but no poly-line deck completes (best: 145-400 s of 3060 s).  Measured facts:
+- reload-and-continue of a SUPREM structure mid-oxidation is exact (LOCOS viscous test, 1e-4);
+- SUPREM stores float cm coordinates; its validity rules (exact float orientation, global embedding
+  with boundary-contact tests, single-loop regions in `ck_clock`, gas nodes on surface/backside
+  points) must hold for every mesh it reloads;
+- whole-mesh regeneration from a rounded polygon union every few steps perturbs all values and the
+  whole boundary, and each SUPREM rule showed up only as a crash.
+
+Research (`doc/poly_oxidation/research_oxidation_meshing.md`, addendum): Sentaurus 2D moves the mesh
+with the TSUPREM-4 local operations and remeshes globally only after the oxidation step; the Synopsys
+3D MovingMesh keeps Lagrangian points and their values, repairs the boundary only where a defect is
+detected (feature size, sharp angles) and leaves the rest unchanged, and interpolates only inserted
+points.
+
+Revised WP6 (replaces the row above), in this order:
+| WP | Content | Deliverable | Effort |
+|---|---|---|---|
+| 6a | **SUPREM validity contract in the core**: exact ports of SUPREM's float orientation, embedding (`mesh_embedding.h`), single-loop region (`ck_clock`) and `mtest1` checks; every core output is checked with them and every check is cross-validated by reloading into SUPREM | `core_check_suprem` + tests on all 108 checkpoints and the failure states saved so far | 1.5 d |
+| 6b | **Lagrangian update instead of regeneration**: keep every point (and its values) by default; remove points of a consumed material within ~h/3 of an encroaching interface, add points behind a moving interface where spacing exceeds the target, Delaunay re-triangulation constrained by the B-rep; interpolate only inserted points; per-material inventory correction only around changed points | remesh mode `update`; transfer error on retained nodes exactly 0 | 2 d |
+| 6c | **Local repair**: event detection as now, but the Clipper repair and re-triangulation are confined to a window around each event; the boundary elsewhere keeps its exact vertices (no global rounding); triggers as in the patent (feature size < delta, angles < 5 / > 179 deg) | events change geometry only inside their window | 1.5 d |
+| 6d | **Hook policy**: SUPREM keeps its motion; the core runs the 6b update after each step (replacing `grid_add` / `ChooseKillNodes`), 6c only on triggers, and a full regeneration (WP3) only at the end of an oxidation step or as a fallback; step limits as now (area loss, collision prediction) | poly-line base deck completes; LOCOS deck matches the SUPREM baseline | 2 d |
+| 6e | (parallel, cheap) **SUPREM's own local operations**: interface short-edge removal and a per-step growth cap (the two operations TSUPREM-4/Sentaurus use and SUPREM-IV lacks, research note item 1), so that the core is the fallback, not the only path | poly-line matrix with core off | 2 d |
+
+Go/no-go is unchanged (section 5); WP8 additionally reports which of 6d / 6e made the decks pass.
+
 ## 5. Acceptance criteria (go/no-go)
 1. All six poly-line decks (`doc/poly_oxidation/test_decks`) complete, plus 50 randomized variants.
 2. Physics agrees with the validated compress results: consumption = 0.44 x oxide on every face

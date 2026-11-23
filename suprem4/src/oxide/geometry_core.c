@@ -6,6 +6,10 @@
  * (build_native64.py --geometry-core); otherwise this is a no-op, so builds
  * and runs without it are unchanged.
  *
+ * While active the core owns the topology: oxgrow skips SUPREM's DetectLoop,
+ * grid_add and ChooseKillNodes; SUPREM still moves the points inside its
+ * moving-mesh time step.
+ *
  * At the start of every oxidation step the current structure is written,
  * the core checks it for geometric events (thin / crumb / gap / cavity of
  * size SUPREM4_CORE_DELTA um, default 1 nm) and for broken box-method
@@ -28,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include "suprem_options.h"
 #include "global.h"
 #include "constant.h"
@@ -46,6 +51,10 @@ static double env_double(const char *name, double dflt)
     const char *v = getenv(name);
     return (v && *v) ? atof(v) : dflt;
 }
+
+static int requested = 0;
+/* Ask for a regeneration at the next step (elements about to be squeezed). */
+void geometry_core_request(void) { requested = 1; }
 
 int geometry_core_enabled(void)
 {
@@ -75,6 +84,7 @@ int geometry_core_step(void)
 	int every = (int)env_double("SUPREM4_CORE_EVERY", 0);
 	if (every > 0 && calls % every == 0) force = 1;
     }
+    if (requested) { force = 1; requested = 0; }
     calls++;
     if (ig2_write(in, 0, 1.0) < 0) {
 	fprintf(stderr, "[geometry-core] cannot write %s\n", in);
@@ -115,5 +125,91 @@ int geometry_core_step(void)
 	    nd[i]->sol[MAXIMP - 6] = nd[i]->sol[yv];
 	}
     fprintf(stderr, "[geometry-core] call %d: mesh regenerated: %s\n", calls, msg);
+    {   /* SUPREM's own embedding check on the reloaded mesh */
+	extern int mesh_trial_validate_embedding(double, int *);
+	int bad = -1, j;
+	if (!mesh_trial_validate_embedding(0.0, &bad)) {
+	    fprintf(stderr, "[geometry-core] call %d: reloaded mesh FAILS SUPREM embedding check at triangle %d", calls, bad);
+	    if (bad >= 0 && bad < ne)
+		for (j = 0; j < 3; j++) fprintf(stderr, " (%.7f,%.7f)", 1e4 * xcord(pt_nd(vert_tri(bad, j))), 1e4 * ycord(pt_nd(vert_tri(bad, j))));
+	    fprintf(stderr, "\n");
+	    if (getenv("SUPREM4_CORE_KEEP_BAD")) ig2_write("core_embedding_fail.str", 0, 1.0);
+	}
+    }
     return 1;
+}
+
+/* Continuous collision limit (core-owned geometry): for every exposed
+ * boundary vertex p and exposed edge (a,b) not attached to p, the clearance
+ * d0 = dist(p, ab) may shrink by at most half within the step under the
+ * current point velocities.  Approaching surfaces therefore never touch: they
+ * converge until the clearance is below delta, where the core's gap event
+ * merges them.  Pairs already closer than delta/2 are left to the core
+ * (a regeneration is requested).  Returns the limited step. */
+double geometry_core_collision_dt(double dt)
+{
+    const char *e = getenv("SUPREM4_CORE_DELTA");
+    double delta = 1e-4 * ((e && *e) ? atof(e) : 1e-3);   /* cm */
+    int t, j, ne_x = 0, i, k, close = 0;
+    int (*edge)[2];
+    double lim = dt, vmax = 0, reach;
+    if (!geometry_core_enabled() || dt <= 0) return dt;
+    edge = malloc(sizeof(*edge) * (size_t)(3 * ne + 1));
+    if (!edge) return dt;
+    for (t = 0; t < ne; t++) {
+	if (dead_tri(t)) continue;
+	for (j = 0; j < 3; j++)
+	    if (tri[t]->nb[j] == EXPOSED) {
+		edge[ne_x][0] = pt_nd(vert_tri(t, (j + 1) % 3));
+		edge[ne_x][1] = pt_nd(vert_tri(t, (j + 2) % 3));
+		ne_x++;
+	    }
+    }
+    for (i = 0; i < ne_x; i++)
+	for (k = 0; k < 2; k++) {
+	    int p = edge[i][k];
+	    double v = hypot(pt[p]->vel[0], pt[p]->vel[1]);
+	    if (v > vmax) vmax = v;
+	}
+    reach = 2 * vmax * dt + 4 * delta;   /* pairs farther apart cannot matter */
+    for (i = 0; i < ne_x; i++) {
+	int a = edge[i][0], b = edge[i][1];
+	double ax = xcord(a), ay = ycord(a), bx = xcord(b), by = ycord(b);
+	double ex = bx - ax, ey = by - ay, l2 = ex * ex + ey * ey;
+	double x0 = fmin(ax, bx) - reach, x1 = fmax(ax, bx) + reach, y0 = fmin(ay, by) - reach, y1 = fmax(ay, by) + reach;
+	if (l2 <= 0) continue;
+	for (j = 0; j < ne_x; j++)
+	    for (k = 0; k < 2; k++) {
+		int p = edge[j][k];
+		double px, py, u, qx, qy, d0, nx, ny, vqx, vqy, closing, tp;
+		if (p == a || p == b) continue;
+		px = xcord(p); py = ycord(p);
+		if (px < x0 || px > x1 || py < y0 || py > y1) continue;
+		u = ((px - ax) * ex + (py - ay) * ey) / l2;
+		/* the nearest point is an endpoint joined to p by an edge: a corner, not an approach */
+		if (u <= 0 || u >= 1) {
+		    int q = (u <= 0) ? a : b, m, joined = 0;
+		    for (m = 0; m < ne_x && !joined; m++)
+			joined = (edge[m][0] == p && edge[m][1] == q) || (edge[m][0] == q && edge[m][1] == p);
+		    if (joined) continue;
+		    u = (u <= 0) ? 0 : 1;
+		}
+		qx = ax + u * ex; qy = ay + u * ey;
+		d0 = hypot(px - qx, py - qy);
+		if (d0 <= 0 || d0 > reach) continue;
+		if (d0 < 0.5 * delta) { close++; continue; }
+		nx = (px - qx) / d0; ny = (py - qy) / d0;
+		vqx = (1 - u) * pt[a]->vel[0] + u * pt[b]->vel[0];
+		vqy = (1 - u) * pt[a]->vel[1] + u * pt[b]->vel[1];
+		closing = -((pt[p]->vel[0] - vqx) * nx + (pt[p]->vel[1] - vqy) * ny);
+		if (closing <= 0) continue;
+		tp = 0.5 * d0 / closing;
+		if (tp < lim) lim = tp;
+	    }
+    }
+    free(edge);
+    if (lim < 0.2 * dt || close) geometry_core_request();
+    if (getenv("SUPREM4_CORE_SPEED_DIAG"))
+	fprintf(stderr, "[core-collision] dt %.3e -> %.3e, %d pairs closer than delta/2\n", dt, lim, close);
+    return lim;
 }
