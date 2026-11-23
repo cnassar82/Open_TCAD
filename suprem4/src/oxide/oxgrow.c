@@ -17,6 +17,11 @@
 /*   Last Modification : 7/3/91 10:52:33 */
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+/* SUPREM4_OXGROW_TIMES=1: seconds spent in each stage of an oxidation step */
+static struct timespec oxt_t0;
+#define OXT(what) do { if (getenv("SUPREM4_OXGROW_TIMES")) { struct timespec _t; clock_gettime(CLOCK_MONOTONIC, &_t); \
+	fprintf(stderr, "[oxgrow-time] %s %.2f\n", what, oxt_t0.tv_sec ? (_t.tv_sec - oxt_t0.tv_sec) + 1e-9 * (_t.tv_nsec - oxt_t0.tv_nsec) : 0.0); oxt_t0 = _t; } } while (0)
 #include <math.h>
 #include <stdio.h>
 #include <sys/times.h>
@@ -49,6 +54,7 @@ oxgrow (temp, ornt, oxhow, dt )
      * transfer for the whole structure; no-op unless SUPREM4_GEOMETRY_CORE
      * is set in a build linked with the core (oxide/geometry_core.c). */
     { extern int geometry_core_step(void); if (geometry_core_step()) UpdateSymbolic++; }
+    OXT("after core");
 
     /* Compress model: repair the oxide/poly geometry and remesh when the
      * Lagrangian motion has produced a collision, a collapse or a degenerate
@@ -57,6 +63,7 @@ oxgrow (temp, ornt, oxhow, dt )
 
     /* Compute the velocity vector using whatever oxide growth model */
     oxide_vel (temp, ornt, oxhow, *dt);
+    OXT("oxide_vel");
     mesh_embedding_trace("oxide velocities");
 
     /* With the geometry core active it owns the topology: SUPREM's own loop
@@ -78,6 +85,7 @@ oxgrow (temp, ornt, oxhow, dt )
 
     /* Make a pointwise velocity list: do this AFTER np has been bumped */
     point_vel( );
+    OXT("point_vel");
 
     /* Geometry core: no triangle may lose more than half its area within
      * the step (predicted from the point velocities); when that limit is far
@@ -163,8 +171,10 @@ oxgrow (temp, ornt, oxhow, dt )
 	  if (v > 0 && *dt > (lim = 0.25 * delta / v)) *dt = lim;
       } }
 
+    OXT("limits");
     /*cut the time step back */
     back_pedal( dt );
+    OXT("back_pedal");
 
     /* Mark nodes for later removal */
     { extern int geometry_core_enabled(void); if (!geometry_core_enabled()) ChooseKillNodes( *dt); }

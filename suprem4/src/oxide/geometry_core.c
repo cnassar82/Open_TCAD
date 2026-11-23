@@ -45,6 +45,7 @@ extern int suprem_core_oxidation_check(const char *in_path, const char *out_path
 				       double min_coupling, int force, char *msg, int msglen)
     __attribute__((weak));
 extern int ig2_read(), ig2_write();
+extern void suprem_core_set_param(const char *name, double value) __attribute__((weak));
 
 static double env_double(const char *name, double dflt)
 {
@@ -106,6 +107,7 @@ int geometry_core_step(void)
 	return 1;
     }
     msg[0] = 0;
+    if (suprem_core_set_param) suprem_core_set_param("oxide_grid_um", 1e4 * oxide_grid);
     rc = suprem_core_oxidation_check(in, out, env_double("SUPREM4_CORE_EVENT_DELTA", env_double("SUPREM4_CORE_DELTA", 1e-3)),
 				     env_double("SUPREM4_CORE_MIN_COUPLING", -0.5), force, msg, (int)sizeof msg);
     unlink(in);

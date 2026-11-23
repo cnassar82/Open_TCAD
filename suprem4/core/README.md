@@ -24,6 +24,8 @@ Third party: Mmg v5.8.0 (2D library only, LGPL-3, unmodified sources in
 | 5 | `evolve` motion, events (thin / crumb / gap / cavity), Clipper2 repair, rebuild from polygons | `core_evolve_test`: shrink, merge, slit pass |
 | 6a | `suprem_check` SUPREM validity contract (float orientation, nxtel topology, embedding, region loops, mtest1); every core output is gated by it | `tests/suprem_contract.py`: core verdict = SUPREM's own load verdict on 1429/1429 structures + 5 mutations |
 | 6b | `update_mesh` / `update_fields`: Lagrangian update (keep points and values, local removal/insertion, CDT, inventory restored on the changed points only) | `tests/update_suite.py`: 36/36 oxidation states of the base poly deck, 116/118 static structures (2 = inputs already flat in float cm) |
+| 6c | `local_event_repair` / `apply_events_locally` (`src/local_repair.cpp`): events applied to the mesh locally (relabel / remove / fill, gap mouths), sub-resolution needles, contacts (zipper), flat triangles, pinches | `update_suite.py --events 1e-3`: every dumped oxidation state of the poly decks passes (3000+) |
+| 6d | hook policy (`src/capi.cpp`): update on every call, local repair, regeneration only as a fallback; old triangles kept; oxide sizes >= `grid.oxide` | **all six poly-line decks complete** (0 regenerations, 4-11 min each); LOCOS field oxidation (viscous and compress) completes and matches the core-off run |
 
 ## WP6a SUPREM validity contract (`src/suprem_check.cpp`, `tools/core_check_suprem`)
 
@@ -115,6 +117,87 @@ Results (`tests/update_suite.py`):
 
 Also fixed on the way: `SegGrid` overflowed its int cell count for zero-length
 segments (cell 1e-9 um), degrading to one cell and O(n^2) queries.
+
+## WP6c/6d hook policy and local repair
+
+Every call of `suprem_core_oxidation_check` (one per SUPREM oxidation step):
+
+1. `apply_events_locally` (repeated up to 3 rounds), on the mesh itself:
+   - events of `repair_shapes` (delta): thin / crumb pieces relabel the
+     triangles whose centroid lies in the piece (or remove them, to the
+     ambient); gap / cavity pieces are filled from a local CDT of the
+     boundary points around them, after splitting the faces at the gap mouths
+     (the only points 6c creates);
+   - below the shapes' resolution (Clipper grid 1e-6 um), on the mesh:
+     needles (two or more edges on the material's border, altitude
+     < delta/8: to the material across, monotone so it terminates),
+     contacts (an exposed vertex within delta/2 of a facing exposed edge,
+     also of its own folded surface: zipped into that edge; ambient wedges
+     with ends closer than delta/2 closed), flat triangles (altitude
+     < delta/8: removed, the triangle across split at the apex);
+   - then pinches (a region touching itself at a vertex) and detached
+     components smaller than delta^2 are resolved.
+   No point moves; everything outside the pieces is unchanged.  Pieces
+   smaller than the triangles they lie in are left until they become a
+   needle, a flat triangle or a contact.
+2. `update_mesh` on the result (6b) with the grid at the start of the
+   oxidation as reference; old triangles are kept unless something changed
+   there or one of their edges has a coupling below -0.01 (their edges are
+   CDT constraints and are not flipped).  SUPREM's force request (predicted
+   squeeze / collision) means a full Delaunay triangulation.
+3. `update_fields` from the original mesh, restoring the inventories in
+   SUPREM's box measure on the changed points.
+4. Float repair, invariants, gas nodes, the WP6a contract; nothing is
+   written when nothing changed.
+5. Fallback: full regeneration (WP3) only when the B-rep is invalid or the
+   local repair / update fails (`SUPREM4_CORE_REGENERATE=1`: old policy).
+
+On the SUPREM side the global delta/4 speed cap is off by default
+(`SUPREM4_CORE_SPEED_LIMIT=1`): it throttled LOCOS to ~1 s steps; the
+collision prediction (relative velocities, pairs closer than delta/2 left
+to the core) and the area-halving limit remain.
+
+Findings that shaped this:
+- re-triangulating the whole mesh every call (CDT of SUPREM's moved,
+  non-Delaunay mesh: ~25 % new triangles) made the viscous stress solve
+  fail after ~30 calls; keeping the old triangles fixed it;
+- every poly-deck failure after 6d was at the poly corners (gate-oxide /
+  sidewall wedge, poly top cusp): full regeneration there left couplings of
+  -4 to -800 and meshes SUPREM could not move; the local rules above
+  replaced every one of them (no regeneration in the runs since);
+- SUPREM's embedding check rejects every motion once a surface vertex sits
+  within float resolution of a facing edge (a closed gap); the zipper.
+
+Results (2026-11-23, `experiments/wp6d_hook_20261123/run8`, `locos*/core_g6`):
+
+| Deck | Reached | Wall | Hook calls | Local repairs | Regenerations |
+|---|---|---|---|---|---|
+| poly base (51 min dry 1000 C) | 3060 s, complete | 323 s | 68 | 29 | 0 |
+| coarse | complete | 416 s | 70 | 40 | 0 |
+| dry1000_120 (120 min) | 7200 s, complete | 679 s | 128 | 56 | 0 |
+| narrow025 | complete | 260 s | 61 | 21 | 0 |
+| wet900_20 | 1200 s, complete | 554 s | 101 | 44 | 0 |
+| wide080 | complete | 365 s | 55 | 23 | 0 |
+
+Every final structure passes the WP6a contract; the field oxide of the base
+deck is 45.4 nm against 46.1 nm of plain SUPREM on a flat wafer.  Without
+the core these decks stall at 47 s; with the 6a/6b-era hook they failed at
+30-500 s.
+
+LOCOS (SubCmos2014 NMOS field oxidation, 65 min wet 1100 C + ramps):
+viscous: field oxide 564.1 nm vs 565.5 nm core off, oxide area -0.005 %,
+628 s vs 705 s; compress: 615.2 vs 617.1 nm, area -0.12 %, 909 s vs 549 s.
+Boron moves ~2 % from the oxide to the silicon (the interface
+discretisation; the hook itself conserves it to 1e-15 per call).
+
+Speed: SUPREM recomputes the oxide flow (7-node triox FE, direct solve)
+periodically; its cost grows steeply with the oxide mesh.  The update kept
+the oxide at the reference film's spacing (4.5 nm from a 10 nm film in 2
+layers), 5x more elements than SUPREM's own `grid.oxide` (10 nm) would
+add, and one flow solve took 180-280 s.  `grid.oxide` is now passed to the
+core (`suprem_core_set_param("oxide_grid_um")`) as the lower bound of the
+oxide target sizes: the flow solve takes ~50 s on the late base mesh and the
+decks run 10-20x faster.
 
 ## WP3 remesh pipeline (`src/remesh.cpp`)
 
@@ -281,9 +364,10 @@ couplings; on the oxidation path they are removed as thin/crumb events.
   [--hgrad G] [--coarsen-tol T] [--film-threshold T] [--film-layers N] [--passes N]
   [--encroach-rounds N] [--no-mmg] [--no-flips] [--worst N | --worst-max N]`.
 - `core_update IN.str OUT.str [--reference REF.str] [--float] [--timing] [--near F] [--short F] [--tol T]
-  [--long F] [--grow F] [--scale S] [--hmax H] [--solution-decades D]` (WP6b).
+  [--long F] [--grow F] [--scale S] [--hmax H] [--solution-decades D] [--box] [--retriangulate]
+  [--keep-coupling C] [--events DELTA]` (WP6b; `--events`: 6c local repair first, as the hook).
 - `core_check_suprem A.str ...` (WP6a).
 - `core_evolve_test REFERENCE.str [OUTDIR]` (env `CORE_EVOLVE_ONLY=name`, `CORE_EVOLVE_TRACE=1`).
 - `tests/roundtrip.py CORE_STR DIR...`, `tests/remesh_suite.py CORE_REMESH DIR... [--out D]`,
   `tests/suprem_contract.py CORE_BUILD SUPREM_BUILD [--mutate] PATH...`,
-  `tests/update_suite.py CORE_BUILD [--reference REF.str] PATH...`.
+  `tests/update_suite.py CORE_BUILD [--reference REF.str] [--events DELTA] PATH...`.

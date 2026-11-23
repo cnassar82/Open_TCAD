@@ -2,6 +2,7 @@
 //   core_update IN.str OUT.str [--reference REF.str] [--scale S] [--hmax H]
 //               [--near F] [--short F] [--tol T] [--long F] [--grow F]
 //               [--solution-decades D] [--float] [--box]
+// --oxide-h H: oxide target sizes at least H um (the hook: grid.oxide).
 // --retriangulate: full CDT (no old triangles kept); --keep-coupling C.
 // --events DELTA: geometric events of size DELTA (um) applied locally first (WP6c, as the hook).
 // --box: restore the box-volume inventory (as the hook) instead of P1.
@@ -60,6 +61,7 @@ int main(int argc, char **argv)
         else if (a == "--box") box = true;
         else if (a == "--events") events = std::atof(next());
         else if (a == "--retriangulate") o.keep_triangles = false;
+        else if (a == "--oxide-h") o.min_size[SIO2] = std::atof(next());
         else if (a == "--keep-coupling") o.keep_coupling = std::atof(next());
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
     }

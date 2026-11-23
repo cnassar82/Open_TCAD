@@ -3,6 +3,8 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <map>
 #include <set>
@@ -334,6 +336,39 @@ void relink(Mesh &m, const std::map<uint64_t, int> &codes)   // neighbours from 
         }
 }
 
+// Nodes after a topology change: one per (point, material of an adjacent
+// triangle), gas nodes at exposed / backside points; new ones copy the
+// point's own node of the same material, else a node of the same material
+// at a neighbour along an edge, else any node of the point.
+void sync_nodes(Mesh &m)
+{
+    std::set<std::pair<int, int>> want;
+    std::unordered_map<int, std::set<int>> nbr;
+    for (const Triangle &t : m.triangle)
+        for (int k = 0; k < 3; ++k) {
+            want.insert({t.v[k], m.region_material[t.region]});
+            nbr[t.v[k]].insert(t.v[(k + 1) % 3]);
+            nbr[t.v[k]].insert(t.v[(k + 2) % 3]);
+            if (t.nb[k] == EXPOSED || t.nb[k] == BACKSIDE) {
+                want.insert({t.v[(k + 1) % 3], GAS});
+                want.insert({t.v[(k + 2) % 3], GAS});
+            }
+        }
+    std::vector<Node> nodes;
+    for (const Node &n : m.node)
+        if (want.count({n.point, n.material})) nodes.push_back(n);
+    for (auto &[q, mat] : want) {
+        if (m.node_at(q, mat) >= 0) continue;
+        int on = -1;
+        for (int r : nbr[q])
+            if (on < 0) on = m.node_at(r, mat);
+        for (int mm = 0; mm < 16 && on < 0; ++mm) on = m.node_at(q, mm);
+        nodes.push_back({q, mat, on >= 0 ? m.node[on].value : std::vector<double>(m.species.size(), 0.0)});
+    }
+    m.node = nodes;
+    m.rebuild_index();
+}
+
 // Contacts: surfaces closer than eps (a gap the motion has closed below the
 // shapes' resolution; SUPREM's collision limit leaves pairs closer than
 // delta/2 to the core).  Zipper: an exposed vertex within eps of a facing
@@ -345,6 +380,7 @@ void relink(Mesh &m, const std::map<uint64_t, int> &codes)   // neighbours from 
 int close_contacts(Mesh &m, double eps, std::vector<char> &touched)
 {
     int ops = 0;
+    static const bool trace = std::getenv("CORE_LOCAL_TRACE");
     for (int iter = 0; iter < 500; ++iter) {
         std::map<uint64_t, int> codes;
         std::unordered_map<uint64_t, std::vector<std::pair<int, int>>> et;   // edge -> (triangle, face)
@@ -401,6 +437,7 @@ int close_contacts(Mesh &m, double eps, std::vector<char> &touched)
         }
         if (bp >= 0) {
             const Ex E = ex[be];
+            if (trace) std::fprintf(stderr, "zip p %d (%.7f, %.7f) into %d-%d d %.2e\n", bp, m.point[bp].x, m.point[bp].y, E.a, E.b, bd);
             Triangle t0 = m.triangle[E.t], t1 = t0, t2 = t0;
             int j = -1;
             for (int k = 0; k < 3; ++k)
@@ -411,12 +448,7 @@ int close_contacts(Mesh &m, double eps, std::vector<char> &touched)
             m.triangle.push_back(t2);
             codes.erase(ekey(E.a, E.b));
             relink(m, codes);
-            int mat = m.region_material[t0.region];
-            if (m.node_at(bp, mat) < 0) {
-                int on = -1;
-                for (int mm = 1; mm < 16 && on < 0; ++mm) on = m.node_at(bp, mm);
-                m.node.push_back({bp, mat, on >= 0 ? m.node[on].value : std::vector<double>(m.species.size(), 0.0)});
-            }
+            sync_nodes(m);
             touched[bp] = touched[E.a] = touched[E.b] = touched[E.c] = 1;
             ++ops;
         } else {
@@ -438,22 +470,102 @@ int close_contacts(Mesh &m, double eps, std::vector<char> &touched)
                         wd = d; wv = v; wp = p; wq = q; wt = X.t;
                     }
             if (wv < 0) break;
+            if (trace) std::fprintf(stderr, "wedge v %d (%.7f, %.7f) p %d q %d d %.2e\n", wv, m.point[wv].x, m.point[wv].y, wp, wq, wd);
             Triangle tr;
             tr.v[0] = wv; tr.v[1] = wq; tr.v[2] = wp;
             tr.region = m.triangle[wt].region;
             m.triangle.push_back(tr);
             relink(m, codes);
-            int mat = m.region_material[tr.region];
-            for (int v : tr.v)
-                if (m.node_at(v, mat) < 0) {
-                    int on = -1;
-                    for (int mm = 1; mm < 16 && on < 0; ++mm) on = m.node_at(v, mm);
-                    m.node.push_back({v, mat, on >= 0 ? m.node[on].value : std::vector<double>(m.species.size(), 0.0)});
-                }
+            sync_nodes(m);
             touched[wv] = touched[wp] = touched[wq] = 1;
             ++ops;
         }
         m.rebuild_index();
+    }
+    return ops;
+}
+
+// Flat triangles: apex p within eps of the opposite (longest) edge (a, b).
+// The triangle is removed and the triangle across (a, b), if any, is split
+// at p, so p becomes a vertex of that edge (on a domain boundary the two
+// halves keep its code).  Thinnest first; no point moves.  Returns the
+// number of triangles collapsed.
+int collapse_flats(Mesh &m, double eps, std::vector<char> &touched)
+{
+    int ops = 0;
+    std::set<std::array<int, 3>> skip;   // cannot be split on the float grid, or the split would be flat too
+    for (int iter = 0; iter < 500; ++iter) {
+        int bt = -1, bk = -1;
+        double bh = eps;
+        for (int t = 0; t < (int)m.triangle.size(); ++t) {
+            const Triangle &tr = m.triangle[t];
+            if (!skip.empty()) {
+                std::array<int, 3> key{tr.v[0], tr.v[1], tr.v[2]};
+                std::sort(key.begin(), key.end());
+                if (skip.count(key)) continue;
+            }
+            int k = 0;   // longest edge opposite v[k]
+            double lmax = -1;
+            for (int j = 0; j < 3; ++j) {
+                const Point &a = m.point[tr.v[(j + 1) % 3]], &b = m.point[tr.v[(j + 2) % 3]];
+                double l = std::hypot(b.x - a.x, b.y - a.y);
+                if (l > lmax) { lmax = l; k = j; }
+            }
+            if (lmax <= 0) continue;
+            double h = std::fabs(crs(m.point[tr.v[0]], m.point[tr.v[1]], m.point[tr.v[2]])) / lmax;
+            if (h < bh) { bh = h; bt = t; bk = k; }
+        }
+        if (bt < 0) break;
+        const Triangle t0 = m.triangle[bt];
+        const int p = t0.v[bk], a = t0.v[(bk + 1) % 3], b = t0.v[(bk + 2) % 3], u = t0.nb[bk];
+        if (std::getenv("CORE_LOCAL_TRACE"))
+            std::fprintf(stderr, "flat apex %d (%.7f, %.7f) edge %d-%d h %.2e across %d\n", p, m.point[p].x, m.point[p].y, a, b, bh, u);
+        std::map<uint64_t, int> codes;
+        for (const Triangle &t : m.triangle)
+            for (int j = 0; j < 3; ++j)
+                if (t.nb[j] < 0) codes[ekey(t.v[(j + 1) % 3], t.v[(j + 2) % 3])] = t.nb[j];
+        std::vector<Triangle> add;
+        if (u >= 0) {
+            const Triangle tu = m.triangle[u];
+            int j = -1;
+            for (int k = 0; k < 3; ++k)
+                if (tu.v[k] != a && tu.v[k] != b) j = k;
+            int c = tu.v[j];
+            Triangle t1 = tu, t2 = tu;   // tu = (c, b, a) in its own order: split at p
+            t1.v[(j + 2) % 3] = p;
+            t2.v[(j + 1) % 3] = p;
+            auto altitude = [&](const Triangle &t) {
+                double l = 0;
+                for (int k = 0; k < 3; ++k) {
+                    const Point &x = m.point[t.v[k]], &y = m.point[t.v[(k + 1) % 3]];
+                    l = std::max(l, std::hypot(y.x - x.x, y.y - x.y));
+                }
+                return l > 0 ? std::fabs(crs(m.point[t.v[0]], m.point[t.v[1]], m.point[t.v[2]])) / l : 0.0;
+            };
+            // monotone: a collapse that leaves a flat half would only move the problem (collinear quads)
+            if (orient_f(m, t1.v[0], t1.v[1], t1.v[2]) <= 0 || orient_f(m, t2.v[0], t2.v[1], t2.v[2]) <= 0 ||
+                altitude(t1) < eps || altitude(t2) < eps) {
+                std::array<int, 3> key{t0.v[0], t0.v[1], t0.v[2]};
+                std::sort(key.begin(), key.end());
+                skip.insert(key);
+                continue;
+            }
+            add = {t1, t2};
+            touched[c] = 1;
+        } else {   // on the domain boundary: the two remaining faces take its code
+            int code = codes.count(ekey(a, b)) ? codes[ekey(a, b)] : EXPOSED;
+            codes[ekey(a, p)] = code;
+            codes[ekey(p, b)] = code;
+        }
+        std::vector<Triangle> tris;
+        for (int t = 0; t < (int)m.triangle.size(); ++t)
+            if (t != bt && t != u) tris.push_back(m.triangle[t]);
+        tris.insert(tris.end(), add.begin(), add.end());
+        m.triangle = tris;
+        relink(m, codes);
+        sync_nodes(m);
+        touched[p] = touched[a] = touched[b] = 1;
+        ++ops;
     }
     return ops;
 }
@@ -473,6 +585,7 @@ bool local_event_repair(Mesh &m_in, const std::vector<RepairEvent> &ev, LocalRep
     }
     std::vector<char> pre_touched(m.point.size(), 0);
     rep.contacts = close_contacts(m, delta / 2, pre_touched);
+    rep.contacts += collapse_flats(m, delta / 8, pre_touched);
     const int nt = (int)m.triangle.size();
     std::vector<Point> cen(nt);
     for (int t = 0; t < nt; ++t) {

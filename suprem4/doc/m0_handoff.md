@@ -1,4 +1,4 @@
-# M0 geometry core: handoff (state at 2026-11-22)
+# M0 geometry core: handoff (state at 2026-11-23)
 
 Read this first if you pick up the geometry-core work.  Companion documents:
 - `doc/roadmap_2d_cmos_25nm.md`: why a new geometry core (goal: 2D Si CMOS down to 25 nm).
@@ -9,7 +9,11 @@ Read this first if you pick up the geometry-core work.  Companion documents:
 - `core/README.md`: the core's pipeline, checks and measured results per WP.
 
 Branch `geometry-core` (pushed).  Commits: WP0-2 `5954ada`, WP3 `b40f2f2`, WP4 `8bedee0`,
-WP5 `8ea880a`, WP6 work in progress `fc6b2ac`, `18fbe1f` and the commit that adds this file.
+WP5 `8ea880a`, WP6 work in progress `fc6b2ac`, `18fbe1f`, handoff `2d245f6`, 6a `c573aba`,
+6b `38be7de`, 6d/6c checkpoint `5e06b14` and the commit that completes the poly decks.
+
+**State 2026-11-23: all six poly-line decks and the LOCOS field oxidation (viscous and compress)
+complete with the core (section 3b, last paragraph).**  Next: WP7 (test suite) / WP8 (go/no-go).
 
 ## 1. What exists and works
 
@@ -79,7 +83,11 @@ script that draws `c`/`t` records of two .str files in a window.  Write one; it 
 | Variable | Default | Meaning |
 |---|---|---|
 | `SUPREM4_GEOMETRY_CORE` | off | turn the core on |
-| `SUPREM4_CORE_DELTA` | 1e-3 um | event size; motion limit delta/4 |
+| `SUPREM4_CORE_DELTA` | 1e-3 um | event size; contacts at delta/2, needles / flat triangles at delta/8 |
+| `SUPREM4_CORE_SPEED_LIMIT=1` | off | old global motion cap delta/4 per step (throttled LOCOS to ~1 s steps) |
+| `SUPREM4_CORE_REGENERATE=1` | off | old policy: regenerate on the first call / compressed triangles (comparison) |
+| `SUPREM4_CORE_OXIDE_H` | grid.oxide | lower bound of the oxide target size (um); default: `method grid.oxide` from SUPREM |
+| `SUPREM4_OXGROW_TIMES=1` | off | seconds per stage of each oxidation step (`[oxgrow-time]`) |
 | `SUPREM4_CORE_EVENT_DELTA` | = DELTA | event size only (tests) |
 | `SUPREM4_CORE_HMAX`, `_SCALE` | 0.5 um, 1 | mesh size |
 | `SUPREM4_CORE_SOLUTION_DECADES` | 0.25 | dopant-gradient refinement (0 = off) |
@@ -91,6 +99,7 @@ script that draws `c`/`t` records of two .str files in a window.  Write one; it 
 | `SUPREM4_CORE_KEEP_BAD=1` | off | keep `core_embedding_fail.str` when a reload fails SUPREM's embedding check |
 | `SUPREM4_CORE_TMP` | `.` | directory for the exchange files |
 | `SUPREM4_CORE_DUMP=DIR` | off | save every mesh the hook receives as `DIR/core_in_NNNN.str` (test data) |
+| `CORE_LOCAL_TRACE=1` | off | (core) print every zipper / wedge / flat-collapse operation |
 SUPREM's own `SUPREM4_MOTION_TRACE=1` prints why `mesh_trial_move` rejects a step (orientation or
 embedding) and is the most useful diagnostic.
 
@@ -101,6 +110,7 @@ embedding) and is the most useful diagnostic.
 | prototype `oxide_repair` | 29 s | duplicate-triangle panic (known open bug) |
 | core, first versions | 25-50 s | regeneration every step, points 16-42k, solver retries exhausted |
 | core, last version | 126-145 s (other decks 58-400 s) | "Region has malformed boundary" on reload, or SUPREM rejects all motion (embedding) |
+| core 6b update + 6c local repair + 6d policy (2026-11-23) | **3060 s, complete** (all six decks) | 0 regenerations, 4-11 min wall per deck |
 
 ### Findings that hold regardless of the design
 1. Reload mid-oxidation is exact: a viscous LOCOS run stopped at 30 of 65 min, saved, reloaded and
@@ -170,6 +180,27 @@ does not call it yet: that is 6d.  Lesson: a single size field from the oxidatio
 stripped the film points of the growing oxide (it measured the oxide against the silicon it
 replaced; SUPREM's box dose then moved 1 % per call); per-material fields fixed it.
 
+**6d + 6c done (2026-11-23).**  Hook policy (`core/src/capi.cpp`): every call runs the local event
+repair and then the update; the fields are restored in SUPREM's box measure; full regeneration only
+if the B-rep is invalid or a step fails (it no longer happens in the decks).  Details and the result
+table: `core/README.md`, "WP6c/6d hook policy and local repair".  What it took, in order:
+1. the update on every call: base got from ~30 s to ~255 s, failures only at the poly corners;
+2. the delta/4 global speed cap made LOCOS take 1 s steps: off by default (the collision prediction
+   covers approaching pairs);
+3. re-triangulating the whole mesh every call (~25 % new triangles) broke the viscous LOCOS stress
+   solve after ~30 calls: the update now keeps old triangles (their edges are CDT constraints);
+4. local repair (`core/src/local_repair.cpp`) instead of regeneration at events; then, found one at a
+   time with `SUPREM4_MOTION_TRACE` (it now also prints the partner triangle of a failing embedding
+   pair): sub-resolution needles at the poly cusps, folds and closed gaps (a surface vertex within
+   float resolution of a facing edge makes SUPREM reject every motion: zipper), flat triangles at
+   oxide/oxide region interfaces (collapse by splitting the triangle across), each with a monotone
+   rule so the repair terminates;
+5. speed: SUPREM's oxide flow solve (periodic, `NeedNewFlow`) took 180-280 s on the core's oxide
+   mesh, 5x finer than SUPREM's own `grid.oxide`; the core now gets `grid.oxide` from SUPREM
+   (`suprem_core_set_param`) as the lower bound of the oxide size, and the decks run in minutes.
+Test data: `experiments/wp6d_hook_20261123/` (run8 = the final decks, `locos*/core_g6` = LOCOS,
+`*/dump` = every hook input; `update_suite.py --events 1e-3` passes on all of them).
+
 **Finding for 6e.**  `ChooseKillNodes` (`src/dbase/grid_upd.c`) is an empty stub in the current
 tree: production SUPREM removes **no** nodes during oxidation (the old McCoy passes `CknMcLen` /
 `CknMcObt` are dead code; `rem_edg` / `mesh_patch_remove_point` are reachable only from other
@@ -189,3 +220,8 @@ fragile database; decide the scope before starting it.
   etched to ~0.445 um for a 0.40 um final gate.
 - Experiment outputs of this session were in a temporary scratch directory and are gone; the numbers
   above and in `core/README.md` are the record.
+- WP6c/6d: event pieces smaller than the triangles they lie in are left to the mesh rules (needle,
+  flat, contact) until they become critical; boron moves ~2 % from oxide to silicon in LOCOS compared
+  to core-off (interface discretisation, not the transfer); compress LOCOS takes 909 s vs 549 s
+  without the core (more oxide flow solves after topology changes); the hook writes and reloads a
+  file per call (in-memory exchange is a later optimisation).

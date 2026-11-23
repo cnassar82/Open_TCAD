@@ -1063,9 +1063,14 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
         auto it = region >= 0 ? fields.find(m.region_material[region]) : fields.end();
         return it != fields.end() ? it->second : fields.at(-1);
     };
-    auto fine = [&](const Point &x, int region) { return (*F(region).fine)(x); };
-    auto area_h = [&](const Point &x, int region) { return (*F(region).area)(x); };
-    auto longest = [&](const Point &x, int region) { return (*F(region).longest)(x); };
+    auto floor_of = [&](int region) {   // per-material lower bound (growing oxide: SUPREM's grid.oxide)
+        if (region < 0 || o.min_size.empty()) return 0.0;
+        auto it = o.min_size.find(m.region_material[region]);
+        return it == o.min_size.end() ? 0.0 : it->second;
+    };
+    auto fine = [&](const Point &x, int region) { return std::max((*F(region).fine)(x), floor_of(region)); };
+    auto area_h = [&](const Point &x, int region) { return std::max((*F(region).area)(x), floor_of(region)); };
+    auto longest = [&](const Point &x, int region) { return std::max((*F(region).longest)(x), floor_of(region)); };
     // on a chain: the finer of its two sides
     auto cfine = [&](const Point &x, const Canon &c) { return std::min(fine(x, c.left), c.right >= 0 ? fine(x, c.right) : 1e300); };
     auto clongest = [&](const Point &x, const Canon &c) {

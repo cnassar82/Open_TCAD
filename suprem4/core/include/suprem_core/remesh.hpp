@@ -21,6 +21,7 @@
 //     and flips restore the Delaunay property; repeated until none is left.
 // Node values are allocated (zero) but not transferred: that is WP4.
 #pragma once
+#include <map>
 #include <string>
 #include <vector>
 
@@ -103,6 +104,7 @@ struct UpdateOptions {
     double min_split_length = 1e-5;   // um; encroachment splits also stop at hmin (features below it are events)
     bool float_cm_grid = false;    // inserted points on SUPREM's float cm grid
     bool timing = false;           // stage times as notes
+    std::map<int, double> min_size; // material -> lower bound of its target sizes (um), e.g. SiO2: SUPREM's grid.oxide
     bool keep_triangles = true;    // old triangles stay unless something changed there ...
     double keep_coupling = -0.01;  // ... or one of their edges has a coupling (cot sum / 2) below this
 };

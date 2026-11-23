@@ -141,6 +141,7 @@ struct State {
     bool have_reference = false;
     Mesh reference;                    // grid at the start of oxidation: target sizes
     int calls = 0;
+    std::map<std::string, double> param;   // from SUPREM (suprem_core_set_param)
     std::map<Key, double> built_area;  // triangles of the last mesh the core wrote
 };
 State &state()
@@ -150,6 +151,14 @@ State &state()
 }
 
 }  // namespace
+
+// Parameters from SUPREM, set before a call: "oxide_grid_um" (method
+// grid.oxide: lower bound of the oxide target size, the spacing SUPREM's own
+// grid_add would use for grown oxide).
+extern "C" void suprem_core_set_param(const char *name, double value)
+{
+    if (name) state().param[name] = value;
+}
 
 // Returns 1 when a new mesh was written to out_path, 0 when nothing is
 // needed, < 0 on error (msg holds the reason).
@@ -248,6 +257,8 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
             uo.scale = env("SUPREM4_CORE_SCALE", uo.scale);
             uo.solution_decades = env("SUPREM4_CORE_SOLUTION_DECADES", uo.solution_decades);
             uo.float_cm_grid = true;
+            if (auto it = st.param.find("oxide_grid_um"); it != st.param.end() && it->second > 0)
+                uo.min_size[SIO2] = env("SUPREM4_CORE_OXIDE_H", it->second);
             if (force) uo.keep_triangles = false;   // SUPREM predicts squeezed elements: full Delaunay triangulation
             try {
                 UpdateReport ur;
