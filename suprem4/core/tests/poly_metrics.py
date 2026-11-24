@@ -97,6 +97,28 @@ def thickness_above(col, mat_below):
     return None, None
 
 
+def exposed_length(tris, mats):
+    """Length of the free surface (edges of exactly one triangle) of the given materials,
+    without the simulation-box sides and bottom."""
+    count, owner = {}, {}
+    for m, *v in tris:
+        for i in range(3):
+            e = tuple(sorted((v[i], v[(i + 1) % 3])))
+            count[e] = count.get(e, 0) + 1
+            owner[e] = m
+    xs = [p[0] for _, *v in tris for p in v]
+    ys = [p[1] for _, *v in tris for p in v]
+    x0, x1, y1 = min(xs), max(xs), max(ys)
+    total = 0.0
+    for (a, b), n in count.items():
+        if n != 1 or owner[(a, b)] not in mats:
+            continue
+        if (a[0] == b[0] and a[0] in (x0, x1)) or (a[1] == b[1] == y1):
+            continue
+        total += math.dist(a, b)
+    return total
+
+
 def inventories(core_str, path):
     if not core_str:
         return {}
@@ -188,8 +210,10 @@ def measure(before, after, field_x, core_str=None, native=NATIVE_UM):
         return a
     a0, a1 = areas(tb), areas(ta)
     consumed = sum(a0.get(k, 0) - a1.get(k, 0) for k in (SILICON, POLY))
+    # the native oxide SUPREM deposits on bare surfaces is not grown from consumed material
+    res["native_oxide_area_um2"] = native * exposed_length(tb, (SILICON, POLY))
     if consumed > 0:
-        res["area_expansion"] = (a1.get(OXIDE, 0) - a0.get(OXIDE, 0)) / consumed
+        res["area_expansion"] = (a1.get(OXIDE, 0) - a0.get(OXIDE, 0) - res["native_oxide_area_um2"]) / consumed
     ib, ia = inventories(core_str, before), inventories(core_str, after)
     for imp in sorted(set(ib) & set(ia)):
         tb_, ta_ = sum(ib[imp].values()), sum(ia[imp].values())
