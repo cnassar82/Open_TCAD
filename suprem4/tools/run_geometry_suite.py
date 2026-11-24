@@ -18,6 +18,7 @@ Checks per poly case (acceptance criteria 1-4 of doc/plan_m0_geometry_core.md, s
   field        field oxide within 2 % of the flat plain-SUPREM run
   ratio        consumed / grown on silicon, poly top and both poly sidewalls in 0.44 +- 5 %,
                on faces at least 4x longer than their oxide is thick (others: 2D, reported)
+  area         oxide area gained / silicon + poly area consumed within 3 % of 2.2
   symmetry     left / right sidewall oxide and gate-edge dielectric within 2 %
   dose         boron drift (box measure) |d| < 1e-4, or no worse than 1.5 x the flat
                plain-SUPREM drift of the same recipe (reported as "plain-limited")
@@ -75,6 +76,7 @@ etch nitride all
 """
 
 RATIO, RATIO_TOL = 0.44, 0.05
+EXPANSION = 2.2   # SUPREM's oxide / consumed volume ratio
 FLAT = 4.0   # a face is planar (1D) when its length >= FLAT x its oxide thickness
 
 
@@ -243,7 +245,7 @@ def evaluate_poly(args, d, res):
 
 def poly_checks(res):
     c = dict(complete=res["run"]["complete"], invariants=None, suprem=None, field=None, ratio=None,
-             symmetry=None, dose=None)
+             area=None, symmetry=None, dose=None)
     if not c["complete"]:
         return c
     m, f = res.get("metrics", {}), res.get("flat_metrics")
@@ -266,6 +268,8 @@ def poly_checks(res):
             continue
         ok = ok and r is not None and abs(r / RATIO - 1) <= RATIO_TOL
     c["ratio"] = ok
+    if m.get("area_expansion") is not None:
+        c["area"] = abs(m["area_expansion"] / EXPANSION - 1) <= 0.03
     res["ratio_2d_faces"] = two_d
     pairs = [("sidewall_oxide_left_A", "sidewall_oxide_right_A")] + [
         (f"gate_edge_left_{x}_A", f"gate_edge_right_{x}_A") for x in ("0.02", "0.05", "0.10")]

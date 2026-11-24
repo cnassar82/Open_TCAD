@@ -179,6 +179,17 @@ def measure(before, after, field_x, core_str=None, native=NATIVE_UM):
             ox = res[f"sidewall_oxide_{s}_A"] - native * 1e4
             if ox > 0:
                 res[f"ratio_poly_{s}"] = res[f"sidewall_consumed_{s}_A"] / ox
+    # material areas (um^2 per um of depth): oxide gained / (silicon + poly) consumed;
+    # SUPREM's volume expansion is 1 / 0.4545 = 2.2
+    def areas(tris):
+        a = {}
+        for m_, p0, p1, p2 in tris:
+            a[m_] = a.get(m_, 0.0) + 0.5 * abs((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0]))
+        return a
+    a0, a1 = areas(tb), areas(ta)
+    consumed = sum(a0.get(k, 0) - a1.get(k, 0) for k in (SILICON, POLY))
+    if consumed > 0:
+        res["area_expansion"] = (a1.get(OXIDE, 0) - a0.get(OXIDE, 0)) / consumed
     ib, ia = inventories(core_str, before), inventories(core_str, after)
     for imp in sorted(set(ib) & set(ia)):
         tb_, ta_ = sum(ib[imp].values()), sum(ia[imp].values())
