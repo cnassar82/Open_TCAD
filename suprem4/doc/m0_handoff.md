@@ -15,6 +15,11 @@ WP5 `8ea880a`, WP6 work in progress `fc6b2ac`, `18fbe1f`, handoff `2d245f6`, 6a 
 **State 2026-11-23: all six poly-line decks and the LOCOS field oxidation (viscous and compress)
 complete with the core (section 3b, last paragraph).**  Next: WP7 (test suite) / WP8 (go/no-go).
 
+**State 2026-11-24: WP7 done, WP8 review written: `doc/m0_review_wp8.md` (GO for option C, with
+conditions).**  Suite 57/58 (`tools/run_geometry_suite.py`); the one failure (rand7_35, a hairline
+gas slit left after a gap fill, see section 4) is diagnosed, not fixed.  Core-off builds are
+bit-identical to `main` on both RIT flows; core on, the 0.25 um flow passes.
+
 ## 1. What exists and works
 
 `suprem4/core/` is a standalone C++17 library and set of tools that read and write SUPREM `.str`
