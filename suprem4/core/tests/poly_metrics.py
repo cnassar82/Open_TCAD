@@ -21,6 +21,9 @@ import subprocess
 import sys
 
 OXIDE, SILICON, POLY = 1, 3, 4
+# SUPREM deposits this native oxide on every bare surface when an oxidation starts
+# (modelrc: oxide initial=0.0010); it is not grown from consumed poly.
+NATIVE_UM = 0.0010
 NAMES = {0: "gas", 1: "oxide", 2: "nitride", 3: "silicon", 4: "poly"}
 
 
@@ -107,7 +110,7 @@ def inventories(core_str, path):
     return inv
 
 
-def poly_metrics(tb, ta, pb):
+def poly_metrics(tb, ta, pb, native=NATIVE_UM):
     res = {}
     pxs = [p[0] for t in pb for p in t]
     pys = [p[1] for t in pb for p in t]
@@ -151,7 +154,7 @@ def poly_metrics(tb, ta, pb):
     return res
 
 
-def measure(before, after, field_x, core_str=None):
+def measure(before, after, field_x, core_str=None, native=NATIVE_UM):
     tb, ta = parse(before), parse(after)
     res = {}
     # field
@@ -164,16 +167,16 @@ def measure(before, after, field_x, core_str=None):
     # poly extent before
     pb = [(a, b, c) for m, a, b, c in tb if m == POLY]
     if pb:
-        res.update(poly_metrics(tb, ta, pb))
+        res.update(poly_metrics(tb, ta, pb, native))
     # consumption ratios
     if res["field_grown_A"] > 0:
         res["ratio_si"] = res["field_si_consumed_A"] / res["field_grown_A"]
-    top_grown = res.get("poly_top_oxide_A", 0.0)
+    top_grown = res.get("poly_top_oxide_A", 0.0) - native * 1e4
     if top_grown > 0:
         res["ratio_poly_top"] = res["poly_top_consumed_A"] / top_grown
     if "sidewall_oxide_left_A" in res:
         for s in ("left", "right"):
-            ox = res[f"sidewall_oxide_{s}_A"]
+            ox = res[f"sidewall_oxide_{s}_A"] - native * 1e4
             if ox > 0:
                 res[f"ratio_poly_{s}"] = res[f"sidewall_consumed_{s}_A"] / ox
     ib, ia = inventories(core_str, before), inventories(core_str, after)

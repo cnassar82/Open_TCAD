@@ -72,9 +72,20 @@ def main():
         libraries += [str(archive), '-lstdc++']
     if args.geometry_core:
         core = args.geometry_core.resolve()
-        # the hook references the core weakly: force the archive member in
-        libraries = ['-Wl,-u,suprem_core_oxidation_check', str(core / 'libsuprem_core.a'),
-                     str(core / 'third_party/mmg/lib/libmmg2d.a'), *libraries]
+        # The core (with Mmg) is pre-linked into one object that exports only
+        # its C API.  It carries its own Clipper2 / CDT predicates, compiled
+        # with other flags than SUPREM's domain-offset copy; linked as plain
+        # archives, the linker resolved SUPREM's deposition to the core's copy
+        # and a build with the core switched off was no longer bit-identical
+        # to one without it (WP7).
+        api = ['suprem_core_oxidation_check', 'suprem_core_set_param']
+        combined, exported = work / 'src/suprem_core_all.o', work / 'src/suprem_core_api.o'
+        offset_commands.append(['ld', '-r', '--force-group-allocation', '-o', str(combined), '--whole-archive',
+                                str(core / 'libsuprem_core.a'), str(core / 'third_party/mmg/lib/libmmg2d.a'),
+                                '--no-whole-archive'])
+        offset_commands.append(['objcopy', *[f'--keep-global-symbol={s}' for s in api],
+                                str(combined), str(exported)])
+        libraries = [str(exported), *libraries]
         if '-lstdc++' not in libraries:
             libraries.append('-lstdc++')
     command.append('LIBS=' + ' '.join([*libraries, '-lm']))

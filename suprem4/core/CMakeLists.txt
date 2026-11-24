@@ -18,6 +18,13 @@ set(USE_VTK OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/mmg EXCLUDE_FROM_ALL)
 
+# SUPREM links the core as one pre-linked object exporting only its C API
+# (tools/build_native64.py).  Template static data (CDT predicates) would be
+# STB_GNU_UNIQUE, which cannot be made local and clashes with SUPREM's own copy.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-gnu-unique>)
+endif()
+
 set(CLIPPER2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/clipper2)
 add_library(suprem_core STATIC
   src/str_file.cpp
