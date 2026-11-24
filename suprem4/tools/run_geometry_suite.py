@@ -16,7 +16,8 @@ Checks per poly case (acceptance criteria 1-4 of doc/plan_m0_geometry_core.md, s
   invariants   core_str: mesh invariants, gas nodes, B-rep
   suprem       core_check_suprem: SUPREM's own validity rules (WP6a contract)
   field        field oxide within 2 % of the flat plain-SUPREM run
-  ratio        consumed / grown on silicon, poly top and both poly sidewalls in 0.44 +- 5 %
+  ratio        consumed / grown on silicon, poly top and both poly sidewalls in 0.44 +- 5 %,
+               on faces at least 4x longer than their oxide is thick (others: 2D, reported)
   symmetry     left / right sidewall oxide and gate-edge dielectric within 2 %
   dose         boron drift (box measure) |d| < 1e-4, or no worse than 1.5 x the flat
                plain-SUPREM drift of the same recipe (reported as "plain-limited")
@@ -74,6 +75,7 @@ etch nitride all
 """
 
 RATIO, RATIO_TOL = 0.44, 0.05
+FLAT = 4.0   # a face is planar (1D) when its length >= FLAT x its oxide thickness
 
 
 # ---------------------------------------------------------------- decks
@@ -249,8 +251,22 @@ def poly_checks(res):
     c["suprem"] = res.get("suprem")
     if f:
         c["field"] = abs(m["field_oxide_A"] / f["field_oxide_A"] - 1) < 0.02
-    ratios = [m.get(k) for k in ("ratio_si", "ratio_poly_top", "ratio_poly_left", "ratio_poly_right")]
-    c["ratio"] = all(r is not None and abs(r / RATIO - 1) <= RATIO_TOL for r in ratios)
+    # consumed = 0.44 x grown is a 1D relation: checked only on faces that stay
+    # planar on the scale of the oxide (face length >= FLAT x oxide thickness);
+    # narrower faces (thick oxide on a thin line) are 2D and only reported.
+    faces = [("ratio_si", None, None),
+             ("ratio_poly_top", "poly_width_mid_um", "poly_top_oxide_A"),
+             ("ratio_poly_left", "poly_height_um", "sidewall_oxide_left_A"),
+             ("ratio_poly_right", "poly_height_um", "sidewall_oxide_right_A")]
+    ok, two_d = True, []
+    for k, length, ox in faces:
+        r = m.get(k)
+        if length and m.get(length) is not None and m.get(ox) and m[length] * 1e4 < FLAT * m[ox]:
+            two_d.append(k)
+            continue
+        ok = ok and r is not None and abs(r / RATIO - 1) <= RATIO_TOL
+    c["ratio"] = ok
+    res["ratio_2d_faces"] = two_d
     pairs = [("sidewall_oxide_left_A", "sidewall_oxide_right_A")] + [
         (f"gate_edge_left_{x}_A", f"gate_edge_right_{x}_A") for x in ("0.02", "0.05", "0.10")]
     sym = True
@@ -329,7 +345,9 @@ def report(results, out):
                          f"{bd.get('core', 0):+.2e} / {bd.get('off', 0):+.2e} | {', '.join(failed) or run.get('failure', '')} |")
             continue
         fm = r.get("flat_metrics", {})
-        ratio = "/".join(f"{m[k]:.3f}" for k in ("ratio_si", "ratio_poly_top", "ratio_poly_left") if k in m)
+        two_d = r.get("ratio_2d_faces", [])
+        ratio = "/".join(f"{m[k]:.3f}" + ("*" if k in two_d else "")
+                         for k in ("ratio_si", "ratio_poly_top", "ratio_poly_left") if k in m)
         side = f"{m.get('sidewall_oxide_left_A', 0):.0f}/{m.get('sidewall_oxide_right_A', 0):.0f}" if m else ""
         dose = (f"{m.get('inventory_5_rel_change', 0):+.2e} / {fm.get('inventory_5_rel_change', 0):+.2e}" if m else "")
         field = f"{m.get('field_oxide_A', 0):.0f} ({fm.get('field_oxide_A', 0):.0f})" if m else ""
@@ -338,7 +356,8 @@ def report(results, out):
                      f"{', '.join(failed) or ('' if run['complete'] else run.get('failure', ''))} |")
     n = len(results)
     ok = sum(r["pass"] for r in results)
-    lines += ["", f"**{ok}/{n} passed.**  Field oxide in brackets: flat wafer, plain SUPREM (core off).", ""]
+    lines += ["", f"**{ok}/{n} passed.**  Field oxide in brackets: flat wafer, plain SUPREM (core off).  '*': 2D face "
+              "(shorter than 4x its oxide thickness), ratio reported, not checked.", ""]
     text = "\n".join(lines)
     (out / "report.md").write_text(text)
     (out / "results.json").write_text(json.dumps(results, indent=1, default=str))
