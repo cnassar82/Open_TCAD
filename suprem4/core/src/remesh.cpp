@@ -1297,6 +1297,12 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
         rep.inserted_interior += added;
         if (!added) break;
     }
+    // The kept edges are CDT constraints, so an edge between a kept and a new
+    // triangle can be non-Delaunay: a negative box coupling, which costs SUPREM
+    // dose (WP7: flat oxidation lost 5e-4 of its boron with them, 5e-5 without).
+    // Flip those edges; the kept triangle on such an edge is re-triangulated.
+    // Edges between two kept triangles keep their (>= keep_coupling) quality.
+    if (!keep.empty()) rep.flips += delaunay_flips(w, &keep);
     lap("triangulation+insertion");
     // 5. encroachment repair (as WP3)
     // Only encroachment the update introduced is repaired: an edge whose
