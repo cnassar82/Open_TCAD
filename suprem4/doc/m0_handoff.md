@@ -18,7 +18,7 @@ complete with the core (section 3b, last paragraph).**  Next: WP7 (test suite) /
 **State 2026-11-24: WP7 done, WP8 review written: `doc/m0_review_wp8.md` (GO for option C, with
 conditions).**  Suite 57/58 (`tools/run_geometry_suite.py`); the one failure (rand7_35, a hairline
 gas slit left after a gap fill, see section 4) is diagnosed, not fixed.  Core-off builds are
-bit-identical to `main` on both RIT flows; core on, the 0.25 um flow passes.
+bit-identical to `main` on both RIT flows; core on, both the 0.25 um and the 0.5 um flows pass their audits.
 
 ## 1. What exists and works
 

@@ -15,7 +15,7 @@ is met, or the shortfall comes from SUPREM itself and the core does not make it 
 | 2 | physics vs compress reference, mesh convergence | ratio 0.4545 on all planar faces; gate edge within 3 %; refinement within 0.6 % | met |
 | 3 | dose drift < 1e-4; areas vs expansion ratio | 41/55 below 1e-4, the other 14 below plain SUPREM's own flat drift; core changes areas < 0.02 % | met as far as SUPREM allows |
 | 4 | invariants after every step | every mesh validated before hand-over; 0 refused in all calls | met |
-| 5 | core off bit-identical; core on RIT flows pass | 72/72 checkpoint files identical; 0.25 um core on 17/17 + 17/17; 0.5 um core on: PENDING | met / pending |
+| 5 | core off bit-identical; core on RIT flows pass | 72/72 checkpoint files identical; core on: 0.25 um 17/17 + 17/17, 0.5 um 16/16 + 16/16 | met |
 | 6 | poly re-ox step <= 3x SUPREM vertical | 2.6x per step; 12.8x per run | met as worded; per-run cost is the lever |
 
 ## 1. Completion (criterion 1)
@@ -95,7 +95,7 @@ not check it.
 Before any mesh goes back to SUPREM, the hook checks it for orientation, conformity, embedding,
 region consistency, surface flags, gas nodes and the SUPREM reload contract (`finish()` in
 `core/src/capi.cpp`).  A failing mesh is refused and SUPREM continues with its own.  Across the
-suite (about 4,250 calls), the 0.25 um flow with the core on (403 calls) and the 0.5 um flow so far,
+suite (about 4,250 calls), the RIT flows with the core on (403 calls at 0.25 um, 363 at 0.5 um),
 **no call was refused and no call raised an error**.  The final structures pass `core_str`
 (invariants, B-rep) and `core_check_suprem`.
 
@@ -118,7 +118,7 @@ Fix (`0182753`): the core and Mmg are pre-linked into one object that exports on
 
 Core on (`SUPREM4_GEOMETRY_CORE=1`):
 - 0.25 um flow: PASS 17/17 NMOS and 17/17 PMOS, all checkpoint audits.
-- 0.5 um flow: PENDING (running; 5/16 checkpoints, 143 calls, 0 refused at the time of writing).
+- 0.5 um flow: PASS 16/16 NMOS and 16/16 PMOS (363 core calls, 0 refused, 0 regenerations).
 
 ## 6. Runtime (criterion 6)
 
@@ -143,6 +143,5 @@ one identified mechanism with a contained fix.
 
 Conditions for M1:
 1. Sub-resolution clean-up after events (rand7_35); rerun the suite (expect 58/58).
-2. Finish the 0.5 um core-on flow (criterion 5, second half).
-3. Per-run runtime: treat the step count after mesh changes as an M1 work item; the 3x criterion
+2. Per-run runtime: treat the step count after mesh changes as an M1 work item; the 3x criterion
    should be restated per run for M1.
