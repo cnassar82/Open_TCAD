@@ -15,7 +15,7 @@ is met, or the shortfall comes from SUPREM itself and the core does not make it 
 | 2 | physics vs compress reference, mesh convergence | ratio 0.4545 on all planar faces; gate edge within 3 %; refinement within 0.6 % | met |
 | 3 | dose drift < 1e-4; areas vs expansion ratio | 41/55 below 1e-4, the other 14 below plain SUPREM's own flat drift; core changes areas < 0.02 % | met as far as SUPREM allows |
 | 4 | invariants after every step | every mesh validated before hand-over; 0 refused in all calls | met |
-| 5 | core off bit-identical; core on RIT flows pass | 72/72 checkpoint files identical; core on: 0.25 um 17/17 + 17/17, 0.5 um 16/16 + 16/16 | met |
+| 5 | core off bit-identical; core on RIT flows pass | 72/72 checkpoint files identical; core on: 0.25 um 17/17 + 17/17, 0.5 um 16/16 + 16/16 | met as worded; **electricals differ** (section 5b) |
 | 6 | poly re-ox step <= 3x SUPREM vertical | 2.6x per step; 12.8x per run | met as worded; per-run cost is the lever |
 
 ## 1. Completion (criterion 1)
@@ -120,6 +120,33 @@ Core on (`SUPREM4_GEOMETRY_CORE=1`):
 - 0.25 um flow: PASS 17/17 NMOS and 17/17 PMOS, all checkpoint audits.
 - 0.5 um flow: PASS 16/16 NMOS and 16/16 PMOS (363 core calls, 0 refused, 0 regenerations).
 
+### 5b. Electricals, core on vs core off (added 2026-11-24, after the review)
+
+The criterion asks only for passing checkpoint audits.  Genius DD transfer sweeps (unfitted model,
+same protocol for both; `experiments/wp7_electrical_20261124`) on the final structures show that the
+core changes the devices well beyond acceptable tolerances:
+
+| device | Vt max-gm, off -> on | Ion (Vg = Vd = 3.3 V) |
+|---|---|---|
+| 0.25 um NMOS | 0.763 -> 0.674 V | +0.5 % |
+| 0.25 um PMOS | -0.926 -> -0.841 V | +17 % |
+| 0.5 um NMOS | 0.419 -> 0.360 V | -43 % |
+| 0.5 um PMOS | -0.861 -> -0.784 V | -15 % |
+
+Cause, so far: with `SUPREM4_GEOMETRY_CORE=1` the hook runs the core on **every** oxidation and
+switches off SUPREM's own node insertion and removal (`grid_add`, `ChooseKillNodes`), including
+the vertical-model oxidations that make up almost all of both RIT decks.  The M0 plan limited the
+core to compress/viscous, and WP7 validated only those.  The runs diverge from the first oxidation:
+- pad oxide 476 vs 472 A;
+- boron in silicon -1.6 % after the 0.25 um well drive;
+- gate oxide at the channel centre after re-oxidation 109 A (core off) vs 100 A (core on);
+- boron in silicon -6.3 % after the 0.5 um source/drain anneal.
+
+Which of the two is closer to converged has not been established.  SUPREM's vertical model is itself
+mesh-dependent, and the core-off growth of 10 A at the centre of a 0.5 um gate is larger than the
+compress reference implies.  Consequence for the decision: GO stands for the geometry core, but the
+core must not be switched on for the RIT flows until this is resolved (M1 plan, M1.0).
+
 ## 6. Runtime (criterion 6)
 
 Same deck, same machine load: SUPREM's vertical model (core off) takes 93 s in 20 steps; compress
@@ -142,6 +169,7 @@ bit-identical when it is off.  The criterion that is not met (one of 50 random v
 one identified mechanism with a contained fix.
 
 Conditions for M1:
+0. Resolve the core-on vs core-off electrical differences of the RIT flows (section 5b).
 1. Sub-resolution clean-up after events (rand7_35); rerun the suite (expect 58/58).
 2. Per-run runtime: treat the step count after mesh changes as an M1 work item; the 3x criterion
    should be restated per run for M1.
