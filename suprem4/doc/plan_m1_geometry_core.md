@@ -33,7 +33,7 @@ whatever mesh the core hands over.
 
 ## 3. Work packages
 
-Status 2026-11-24: M1.0(a) and M1.1 done (see `m0_review_wp8.md` 5b).  Next: M1.0(b).
+Status 2026-11-25: M1.0(a), M1.0(b) and M1.1 done.  M1.0 result (`doc/m1_0_core_on_off.md`): the remaining core-on vs core-off differences are discretization errors of SUPREM's vertical-model steps (gate-oxide time step, near-surface P pile-up mesh), not the core; they vanish when those steps are converged.  The production RIT decks are themselves unconverged (gate oxide 8 A too thick); that is a Phase 1 item.  Next: M1.2.
 
 | WP | Content | Deliverable | Effort |
 |---|---|---|---|
