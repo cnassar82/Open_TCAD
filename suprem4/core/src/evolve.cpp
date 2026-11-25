@@ -269,6 +269,44 @@ std::vector<RepairEvent> repair_shapes(std::vector<Shape> &shapes, const RepairO
                 if (shared(piece, other.second) > 0 && rank(other.first) < br) { br = rank(other.first); best = other.first; }
             if (best == GAS) continue;
             mat[best] = Union(mat[best], piece, FillRule::NonZero);
+            {
+                // The piece comes from an opening on the integer grid and need not
+                // meet its new owner exactly: where they join, needles and slits
+                // narrower than 2 x delta/10 would stay behind, below every later
+                // filter, and be meshed at their width (WP7 rand7_35: a 1 A long,
+                // 0.01 A wide oxide needle, 0.13 A edges, SUPREM's time step
+                // collapsed).  Resolve both next to the piece only.
+                const double eps = d / 10;
+                const Paths64 near = InflatePaths(piece, 2 * eps, JoinType::Miter, EndType::Polygon, 10.0);
+                // slits: closing of the owner, never taking another material
+                Paths64 slit = Difference(InflatePaths(InflatePaths(mat[best], eps, JoinType::Miter, EndType::Polygon, 10.0),
+                                                       -eps, JoinType::Miter, EndType::Polygon, 10.0),
+                                          mat[best], FillRule::NonZero);
+                if (!slit.empty()) slit = Intersect(slit, near, FillRule::NonZero);
+                for (auto &other : mat)
+                    if (other.first != best && !slit.empty()) slit = Difference(slit, other.second, FillRule::NonZero);
+                if (!slit.empty()) {
+                    mat[best] = Union(mat[best], slit, FillRule::NonZero);
+                    piece = Union(piece, slit, FillRule::NonZero);
+                }
+                // needles: opening of the owner; each goes to the neighbour (or
+                // the ambient) it shares most boundary with, as thin parts do
+                Paths64 needle = Difference(mat[best], open_(mat[best], eps), FillRule::NonZero);
+                if (!needle.empty()) needle = Intersect(needle, near, FillRule::NonZero);
+                for (const Paths64 &n : pieces(needle)) {
+                    Paths64 gas = Difference(Paths64{box}, solid(), FillRule::NonZero);
+                    int to = GAS;
+                    double bs = shared(n, gas);
+                    for (auto &other : mat) {
+                        if (other.first == best) continue;
+                        double sh = shared(n, other.second);
+                        if (sh > bs) { bs = sh; to = other.first; }
+                    }
+                    mat[best] = Difference(mat[best], n, FillRule::NonZero);
+                    piece = Difference(piece, n, FillRule::NonZero);
+                    if (to != GAS) mat[to] = Union(mat[to], n, FillRule::NonZero);
+                }
+            }
             // pieces of the gap that were inside other materials' openings cannot overlap them: remove overlaps
             for (auto &other : mat)
                 if (other.first != best) other.second = Difference(other.second, piece, FillRule::NonZero);

@@ -60,7 +60,14 @@ void geometry_core_request(void) { requested = 1; }
 int geometry_core_enabled(void)
 {
     const char *e = getenv("SUPREM4_GEOMETRY_CORE");
-    return e && *e && strcmp(e, "0") != 0;
+    const char *all = getenv("SUPREM4_CORE_ALL_MODELS");
+    if (!(e && *e && strcmp(e, "0") != 0)) return 0;
+    /* Only the oxidation models the core was validated for (M0: compress,
+     * viscous).  Under the vertical model it replaced SUPREM's grid_add and
+     * node removal unvalidated and changed the RIT devices (Vt by 60-90 mV,
+     * m0_review_wp8.md 5b).  SUPREM4_CORE_ALL_MODELS=1: every model (test). */
+    if (all && *all && strcmp(all, "0") != 0) return 1;
+    return oxide_model == O_ELASTIC || oxide_model == O_VISCOUS;
 }
 
 /* Returns 1 when the mesh was replaced (the caller must refactor). */

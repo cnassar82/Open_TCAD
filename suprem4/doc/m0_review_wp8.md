@@ -147,6 +147,38 @@ mesh-dependent, and the core-off growth of 10 A at the centre of a 0.5 um gate i
 compress reference implies.  Consequence for the decision: GO stands for the geometry core, but the
 core must not be switched on for the RIT flows until this is resolved (M1 plan, M1.0).
 
+**Follow-up (M1.0a, 2026-11-24).**  The hook now runs the core only under the compress and viscous
+models (`geometry_core_enabled`; `SUPREM4_CORE_ALL_MODELS=1` restores the old behaviour for tests).
+With the core on (build `native64_se0fhkjm`):
+- 0.25 um flow: all 18 checkpoint files of both devices byte-identical to production (no
+  compress/viscous step), so the electricals equal production by construction.
+- 0.5 um flow: identical up to LOCOS (viscous), different from there on.  Field oxide 5087 vs
+  5111 A (-0.5 %), gate oxide at the channel centre 146-147 vs 149 A, final gate dielectric 148
+  vs 152 A, dopant inventories in silicon within 0.7 % at every checkpoint.
+
+| 0.5 um device | quantity | core off | core, all models (old) | core, compress/viscous only |
+|---|---|---|---|---|
+| NMOS | Vt max-gm / cc 100 nA | 0.419 / 0.410 V | 0.360 / 0.391 V | 0.403 / 0.397 V |
+| NMOS | Ion (3.3 V) | 243 uA | 139 uA | 249 uA (+2.5 %) |
+| NMOS | SS / DIBL | 86.5 / 9.9 | 87.5 / 10.1 | 85.8 / 9.9 |
+| PMOS | Vt max-gm / cc 100 nA | -0.861 / -0.884 V | -0.784 / -0.816 V | -0.842 / -0.864 V |
+| PMOS | Ion (3.3 V) | 118 uA | 100 uA | 119 uA (+1.4 %) |
+| PMOS | SS / DIBL | 97.1 / 44.4 | 106.7 / 48.9 | 101.3 / 47.0 |
+
+Vt now moves by 13-20 mV, Ion by +1.4-2.5 %, SS by 4.3 % at most, DIBL by 5.9 % at most, Ioff by
+1.3-1.4x.  Almost all of the original difference came from running the core on vertical-model
+steps.  The remainder follows the 3-4 A thinner gate dielectric.  The gate oxidation is vertical-model
+and core-free, so that difference is the vertical model's sensitivity to the post-LOCOS geometry.
+It is M1.0(b): which LOCOS shape, and which gate oxide, is mesh-converged.
+
+**rand7_35 (M1.1, 2026-11-24).**  The actual defect was a 1 A long, 0.01 A wide oxide needle left by the
+gap-fill union (not the gas slit first suspected).  Fix in `core/src/evolve.cpp` (`repair_shapes`):
+next to each fill piece, close slits and remove needles narrower than 2 x delta/10.  Suite rerun
+(`experiments/wp7_suite_20261124`): **58/58**; rand7_35 field 1189 A (flat 1192), drift -1.76e-4
+(plain -2.44e-4), 0 regenerations.  Against the previous suite, dose drift changes by at most 9e-6.
+33 of 1682 metrics change by more than 0.1 %, all of them the gate-edge dielectric 0.05 um from
+the poly edge, the most mesh-sensitive point.  The largest change is 0.6 % (1.2 A).
+
 ## 6. Runtime (criterion 6)
 
 Same deck, same machine load: SUPREM's vertical model (core off) takes 93 s in 20 steps; compress
@@ -169,7 +201,8 @@ bit-identical when it is off.  The criterion that is not met (one of 50 random v
 one identified mechanism with a contained fix.
 
 Conditions for M1:
-0. Resolve the core-on vs core-off electrical differences of the RIT flows (section 5b).
-1. Sub-resolution clean-up after events (rand7_35); rerun the suite (expect 58/58).
+0. Resolve the core-on vs core-off electrical differences of the RIT flows (section 5b; M1.0a done,
+   remaining 13-20 mV is M1.0b).
+1. Sub-resolution clean-up after events (rand7_35); rerun the suite.  Done: 58/58.
 2. Per-run runtime: treat the step count after mesh changes as an M1 work item; the 3x criterion
    should be restated per run for M1.
