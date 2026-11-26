@@ -257,6 +257,10 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
             uo.scale = env("SUPREM4_CORE_SCALE", uo.scale);
             uo.solution_decades = env("SUPREM4_CORE_SOLUTION_DECADES", uo.solution_decades);
             uo.float_cm_grid = true;
+            // M1 interface boundary layer (off unless SUPREM4_CORE_INTERFACE_H > 0, um)
+            uo.interface_h = env("SUPREM4_CORE_INTERFACE_H", uo.interface_h);
+            uo.interface_depth = env("SUPREM4_CORE_INTERFACE_DEPTH", uo.interface_depth);
+            uo.interface_growth = env("SUPREM4_CORE_INTERFACE_GROWTH", uo.interface_growth);
             if (auto it = st.param.find("oxide_grid_um"); it != st.param.end() && it->second > 0)
                 uo.min_size[SIO2] = env("SUPREM4_CORE_OXIDE_H", it->second);
             if (force) uo.keep_triangles = false;   // SUPREM predicts squeezed elements: full Delaunay triangulation
@@ -278,10 +282,10 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
                 update_failure = finish(fresh, flips);
                 if (update_failure.empty()) {
                     std::snprintf(buf, sizeof buf,
-                                  "%s%supdate: points %zu -> %zu (removed %d+%d, inserted %d+%d, encroach %d), new triangles %d, "
+                                  "%s%supdate: points %zu -> %zu (removed %d+%d, inserted %d+%d, encroach %d, interface rows %d/+%d), new triangles %d, "
                                   "worst coupling %.3g, float flips %d, inventory error %.2g, box change %.2g",
                                   local.c_str(), force ? "forced, full triangulation; " : "", m.point.size(), fresh.point.size(), ur.removed_interior, ur.removed_boundary,
-                                  ur.inserted_interior, ur.inserted_boundary, ur.encroach_splits, ur.new_triangles,
+                                  ur.inserted_interior, ur.inserted_boundary, ur.encroach_splits, ur.interface_points, ur.interface_inserted, ur.new_triangles,
                                   measure_quality(fresh).worst_coupling, flips, tr.max_rel_final, tr.max_rel_box);
                     say(buf);
                     return 1;

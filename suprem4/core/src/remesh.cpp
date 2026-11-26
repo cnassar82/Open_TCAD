@@ -1039,6 +1039,220 @@ std::vector<std::string> check_gas_nodes(const Mesh &m, size_t max_reports)
 }  // namespace suprem_core
 
 namespace suprem_core {
+namespace {
+
+// Bucket hash of points that grows while points are added.
+struct RowHash {
+    double cell;
+    std::unordered_map<int64_t, std::vector<int>> b;
+    std::vector<Point> at;
+    explicit RowHash(double c) : cell(c) {}
+    int64_t key(long i, long j) const { return (int64_t)i * 4000037LL + j; }
+    void add(int id, const Point &p)
+    {
+        if ((int)at.size() <= id) at.resize(id + 1);
+        at[id] = p;
+        b[key(std::lround(std::floor(p.x / cell)), std::lround(std::floor(p.y / cell)))].push_back(id);
+    }
+    template <class F> void query(const Point &x, double r, F f) const
+    {
+        long i0 = std::lround(std::floor((x.x - r) / cell)), i1 = std::lround(std::floor((x.x + r) / cell));
+        long j0 = std::lround(std::floor((x.y - r) / cell)), j1 = std::lround(std::floor((x.y + r) / cell));
+        for (long i = i0; i <= i1; ++i)
+            for (long j = j0; j <= j1; ++j)
+                if (auto it = b.find(key(i, j)); it != b.end())
+                    for (int id : it->second) f(id);
+    }
+};
+
+// M1 interface boundary layer (UpdateOptions::interface_h): the interfaces
+// between a consumed material (silicon, poly) and oxide, with the normal into
+// the consumed material, and the row structure below them.
+class Interface {
+  public:
+    struct Near {
+        double d = 0, hn = 0, ht = 0;
+        Point n{0, 0}, t{0, 0};
+        double metric(const Point &a, const Point &b) const
+        {
+            const double dx = b.x - a.x, dy = b.y - a.y;
+            return std::hypot((dx * n.x + dy * n.y) / hn, (dx * t.x + dy * t.y) / ht);
+        }
+    };
+    struct Vertex { int p; Point n; int region; double ht; };
+
+    Interface(const Geo &g, const Mesh &m, const UpdateOptions &o, std::function<double(const Point &, int)> fine)
+        : m_(m), o_(o), fine_(std::move(fine)), loc_(m)
+    {
+        if (o.interface_h <= 0) return;
+        cap_ = 5 * std::max(o.interface_depth, o.interface_h);
+        auto consumed = [&](int mat) { return mat == SI || mat == POLY; };
+        for (const Canon &c : g.C) {
+            const int ml = m.region_material[c.left], mr = c.right >= 0 ? m.region_material[c.right] : -1;
+            int region = -1;
+            if (consumed(ml) && mr == SIO2) region = c.left;
+            else if (consumed(mr) && ml == SIO2) region = c.right;
+            if (region < 0 || c.pt.size() < 2) continue;
+            const size_t first = seg_.size();
+            size_t longest = first;
+            for (size_t i = 0; i + 1 < c.pt.size(); ++i) {
+                const Point a = g.P[c.pt[i]], b = g.P[c.pt[i + 1]];
+                const double len = dist(a, b);
+                if (len <= 0) continue;
+                const Point t{(b.x - a.x) / len, (b.y - a.y) / len};
+                const Point nl{-t.y, t.x};
+                const double s = region == c.left ? 1 : -1;
+                seg_.push_back({a, b, {s * nl.x, s * nl.y}, t, len, region, c.pt[i], c.pt[i + 1]});
+                if (len > seg_[longest].len) longest = seg_.size() - 1;
+            }
+            if (seg_.size() == first) continue;
+            // orientation check on the longest segment (the left/right convention is not trusted blindly)
+            const S &L = seg_[longest];
+            const double e = std::min(0.25 * L.len, 1e-4);
+            const Point mid{0.5 * (L.a.x + L.b.x), 0.5 * (L.a.y + L.b.y)};
+            if (region_at({mid.x + e * L.n.x, mid.y + e * L.n.y}) != region &&
+                region_at({mid.x - e * L.n.x, mid.y - e * L.n.y}) == region)
+                for (size_t k = first; k < seg_.size(); ++k) seg_[k].n = {-seg_[k].n.x, -seg_[k].n.y};
+            // vertices: all but the chain ends (junctions), unless the chain is closed
+            const bool closed = c.pt.front() == c.pt.back();
+            const size_t ns = seg_.size() - first;
+            if (!closed) {   // chain ends: junctions with the other boundaries of the region
+                ends_.push_back({seg_[first].p, seg_[first].n, region, seg_[first].len});
+                ends_.push_back({seg_.back().q, seg_.back().n, region, seg_.back().len});
+            }
+            for (size_t k = 0; k < ns; ++k) {
+                const size_t prev = k > 0 ? first + k - 1 : (closed ? seg_.size() - 1 : SIZE_MAX);
+                if (prev == SIZE_MAX) continue;
+                const S &s0 = seg_[prev], &s1 = seg_[first + k];
+                if (s0.q != s1.p) continue;   // a zero-length segment was skipped
+                Point n{s0.n.x + s1.n.x, s0.n.y + s1.n.y};
+                const double nn = std::hypot(n.x, n.y);
+                if (nn < 1e-6) continue;
+                vert_.push_back({s1.p, {n.x / nn, n.y / nn}, region, 0.5 * (s0.len + s1.len)});
+            }
+        }
+        std::vector<std::pair<Point, Point>> s;
+        for (const S &x : seg_) s.push_back({x.a, x.b});
+        grid_.build(s);
+    }
+    bool active() const { return !seg_.empty(); }
+    const std::vector<Vertex> &vertices() const { return vert_; }
+    const std::vector<Vertex> &ends() const { return ends_; }
+    // the old triangle at x (-1: outside)
+    int old_triangle(const Point &x) const
+    {
+        double bary[3];
+        return loc_.locate(x, bary);
+    }
+    // x inside one of the interface segments (a chain vertex created after
+    // construction, e.g. by an encroachment split): its column direction
+    bool vertex_at(const Point &x, Vertex &v) const
+    {
+        const double e = 1e-9;
+        bool found = false;
+        grid_.query(x.x - e, x.y - e, x.x + e, x.y + e, [&](int k) {
+            const S &q = seg_[k];
+            if (found || seg_dist(x, q.a, q.b) > e || dist(x, q.a) <= e || dist(x, q.b) <= e) return;
+            v = {-1, q.n, q.region, std::max(dist(x, q.a), dist(x, q.b))};
+            found = true;
+        });
+        return found;
+    }
+
+    int region_at(const Point &x) const
+    {
+        double bary[3];
+        const int t = loc_.locate(x, bary);
+        if (t < 0 || std::min({bary[0], bary[1], bary[2]}) < -1e-9) return -1;
+        return m_.triangle[t].region;
+    }
+    // normal spacing at depth d below the interface (hf: the material's own size there)
+    double hn(double d, double hf) const
+    {
+        const double h0 = o_.interface_h;
+        if (d <= o_.interface_depth) return h0;
+        return std::min(std::max(hf, h0), h0 + (o_.interface_growth - 1) * (d - o_.interface_depth));
+    }
+    // x in the layer zone of an interface of its own region
+    bool zone(const Point &x, int region, Near &z) const
+    {
+        if (seg_.empty() || region < 0) return false;
+        double best = 1e300;
+        const S *bs = nullptr;
+        grid_.query(x.x - cap_, x.y - cap_, x.x + cap_, x.y + cap_, [&](int k) {
+            if (seg_[k].region != region) return;
+            const double d = seg_dist(x, seg_[k].a, seg_[k].b);
+            if (d < best) { best = d; bs = &seg_[k]; }
+        });
+        if (!bs || best >= cap_) return false;
+        // the same depth as the columns reach (rows()), also where the
+        // material is already as fine as the layer: every point of the zone
+        // is a target or is removed, never left to the isotropic rule
+        const double hf = fine_(x, region);
+        if (best > end(hf)) return false;
+        z.d = best;
+        z.n = bs->n;
+        z.t = bs->t;
+        z.hn = hn(best, hf);
+        z.ht = std::max(bs->len, z.hn);
+        return true;
+    }
+    // end of the zone where the material's own size is hf: half a step
+    // below the last row rows() places (same grading and rounding)
+    double end(double hf) const
+    {
+        const double h0 = o_.interface_h;
+        double d = o_.interface_depth, s = h0 * o_.interface_growth;
+        while (true) {
+            const double step = std::max(h0, std::round(s / h0) * h0);
+            if (step >= hf || d + step >= cap_) return d + 0.5 * std::min(step, hf);
+            d += step;
+            s *= o_.interface_growth;
+        }
+    }
+    // Lattice coordinate along the normal: every row lies on a level that is a
+    // multiple of interface_h in space, so neighbouring columns share their
+    // levels (rectangular cells) whenever and wherever they were created.
+    double lattice_offset(const Point &x, const Point &n) const
+    {
+        const double h0 = o_.interface_h, s = (x.x * n.x + x.y * n.y) / h0;
+        return std::fabs(s - std::round(s)) * h0;
+    }
+    // depths of the rows below vertex v (at: its position), all on the lattice
+    // phase: depth (mod interface_h) of the column's existing levels; NaN:
+    // the absolute lattice (a new column)
+    std::vector<double> rows(const Vertex &v, const Point &at, double phase = std::nan("")) const
+    {
+        std::vector<double> r;
+        const double h0 = o_.interface_h, sv = at.x * v.n.x + at.y * v.n.y;
+        double d = std::isnan(phase) ? std::ceil((sv + o_.near * h0) / h0) * h0 - sv   // first level clear of the interface
+                                     : phase + std::ceil((o_.near * h0 - phase) / h0) * h0;
+        for (; d <= o_.interface_depth * (1 + 1e-9); d += h0) r.push_back(d);
+        double s = h0 * o_.interface_growth;
+        d = (r.empty() ? d - h0 : r.back());
+        while (true) {
+            const double step = std::max(h0, std::round(s / h0) * h0);
+            d += step;
+            if (d >= cap_ || step >= fine_({at.x + d * v.n.x, at.y + d * v.n.y}, v.region)) break;
+            r.push_back(d);
+            s *= o_.interface_growth;
+        }
+        return r;
+    }
+
+  private:
+    struct S { Point a, b, n, t; double len; int region, p, q; };
+    const Mesh &m_;
+    const UpdateOptions &o_;
+    std::function<double(const Point &, int)> fine_;
+    TriangleLocator loc_;
+    std::vector<S> seg_;
+    std::vector<Vertex> vert_, ends_;
+    SegGrid grid_;
+    double cap_ = 0;
+};
+
+}  // namespace
 
 Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, UpdateReport &rep)
 {
@@ -1101,7 +1315,18 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
         for (int p : c.pt) on_chain[p] = 1;
 
     lap("setup");
-    // 1. chain vertices on short segments (geometry kept within tol)
+    // 1. chain vertices on short segments (geometry kept within tol); not
+    // on the side chains of the interface boundary layer (3-), whose
+    // vertices inside the zone are its lattice levels
+    std::unique_ptr<Interface> zone0;
+    if (o.interface_h > 0) zone0 = std::make_unique<Interface>(g, m, o, [&](const Point &x, int region) { return fine(x, region); });
+    auto in_zone0 = [&](const Point &x, const Canon &c) {
+        if (!zone0 || !zone0->active()) return false;
+        const int ml = m.region_material[c.left], mr = c.right >= 0 ? m.region_material[c.right] : -1;
+        if (((ml == SI || ml == POLY) && mr == SIO2) || ((mr == SI || mr == POLY) && ml == SIO2)) return false;   // the interface itself
+        Interface::Near z;
+        return zone0->zone(x, c.left, z) || (c.right >= 0 && zone0->zone(x, c.right, z));
+    };
     if (o.tol > 0 && o.short_edge > 0) {
         std::unordered_map<int, int> uses;
         for (const Canon &c : g.C)
@@ -1115,7 +1340,7 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
             std::vector<int> out{v[0]}, skipped;
             for (size_t i = 1; i + 1 < v.size(); ++i) {
                 const int p = v[i], prev = out.back(), next = v[i + 1];
-                bool drop = uses[p] == 1;
+                bool drop = uses[p] == 1 && !in_zone0(g.P[p], c);
                 if (drop) {
                     drop = std::min(dist(g.P[prev], g.P[p]), dist(g.P[p], g.P[next])) < o.short_edge * cfine(g.P[p], c) &&
                            dist(g.P[prev], g.P[next]) < clongest(g.P[p], c);
@@ -1156,35 +1381,223 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
     for (const Triangle &t : m.triangle)
         for (int v : t.v) point_region[v] = t.region;
     std::vector<int> layer;
-    {
-        std::vector<std::pair<Point, Point>> seg;
+    std::vector<char> il_flag;   // per g.P index: interface-layer point (kept or inserted)
+    Interface iface(g, m, o, [&](const Point &x, int region) { return fine(x, region); });
+    std::vector<int> side_points;   // chain vertices on lattice levels (side chains of the layer)
+    // 3-. side chains of the boundary layer.  Where an interface ends on
+    // another boundary of the consumed region (a reflecting side, a
+    // silicon/nitride interface), that chain is the outermost column: within
+    // the zone depth its vertices are put on the lattice levels, so the
+    // cells next to it are as structured as the rest of the zone (else one
+    // coarse boundary vertex fans out to many rows).  Only a straight part
+    // (within tol) running along the column direction is changed (exact
+    // geometry); vertices already on a level are kept.
+    if (iface.active()) {
+        std::unordered_map<int, int> uses;
         for (const Canon &c : g.C)
-            for (size_t i = 0; i + 1 < c.pt.size(); ++i) seg.push_back({g.P[c.pt[i]], g.P[c.pt[i + 1]]});
-        SegGrid sg;
-        sg.build(seg);
+            for (size_t i = 0; i < c.pt.size(); ++i) uses[c.pt[i]] += (i == 0 || i + 1 == c.pt.size()) ? 2 : 1;
+        auto is_interface = [&](const Canon &c) {
+            const int ml = m.region_material[c.left], mr = c.right >= 0 ? m.region_material[c.right] : -1;
+            return ((ml == SI || ml == POLY) && mr == SIO2) || ((mr == SI || mr == POLY) && ml == SIO2);
+        };
+        for (const Interface::Vertex &e : iface.ends()) {
+            for (Canon &c : g.C) {
+                if (is_interface(c) || (c.left != e.region && c.right != e.region) || c.pt.size() < 2) continue;
+                const bool fwd = c.pt.front() == e.p;
+                if (!fwd && c.pt.back() != e.p) continue;
+                std::vector<int> v(c.pt);
+                if (!fwd) std::reverse(v.begin(), v.end());
+                const Point E = g.P[e.p];
+                const double L1 = dist(E, g.P[v[1]]);
+                if (L1 <= 0) continue;
+                const Point u{(g.P[v[1]].x - E.x) / L1, (g.P[v[1]].y - E.y) / L1};
+                if (u.x * e.n.x + u.y * e.n.y < std::cos(M_PI / 6)) continue;   // not along the column direction
+                Interface::Vertex col{e.p, u, e.region, e.ht};
+                const std::vector<double> lv = iface.rows(col, E);
+                if (lv.empty()) continue;
+                const double reach = lv.back() + 0.5 * iface.hn(lv.back(), fine(E, e.region));
+                // straight part within reach: interior vertices on the line, used by this chain only
+                size_t k = 1;   // v[1..k-1]: the part to rebuild; v[k]: first vertex kept beyond it
+                while (k + 1 < v.size()) {
+                    const Point &q = g.P[v[k]];
+                    const double along = (q.x - E.x) * u.x + (q.y - E.y) * u.y;
+                    const double off = std::fabs((q.x - E.x) * u.y - (q.y - E.y) * u.x);
+                    if (along > reach || off > o.tol || uses[v[k]] != 1) break;
+                    ++k;
+                }
+                const Point &Q = g.P[v[k]];
+                const double stop = (Q.x - E.x) * u.x + (Q.y - E.y) * u.y;
+                if ((Q.x - E.x) * u.y - (Q.y - E.y) * u.x > o.tol || -((Q.x - E.x) * u.y - (Q.y - E.y) * u.x) > o.tol) continue;
+                std::vector<int> part{e.p};
+                size_t j = 1;
+                for (double d : lv) {
+                    const double h = iface.hn(d, fine(E, e.region));
+                    if (d > stop - o.near * h) break;
+                    int id = -1;
+                    for (; j < k; ++j) {   // an old vertex on this level stands for it
+                        const Point &q = g.P[v[j]];
+                        const double along = (q.x - E.x) * u.x + (q.y - E.y) * u.y;
+                        if (along < d - 0.25 * h) continue;
+                        if (along <= d + 0.25 * h) id = v[j++];
+                        break;
+                    }
+                    if (id < 0) {
+                        g.P.push_back(snap({E.x + d * u.x, E.y + d * u.y}));
+                        id = (int)g.P.size() - 1;
+                        rep.interface_inserted++;
+                    }
+                    part.push_back(id);
+                    side_points.push_back(id);
+                }
+                part.insert(part.end(), v.begin() + k, v.end());
+                if (!fwd) std::reverse(part.begin(), part.end());
+                c.pt = part;
+            }
+        }
+    }
+    std::vector<std::pair<Point, Point>> seg;
+    for (const Canon &c : g.C)
+        for (size_t i = 0; i + 1 < c.pt.size(); ++i) seg.push_back({g.P[c.pt[i]], g.P[c.pt[i + 1]]});
+    SegGrid sg;
+    sg.build(seg);
+    auto near_chain = [&](const Point &x, double r) {
+        bool hit = false;
+        sg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
+            if (!hit && seg_dist(x, seg[k].first, seg[k].second) < r) hit = true;
+        });
+        return hit;
+    };
+    RowHash zh(0.01);   // accepted zone points (g.P ids)
+    // The column below interface vertex v (at: its position): lattice levels
+    // of rows(), stopping where the column leaves its material or meets
+    // another boundary; levels closer than 0.6 spacings to accepted zone
+    // points are skipped (columns converging on a concave interface).
+    // match: an old point standing for the target (g.P id), or -1.
+    auto column = [&](const Interface::Vertex &v, const Point &at,
+                      const std::function<int(const Point &, const Interface::Near &, int)> &match, double phase) {
+        std::vector<int> added;
+        for (double d : iface.rows(v, at, phase)) {
+            const Point x = snap({at.x + d * v.n.x, at.y + d * v.n.y});
+            if (iface.region_at(x) != v.region) break;   // left the material
+            Interface::Near z;
+            z.d = d;
+            z.n = v.n;
+            z.t = {-v.n.y, v.n.x};
+            z.hn = iface.hn(d, fine(x, v.region));
+            z.ht = std::max(v.ht, z.hn);
+            if (near_chain(x, o.near * z.hn)) break;   // another boundary
+            const double R = std::max(z.ht, z.hn);
+            bool clash = false;
+            zh.query(x, 0.6 * R, [&](int q) {
+                if (!clash && z.metric(x, zh.at[q]) < 0.6) clash = true;
+            });
+            if (clash) continue;
+            int id = match ? match(x, z, v.region) : -1;
+            if (id < 0) {
+                g.P.push_back(x);
+                id = (int)g.P.size() - 1;
+                rep.interface_inserted++;
+                added.push_back(id);
+            }
+            il_flag.resize(g.P.size(), 0);
+            layer.push_back(id);
+            il_flag[id] = 1;
+            zh.add(id, g.P[id]);
+            rep.interface_points++;
+        }
+        return added;
+    };
+    {
         std::vector<int> cand;
         std::vector<std::pair<Point, Point>> dots;
         for (int p = 0; p < n0; ++p)
             if (!on_chain[p]) { cand.push_back(p); dots.push_back({g.P[p], g.P[p]}); }
         SegGrid pg;
         pg.build(dots);
-        std::vector<char> kept(cand.size(), 0);
+        std::vector<char> kept(cand.size(), 0), in_zone(cand.size(), 0);
+        il_flag.assign(g.P.size(), 0);
+        for (int p : side_points) { il_flag[p] = 1; zh.add(p, g.P[p]); }
+        // 3a. interface boundary layer (structured zone).  Its point set is
+        // exactly the columns below the interface vertices, on lattice levels
+        // fixed in space (neighbouring columns share them and a level stays
+        // where it is while the interface moves).  An old point within a
+        // quarter spacing of a target stands for it (its values are kept);
+        // other old points in the zone are removed.  So between calls only
+        // the rows the interface eats and the rows added at the deep end
+        // change.
+        if (iface.active()) {
+            RowHash oh(0.01);   // old zone points (cand indices)
+            for (size_t i = 0; i < cand.size(); ++i) {
+                Interface::Near z;
+                if (iface.zone(g.P[cand[i]], point_region[cand[i]], z)) { in_zone[i] = 1; oh.add((int)i, g.P[cand[i]]); }
+            }
+            std::vector<char> matched(cand.size(), 0);
+            // A kept old point may sit off its column (the interface moves
+            // and turns under it).  Its offset along the interface is capped
+            // by its depth, not by the column spacing: a point at depth d
+            // leaning t towards a neighbouring interface segment makes the
+            // angle opposite that segment 90 deg + atan(t / d), i.e. a
+            // coupling of -t / 2d on the interface edge (LOCOS: 3.7 nm lean
+            // at 2 nm depth gave -0.79).  t <= 0.1 d keeps it above -0.05.
+            auto match = [&](const Point &x, const Interface::Near &z, int region) {
+                int best = -1;
+                double bm = 0.25;
+                const double lean = 0.1 * z.d;
+                oh.query(x, 0.25 * std::max(z.ht, z.hn), [&](int i) {
+                    if (matched[i] || point_region[cand[i]] != region) return;
+                    const Point &q = g.P[cand[i]];
+                    if (std::fabs((q.x - x.x) * z.t.x + (q.y - x.y) * z.t.y) > lean) return;
+                    const double mm = z.metric(x, q);
+                    if (mm < bm) { bm = mm; best = i; }
+                });
+                if (best < 0) return -1;
+                matched[best] = kept[best] = 1;
+                return cand[best];
+            };
+            // The levels of a column stay where its old points are (the
+            // absolute lattice x.n moves by |x| dn when the interface
+            // rotates, e.g. in a bird's beak): phase from the old zone point
+            // under the vertex nearest to the interface.
+            auto phase_of = [&](const Interface::Vertex &v, const Point &at) {
+                const double h0 = o.interface_h, reach = o.interface_depth;
+                const Point t{-v.n.y, v.n.x};
+                double best = std::nan(""), bd = 1e300;
+                oh.query({at.x + 0.5 * reach * v.n.x, at.y + 0.5 * reach * v.n.y}, 0.5 * reach + 0.25 * v.ht, [&](int i) {
+                    if (point_region[cand[i]] != v.region) return;
+                    const Point &q = g.P[cand[i]];
+                    const double dn = (q.x - at.x) * v.n.x + (q.y - at.y) * v.n.y, dt = (q.x - at.x) * t.x + (q.y - at.y) * t.y;
+                    if (std::fabs(dt) > 0.25 * v.ht || dn < 0.5 * o.near * h0 || dn > reach || dn >= bd) return;
+                    bd = dn;
+                    best = dn - std::floor(dn / h0) * h0;
+                });
+                return best;
+            };
+            for (const Interface::Vertex &v : iface.vertices()) column(v, g.P[v.p], match, phase_of(v, g.P[v.p]));
+            for (size_t i = 0; i < cand.size(); ++i)
+                if (in_zone[i] && !matched[i]) rep.removed_interior++;
+        }
+        // 3b. outside the zone: interior points removed near a chain, a zone
+        // point or an already kept interior point
         for (size_t i = 0; i < cand.size(); ++i) {
+            if (in_zone[i]) continue;
             const Point &x = g.P[cand[i]];
-            const double r = o.near * fine(x, point_region[cand[i]]);
-            bool ok = true;
-            sg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
-                if (ok && seg_dist(x, seg[k].first, seg[k].second) < r) ok = false;
-            });
+            const int region = point_region[cand[i]];
+            const double r = o.near * fine(x, region);
+            bool ok = !near_chain(x, r);
+            if (ok)
+                zh.query(x, r, [&](int q) {
+                    if (ok && dist(x, zh.at[q]) < r) ok = false;
+                });
             if (ok)
                 pg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
-                    if (ok && (size_t)k < i && kept[k] && dist(x, dots[k].first) < r) ok = false;
+                    if (ok && (size_t)k < i && kept[k] && !in_zone[k] && dist(x, dots[k].first) < r) ok = false;
                 });
             kept[i] = ok;
             if (ok) layer.push_back(cand[i]);
             else rep.removed_interior++;
         }
     }
+    il_flag.resize(g.P.size(), 0);
     lap("interior removal");
     // 4a. old triangles kept as they are: all three points kept, no boundary
     // edge changed by steps 1-2, and no edge with a coupling below
@@ -1242,95 +1655,138 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
     // 4. triangulation; interior edges longer than long_edge x h get their midpoint
     RemeshOptions ro;
     Work w;
-    for (int round = 0;; ++round) {
-        std::vector<char> film(g.P.size(), 0);
-        if (keep.empty()) {
-            w = triangulate(g, layer, film, ro, rr);
-        } else {
-            auto ke = keep_edges();
-            try {
-                w = triangulate(g, layer, film, ro, rr, &ke);
-            } catch (const std::exception &e) {   // e.g. a new chain chord crosses a kept edge
-                rep.notes.push_back(std::string("kept triangles released (") + e.what() + ")");
-                keep.clear();
+    // Steps 4-5 run again when the encroachment repair split an interface
+    // of the boundary layer: the new vertex gets its column in this call
+    // (else its triangles would fan out to the deep rows for one SUPREM
+    // step, and the next call would interpolate the new column from them).
+    const size_t chain_points0 = g.P.size();
+    std::set<int> columned;   // chain vertices from encroachment splits that have their column
+    for (int zone_round = 0;; ++zone_round) {
+        for (int round = 0;; ++round) {
+            std::vector<char> film(g.P.size(), 0);
+            if (keep.empty()) {
                 w = triangulate(g, layer, film, ro, rr);
-            }
-        }
-        if (round >= o.rounds) break;
-        std::unordered_set<uint64_t> con;
-        for (auto &e : constrained_edges(w)) con.insert(ukey(e[0], e[1]));
-        std::unordered_map<uint64_t, int> dirw;   // directed edge -> triangle on its left
-        if (!keep.empty())
-            for (int t = 0; t < (int)w.T.size(); ++t)
-                for (int k = 0; k < 3; ++k) dirw[dkey(w.T[t][k], w.T[t][(k + 1) % 3])] = t;
-        int added = 0;
-        std::unordered_set<uint64_t> split_edge;
-        for (int t = 0; t < (int)w.T.size(); ++t) {
-            const Point &A = w.P[w.T[t][0]], &B = w.P[w.T[t][1]], &C = w.P[w.T[t][2]];
-            Point cen{(A.x + B.x + C.x) / 3, (A.y + B.y + C.y) / 3};
-            double area = 0.5 * std::fabs(cross(A, B, C)), hc = area_h(cen, w.R[t]);
-            if (area <= o.grow * std::sqrt(3.0) / 4 * hc * hc) continue;
-            int k = 0;   // longest edge v[k] -> v[k+1]
-            for (int j = 1; j < 3; ++j)
-                if (dist(w.P[w.T[t][j]], w.P[w.T[t][(j + 1) % 3]]) > dist(w.P[w.T[t][k]], w.P[w.T[t][(k + 1) % 3]])) k = j;
-            int a = w.T[t][k], bb = w.T[t][(k + 1) % 3];
-            Point x;
-            if (!con.count(ukey(a, bb))) {
-                if (!split_edge.insert(ukey(a, bb)).second) continue;   // neighbour already splits it
-                x = {0.5 * (w.P[a].x + w.P[bb].x), 0.5 * (w.P[a].y + w.P[bb].y)};
             } else {
-                x = cen;
+                auto ke = keep_edges();
+                try {
+                    w = triangulate(g, layer, film, ro, rr, &ke);
+                } catch (const std::exception &e) {   // e.g. a new chain chord crosses a kept edge
+                    rep.notes.push_back(std::string("kept triangles released (") + e.what() + ")");
+                    keep.clear();
+                    w = triangulate(g, layer, film, ro, rr);
+                }
             }
-            x = snap(x);
-            bool clear = true;
-            for (int j = 0; j < 3; ++j) clear = clear && dist(x, w.P[w.T[t][j]]) >= o.near * fine(x, w.R[t]);
-            if (!clear) continue;
-            if (!keep.empty()) {   // the triangles the point goes into are re-triangulated
-                keep.erase(triple_of(w, t));
-                if (!con.count(ukey(a, bb)))
-                    if (auto it = dirw.find(dkey(bb, a)); it != dirw.end()) keep.erase(triple_of(w, it->second));
+            if (round >= o.rounds) break;
+            std::unordered_set<uint64_t> con;
+            for (auto &e : constrained_edges(w)) con.insert(ukey(e[0], e[1]));
+            std::unordered_map<uint64_t, int> dirw;   // directed edge -> triangle on its left
+            if (!keep.empty())
+                for (int t = 0; t < (int)w.T.size(); ++t)
+                    for (int k = 0; k < 3; ++k) dirw[dkey(w.T[t][k], w.T[t][(k + 1) % 3])] = t;
+            int added = 0;
+            std::unordered_set<uint64_t> split_edge;
+            for (int t = 0; t < (int)w.T.size(); ++t) {
+                const Point &A = w.P[w.T[t][0]], &B = w.P[w.T[t][1]], &C = w.P[w.T[t][2]];
+                Point cen{(A.x + B.x + C.x) / 3, (A.y + B.y + C.y) / 3};
+                double area = 0.5 * std::fabs(cross(A, B, C)), hc = area_h(cen, w.R[t]);
+                if (area <= o.grow * std::sqrt(3.0) / 4 * hc * hc) continue;
+                int k = 0;   // longest edge v[k] -> v[k+1]
+                for (int j = 1; j < 3; ++j)
+                    if (dist(w.P[w.T[t][j]], w.P[w.T[t][(j + 1) % 3]]) > dist(w.P[w.T[t][k]], w.P[w.T[t][(k + 1) % 3]])) k = j;
+                int a = w.T[t][k], bb = w.T[t][(k + 1) % 3];
+                Point x;
+                if (!con.count(ukey(a, bb))) {
+                    if (!split_edge.insert(ukey(a, bb)).second) continue;   // neighbour already splits it
+                    x = {0.5 * (w.P[a].x + w.P[bb].x), 0.5 * (w.P[a].y + w.P[bb].y)};
+                } else {
+                    x = cen;
+                }
+                x = snap(x);
+                if (Interface::Near z; iface.active() && iface.zone(x, w.R[t], z)) continue;   // the zone is structured
+                bool clear = true;
+                for (int j = 0; j < 3; ++j) clear = clear && dist(x, w.P[w.T[t][j]]) >= o.near * fine(x, w.R[t]);
+                if (clear && iface.active()) {   // as the removal rule (3b): not closer than near x fine to a zone point
+                    const double r = o.near * fine(x, w.R[t]);
+                    zh.query(x, r, [&](int q) {
+                        if (clear && dist(x, zh.at[q]) < r) clear = false;
+                    });
+                }
+                if (!clear) continue;
+                if (!keep.empty()) {   // the triangles the point goes into are re-triangulated
+                    keep.erase(triple_of(w, t));
+                    if (!con.count(ukey(a, bb)))
+                        if (auto it = dirw.find(dkey(bb, a)); it != dirw.end()) keep.erase(triple_of(w, it->second));
+                }
+                g.P.push_back(x);
+                layer.push_back((int)g.P.size() - 1);
+                ++added;
             }
-            g.P.push_back(x);
-            layer.push_back((int)g.P.size() - 1);
-            ++added;
+            rep.inserted_interior += added;
+            if (!added) break;
         }
-        rep.inserted_interior += added;
-        if (!added) break;
-    }
-    // The kept edges are CDT constraints, so an edge between a kept and a new
-    // triangle can be non-Delaunay: a negative box coupling, which costs SUPREM
-    // dose (WP7: flat oxidation lost 5e-4 of its boron with them, 5e-5 without).
-    // Flip those edges; the kept triangle on such an edge is re-triangulated.
-    // Edges between two kept triangles keep their (>= keep_coupling) quality.
-    if (!keep.empty()) rep.flips += delaunay_flips(w, &keep);
-    lap("triangulation+insertion");
-    // 5. encroachment repair (as WP3)
-    // Only encroachment the update introduced is repaired: an edge whose
-    // apex already faced it in the old mesh keeps the old quality (thin
-    // films of a SUPREM grid would otherwise be refined down to their
-    // thickness), no split creates a segment that step 1 would remove again,
-    // and the number of splits is bounded.
-    {
-        std::set<std::array<int, 3>> old_faces;   // (min, max, apex) of old triangles
-        for (const Triangle &t : m.triangle)
-            for (int k = 0; k < 3; ++k) {
-                int a = t.v[(k + 1) % 3], bb = t.v[(k + 2) % 3];
-                old_faces.insert({std::min(a, bb), std::max(a, bb), t.v[k]});
+        // The kept edges are CDT constraints, so an edge between a kept and a new
+        // triangle can be non-Delaunay: a negative box coupling, which costs SUPREM
+        // dose (WP7: flat oxidation lost 5e-4 of its boron with them, 5e-5 without).
+        // Flip those edges; the kept triangle on such an edge is re-triangulated.
+        // Edges between two kept triangles keep their (>= keep_coupling) quality.
+        if (!keep.empty()) rep.flips += delaunay_flips(w, &keep);
+        lap("triangulation+insertion");
+        // 5. encroachment repair (as WP3)
+        // Only encroachment the update introduced is repaired: an edge whose
+        // apex already faced it in the old mesh keeps the old quality (thin
+        // films of a SUPREM grid would otherwise be refined down to their
+        // thickness), no split creates a segment that step 1 would remove again,
+        // and the number of splits is bounded.
+        {
+            std::set<std::array<int, 3>> old_faces;   // (min, max, apex) of old triangles
+            for (const Triangle &t : m.triangle)
+                for (int k = 0; k < 3; ++k) {
+                    int a = t.v[(k + 1) % 3], bb = t.v[(k + 2) % 3];
+                    old_faces.insert({std::min(a, bb), std::max(a, bb), t.v[k]});
+                }
+            const int budget = std::max(100, (int)(o.encroach_budget * n0));
+            SplitFilter allow = [&](int pa, int pb, int apex, int region) {
+                if (pa < n0 && pb < n0 && apex >= 0 && apex < n0 && old_faces.count({std::min(pa, pb), std::max(pa, pb), apex}))
+                    return false;
+                // interface-layer rows are anisotropic on purpose: their flat
+                // triangles must not refine the interface down to the row spacing
+                if (apex >= 0 && apex < (int)il_flag.size() && il_flag[apex]) return false;
+                Point mid{0.5 * (g.P[pa].x + g.P[pb].x), 0.5 * (g.P[pa].y + g.P[pb].y)};
+                return 0.5 * dist(g.P[pa], g.P[pb]) >= o.short_edge * fine(mid, region);   // never what step 1 would remove
+            };
+            for (int round = 0; round < o.encroach_rounds && rep.encroach_splits < budget; ++round) {
+                int n = split_encroached(w, g, o.encroach_angle, std::max(o.min_split_length, o.hmin), allow);
+                if (!n) break;
+                rep.encroach_splits += n;
+                rep.flips += delaunay_flips(w, keep.empty() ? nullptr : &keep);
             }
-        const int budget = std::max(100, (int)(o.encroach_budget * n0));
-        SplitFilter allow = [&](int pa, int pb, int apex, int region) {
-            if (pa < n0 && pb < n0 && apex >= 0 && apex < n0 && old_faces.count({std::min(pa, pb), std::max(pa, pb), apex}))
-                return false;
-            Point mid{0.5 * (g.P[pa].x + g.P[pb].x), 0.5 * (g.P[pa].y + g.P[pb].y)};
-            return 0.5 * dist(g.P[pa], g.P[pb]) >= o.short_edge * fine(mid, region);   // never what step 1 would remove
-        };
-        for (int round = 0; round < o.encroach_rounds && rep.encroach_splits < budget; ++round) {
-            int n = split_encroached(w, g, o.encroach_angle, std::max(o.min_split_length, o.hmin), allow);
-            if (!n) break;
-            rep.encroach_splits += n;
-            rep.flips += delaunay_flips(w, keep.empty() ? nullptr : &keep);
+            if (rep.encroach_splits >= budget) rep.notes.push_back("encroachment split budget reached");
         }
-        if (rep.encroach_splits >= budget) rep.notes.push_back("encroachment split budget reached");
+        if (!iface.active() || zone_round >= 3) break;
+        std::vector<int> fresh_pts;
+        for (const Canon &c : g.C)
+            for (int p : c.pt) {
+                if ((size_t)p < chain_points0 || (p < (int)il_flag.size() && il_flag[p]) || !columned.insert(p).second) continue;
+                Interface::Vertex v;
+                if (!iface.vertex_at(g.P[p], v)) continue;
+                v.p = p;
+                for (int id : column(v, g.P[p], nullptr, std::nan(""))) fresh_pts.push_back(id);
+                for (auto it = keep.begin(); it != keep.end();) {   // kept triangles on the split edge
+                    const Triple &k = *it;
+                    bool on = false;
+                    for (int e = 0; e < 3 && !on; ++e) on = seg_dist(g.P[p], m.point[k[e]], m.point[k[(e + 1) % 3]]) < 1e-9;
+                    it = on ? keep.erase(it) : std::next(it);
+                }
+            }
+        if (fresh_pts.empty()) break;
+        rep.notes.push_back("boundary layer: " + std::to_string(fresh_pts.size()) + " points for interface vertices from encroachment splits");
+        for (int id : fresh_pts) {   // old triangles that now hold a point are re-triangulated
+            const int t = iface.old_triangle(g.P[id]);
+            if (t < 0) continue;
+            Triple k{m.triangle[t].v[0], m.triangle[t].v[1], m.triangle[t].v[2]};
+            std::sort(k.begin(), k.end());
+            keep.erase(k);
+        }
     }
     if (auto enc = encroached(w, o.encroach_angle); !enc.empty())
         rep.notes.push_back(std::to_string(enc.size()) + " boundary edges still above the encroachment angle");

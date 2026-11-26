@@ -67,4 +67,29 @@ oxide).  That shift is larger than any core effect.
    and a 150 A gate oxide.  Also refine the silicon mesh at the oxidizing surface.  Then
    re-baseline the electricals.
 3. Still open: the converged near-surface P (a finer run beyond 0.5x, or a mesh that follows the
-   interface), and the core-on vs off PMOS Vt at that resolution.
+   interface), and the core-on vs off PMOS Vt at that resolution.  Addressed below and in
+   `m1_interface_layer.md`.
+
+## Converged reference decks (2026-11-25)
+The 0.5 um flow with the vertical-model steps converged (`oxide.gdt` step limit after LOCOS,
+near-surface silicon mesh refined to resolve the Kooi pile-up).  Data:
+`experiments/m10b_mesh_20261124/conv_{off,on}`, electricals
+`experiments/wp7_electrical_20261124/conv_{off,on}` (same Genius protocol).
+
+| device | quantity | core off | core on | production mesh + `oxide.gdt` (off / on) |
+|---|---|---|---|---|
+| NMOS | Vt max-gm / cc | 0.412 / 0.404 V | failed (see below) | 0.383 / 0.383 V |
+| NMOS | Ion, SS, DIBL | 252.9 uA, 86.2, 10.1 | - | 257 / 258 uA |
+| PMOS | Vt max-gm / cc | -0.722 / -0.722 V | -0.721 / -0.722 V | -0.827 / -0.811 V |
+| PMOS | Ion, SS, DIBL | 118.6 uA, 100.7, 60.6 | 119.3 uA, 100.1, 58.9 | 120 / 121 uA |
+
+- **Core on vs off on converged decks: PMOS Vt within 1 mV, Ion 0.6 %, SS 0.6 %, DIBL 2.8 %.**
+  That closes M1.0: the earlier 16-22 mV PMOS gap was the unresolved pile-up.
+- Convergence itself moves the devices far more than the core: PMOS Vt by +105 mV, NMOS by
+  +29 mV.  The production RIT decks are not converged (Phase 1 re-baseline).
+- Caveat: the core-off reference has a one-element grown oxide in every vertical-model step
+  (SUPREM never adds oxide nodes), which overstates oxide-to-silicon back-flux in inert anneals
+  (`m1_interface_layer.md`: +2.3 % P at 10 nm in the 1-D Kooi test).  Both columns share that bias
+  here, since the core only ran on compress/viscous.
+- **Core-on NMOS failed** in LOCOS (viscous, build `native64_se0fhkjm`): SUPREM's finite-element
+  continuation did not converge, worst coupling -0.379.  Not rerun yet with the current build.

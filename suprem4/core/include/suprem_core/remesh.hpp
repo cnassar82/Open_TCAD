@@ -107,9 +107,22 @@ struct UpdateOptions {
     std::map<int, double> min_size; // material -> lower bound of its target sizes (um), e.g. SiO2: SUPREM's grid.oxide
     bool keep_triangles = true;    // old triangles stay unless something changed there ...
     double keep_coupling = -0.01;  // ... or one of their edges has a coupling (cot sum / 2) below this
+    // M1 interface boundary layer: on the consumed side (silicon, poly) of every
+    // interface with oxide, rows of points at normal spacing interface_h up to
+    // depth interface_depth, then graded by interface_growth per row until the
+    // spacing reaches the material's own size there.  Along the interface the
+    // rows keep the interface's vertex spacing (anisotropic elements, so the
+    // point count grows with the number of rows, not with 1/h^2).  Lagrangian:
+    // rows the interface has not reached are kept with their values; rows the
+    // interface eats (closer than near x interface_h) are removed; new rows
+    // are added at the deep end, where the profile is smooth.  0: off.
+    double interface_h = 0;        // um
+    double interface_depth = 0.05; // um
+    double interface_growth = 1.5;
 };
 
 struct UpdateReport {
+    int interface_points = 0, interface_inserted = 0;
     int kept = 0, removed_interior = 0, removed_boundary = 0, inserted_boundary = 0, inserted_interior = 0;
     int encroach_splits = 0, flips = 0, new_triangles = 0;
     std::vector<int> origin;       // per new point: old point index, -1 for inserted points

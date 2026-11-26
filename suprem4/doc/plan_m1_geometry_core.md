@@ -33,7 +33,7 @@ whatever mesh the core hands over.
 
 ## 3. Work packages
 
-Status 2026-11-25: M1.0(a), M1.0(b) and M1.1 done.  M1.0 result (`doc/m1_0_core_on_off.md`): the remaining core-on vs core-off differences are discretization errors of SUPREM's vertical-model steps (gate-oxide time step, near-surface P pile-up mesh), not the core; they vanish when those steps are converged.  The production RIT decks are themselves unconverged (gate oxide 8 A too thick); that is a Phase 1 item.  Next: M1.2.
+Status 2026-11-25: M1.0(a), M1.0(b) and M1.1 done.  M1.0 result (`doc/m1_0_core_on_off.md`): the remaining core-on vs core-off differences are discretization errors of SUPREM's vertical-model steps (gate-oxide time step, near-surface P pile-up mesh), not the core; they vanish when those steps are converged.  The production RIT decks are themselves unconverged (gate oxide 8 A too thick); that is a Phase 1 item.  On converged decks core on vs off agree (PMOS Vt within 1 mV).  Added M1.0c (interface boundary layer, `doc/m1_interface_layer.md`): the core keeps 2 nm rows under every Si/poly-oxide interface, opt-in via `SUPREM4_CORE_INTERFACE_H`; 1-D Kooi test converged, LOCOS passes.  Suite 58/58 with the layer off.  Next: M1.2 (the layer makes 2-D viscous LOCOS take 5.5x more SUPREM steps).
 
 | WP | Content | Deliverable | Effort |
 |---|---|---|---|
