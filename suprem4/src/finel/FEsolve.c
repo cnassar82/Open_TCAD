@@ -46,6 +46,11 @@ static double FEscalednorm(struct suprem_pivoted *p,double *rhs)
 
 #define neq (ia[0]-1)
 static int FEverbose;
+/* Set when the continuation cannot reach lambda = 1 (FEstep).  The caller
+ * decides: a time-dependent flow keeps its last converged field for the step
+ * (visco_growth); without one the failure is fatal as before. */
+int FEcontinuation_failed;
+static int FEbackoffs;   /* continuation cut-backs in this solve */
 extern double FEupdnorm();
 
 #ifdef DEBUG
@@ -78,6 +83,8 @@ FEsolve( int verbose)
     int i, j, k;		/* Node, dof, eqn indices */
     int ContinMeth=2;		/* Which continuation method I decided on. */
     FEverbose = verbose;
+    FEcontinuation_failed = 0;
+    FEbackoffs = 0;
 
     /*
      * Figure out how big a problem we have.
@@ -118,6 +125,7 @@ FEsolve( int verbose)
         lambda=1;FEnonloop=limit<12?limit:12;noderiv=0;
         solved=FEnewton(ia,aoff,a,il,loff,l,rhs);
         FEnonloop=limit;
+        { extern int prof_fe_warm, prof_fe_cold; if(solved>0) prof_fe_warm++; else prof_fe_cold++; }
         if(solved>0) {free(guess);goto done;}
         VECTOR2 FEnd[i]->sol[j]=guess[k];
         free(guess);lambda=0;noderiv=0;
@@ -125,6 +133,7 @@ FEsolve( int verbose)
 #endif
 
     /* Solve the initial linear problem */
+    { extern int prof_fe_full; prof_fe_full++; }
     noderiv = 0;     a[0] = 0;
     if(getenv("SUPREM4_FE_TRACE")) {
         int i2,j2,nfix0=0,nleft=0,nnear=0;
@@ -179,8 +188,8 @@ FEsolve( int verbose)
 	FEfdiff( ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr);
     else if( ContinMeth==2){
 	FEstep(  ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, 0.25, 0.25);
-	FEstep(  ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, 0.25, 0.5);
-	FEstep(  ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, 0.5, 1.0);
+	if (!FEcontinuation_failed) FEstep(  ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, 0.25, 0.5);
+	if (!FEcontinuation_failed) FEstep(  ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, 0.5, 1.0);
     }
 
     free(deln); free(delo); free(solo); free(derr);
@@ -312,9 +321,24 @@ FEstep( ia, aoff, a, il, loff, l, rhs, solo, deln, delo, derr, lami, lamf)
 	    lambda = lambda0;
 	    dl /= 2; nstep--;
 	    VECTOR2 FEnd[i]->sol[j] = solo[ k];
+	    /* With the geometry core and a converged field to fall back on, a
+	     * solve that needs more than 4 cut-backs is given up at once (each
+	     * costs a full Newton with line searches: a creeping continuation
+	     * took 25 min for 2 s of process time); the step is then recovered
+	     * (visco_growth/oxgrow).  Without the core: unchanged. */
+	    { extern int FEcontinuation_recoverable, geometry_core_enabled(void);
+	      if (FEcontinuation_recoverable && geometry_core_enabled() && ++FEbackoffs > 4) {
+		  fprintf(stderr, "Flow continuation: %d cut-backs, giving up this solve\n", FEbackoffs);
+		  FEcontinuation_failed = 1;
+		  return;
+	      } }
 	    if( dl < min_dl) {
+		extern int FEcontinuation_recoverable;
 		fprintf( stderr, "Newton convergence failed. Giving up...\n");
-                panic("finite element continuation failed");
+		if (!FEcontinuation_recoverable)
+                    panic("finite element continuation failed");
+		FEcontinuation_failed = 1;
+		return;
 	    }
 	    continue;
 	}
@@ -420,7 +444,14 @@ static int FEnewton_pivoted(int *ia,int aoff,double *a,double *rhs)
     double *old=salloc(double,neq),*step=salloc(double,neq),*scales=salloc(double,neq);
     double *weight=salloc(double,neq);
     double before,after,update,alpha;
-    int i,j,k,iteration,search,status,changed,success=0,accepted;
+    int i,j,k,iteration,search,status,changed,success=0,accepted,stalled=0;
+    /* With the geometry core: a stalled Newton (tiny line-search steps that
+     * barely reduce the residual) is reported as a failure after three such
+     * iterations instead of running to FEnonloop with 60 halvings each; the
+     * continuation then cuts lambda (or the caller recovers) at once.  Off
+     * without the core: production stays bit-identical. */
+    extern int geometry_core_enabled(void);
+    const int stall_check=geometry_core_enabled();
     VECTOR2 scales[k]=FEabe[j];
     for(iteration=0;iteration<FEnonloop;iteration++) {
         noderiv=0;FEassmb(ia,aoff,a,rhs);
@@ -462,11 +493,60 @@ static int FEnewton_pivoted(int *ia,int aoff,double *a,double *rhs)
         }
         if(FEverbose)printf("Newton %d lambda=%g alpha=%g update=%g residual=%g -> %g\n",
                             iteration,lambda,alpha,update,before,after);
+        if(getenv("SUPREM4_FE_DIAG"))
+            fprintf(stderr,"[FE-diag] newton %d lambda=%g alpha=%g update=%g residual %g -> %g%s\n",
+                    iteration,lambda,alpha,update,before,after,accepted?"":" REJECTED");
+        if(!accepted && getenv("SUPREM4_FE_DIAG")) {
+            /* where it fails: largest weighted residual and scaled update */
+            int r,best[6];double bv[6];
+            for(r=0;r<6;r++){best[r]=-1;bv[r]=-1;}
+            VECTOR2 FEnd[i]->sol[j]=old[k];
+            noderiv=1;FEassmb(ia,aoff,a,rhs);
+            for(k=0;k<neq;k++) {
+                double v;
+                if(FEnd[k/FEdf]->fixity[k%FEdf]==1)continue;   /* reactions, not residuals */
+                v=fabs(rhs[k]*weight[k]);
+                for(r=5;r>=0;r--) if(v>bv[r]) { if(r<5){best[r+1]=best[r];bv[r+1]=bv[r];} best[r]=k;bv[r]=v; }
+            }
+            for(r=0;r<6;r++) if(best[r]>=0) {
+                int n=best[r]/FEdf,d=best[r]%FEdf;
+                fprintf(stderr,"[FE-diag]   residual rank %d: %.3g node %d dof %d fixed %d at (%.5f, %.5f) um, step %.3g sol %.3g\n",
+                        r,bv[r],n,d,FEnd[n]->fixity[d],1e4*FEnd[n]->cord[0],1e4*FEnd[n]->cord[1],step[best[r]],old[best[r]]);
+            }
+        }
         if(!accepted) {
             VECTOR2 FEnd[i]->sol[j]=old[k];
             break;
         }
         if(success)break;
+        if(stall_check && alpha<1e-3 && after>(1-1e-3)*before) {
+            /* Stalled with the residual already within tolerance: the flow
+             * equations are solved; the update test fails only where the
+             * Jacobian is inexact (stress-dependent viscosity at the
+             * singular nitride corner, LOCOS: updates of 2 % there at a
+             * residual 200x below tolerance).  Accept, do not cut back. */
+            if(stalled>=2 && isfinite(after) && after<=FErel) {
+                if(getenv("SUPREM4_FE_DIAG"))fprintf(stderr,"[FE-diag] newton accepted on residual at lambda=%g: residual %g, update %g\n",lambda,after,update);
+                success=1;break;
+            }
+            if(++stalled>=3) {
+                if(getenv("SUPREM4_FE_DIAG")) {
+                    int r,best[8];double bv[8];
+                    fprintf(stderr,"[FE-diag] newton stalled at lambda=%g residual %g\n",lambda,after);
+                    for(r=0;r<8;r++){best[r]=-1;bv[r]=-1;}
+                    VECTOR2 if(FEnd[i]->fixity[j]!=1) {
+                        double v=fabs(step[k])/(FEabe[j]+fabs(old[k]));
+                        for(r=7;r>=0;r--) if(v>bv[r]) { if(r<7){best[r+1]=best[r];bv[r+1]=bv[r];} best[r]=k;bv[r]=v; }
+                    }
+                    for(r=0;r<8;r++) if(best[r]>=0) {
+                        int n=best[r]/FEdf,d=best[r]%FEdf;
+                        fprintf(stderr,"[FE-diag]   update rank %d: %.3g node %d dof %d fixed %d at (%.5f, %.5f) um, step %.3g sol %.3g\n",
+                                r,bv[r],n,d,FEnd[n]->fixity[d],1e4*FEnd[n]->cord[0],1e4*FEnd[n]->cord[1],step[best[r]],old[best[r]]);
+                    }
+                }
+                break;
+            }
+        } else stalled=0;
     }
     suprem_pivoted_free(&solver);free(old);free(step);free(scales);free(weight);
     noderiv=0;

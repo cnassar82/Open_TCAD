@@ -113,6 +113,12 @@ int cont;
 	times(&before);
 
 	/*The oxidation step.  It may cut back the time step */
+	extern double prof_now(void), prof_core_write, prof_core_run, prof_core_read, prof_dt_area, prof_dt_coll, prof_dt_bp;
+	const int prof = getenv("SUPREM4_PROFILE") != NULL;
+	double pt0 = prof ? prof_now() : 0, pt1 = 0, pt2 = 0, pt3 = 0, want_df = del_df;
+	double cw0 = prof_core_write, cr0 = prof_core_run, cd0 = prof_core_read;
+	extern char prof_area_where[400];
+	prof_dt_area = prof_dt_coll = prof_dt_bp = -1; prof_area_where[0] = 0;
 	if (oxidizing) {
 	    GridSave();
 	    Kto = do_oxide(temp,sub_ornt,(gas_type==GAS_WETO2),&del_df);
@@ -140,7 +146,9 @@ int cont;
                 }
             }
         }
+	if (prof) pt1 = prof_now();
 	Ktd = solstep( del_df, temp, timemeth, TRUE );
+	if (prof) pt2 = prof_now();
 
 	total += del_df;
 	t += del_df;
@@ -168,6 +176,17 @@ int cont;
 	if (oxidizing || grain_growing) {
 	    GridSave();
 	    grid_sub( last_ddf );
+	}
+	if (prof) {
+	    extern int prof_fe_warm, prof_fe_cold, prof_fe_full;
+	    fprintf(stderr, "[profile-fe] warm %d cold %d full %d\n", prof_fe_warm, prof_fe_cold, prof_fe_full);
+	    prof_fe_warm = prof_fe_cold = prof_fe_full = 0;
+	    pt3 = prof_now();
+	    fprintf(stderr, "[profile] t %.6g want %.4g dt %.4g area %.4g coll %.4g bp %.4g Ktd %.4g Kto %.4g np %d | "
+		    "oxide %.3f (core write %.3f run %.3f read %.3f) diffuse %.3f gridsub %.3f | %s\n",
+		    total, want_df, last_ddf, prof_dt_area, prof_dt_coll, prof_dt_bp, Ktd, Kto, np,
+		    pt1 - pt0 - (prof_core_write - cw0) - (prof_core_run - cr0) - (prof_core_read - cd0),
+		    prof_core_write - cw0, prof_core_run - cr0, prof_core_read - cd0, pt2 - pt1, pt3 - pt2, prof_area_where);
 	}
 
 	dump_data( total, dump, movie, &wrcnt );

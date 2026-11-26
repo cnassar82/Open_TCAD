@@ -22,6 +22,8 @@
 #include "FEmath.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* By arrangement with FEconvert.c */
 #define TRIOX	0
@@ -46,8 +48,11 @@ extern int oxload();
  *									*
  ************************************************************************/
 float proc_temp;
+int FEcontinuation_recoverable;
 
-visco_growth( temp, dt)
+/* Returns 0, or -1 when the flow did not converge and the previous velocity
+ * field (still in the S4 nodes) was kept. */
+int visco_growth( temp, dt)
     float temp;
     double dt;
 {
@@ -59,9 +64,18 @@ visco_growth( temp, dt)
     /* Boundary conditions */
     FEoxbc();
 
-    /* Call the FE solver on the oxide problem */
+    /* Call the FE solver on the oxide problem.  A continuation failure is
+     * recoverable when a converged field exists (FEwarm_start: the nodes
+     * carry velocities): the S4 nodes keep it, as between SUPREM's own flow
+     * re-solves (oxide_redo), and the caller shortens the step. */
     FEmathset( 1);
-    FEsolve( verbose>= V_CHAT );
+    { extern int FEwarm_start, FEcontinuation_failed;
+      const char *off = getenv("SUPREM4_FLOW_RECOVERY");
+      FEcontinuation_recoverable = FEwarm_start && !(off && !strcmp(off, "0"));
+      FEsolve( verbose>= V_CHAT );
+      FEcontinuation_recoverable = 0;
+      if (FEcontinuation_failed) { FEfree(); return -1; }
+    }
 
     /* Store the displacements and stresses in S4's data structure */
     FE2s4ox();
@@ -84,7 +98,7 @@ visco_growth( temp, dt)
 
     /* Later */
     FEfree();
-    return;
+    return 0;
 }
 
 

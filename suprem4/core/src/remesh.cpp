@@ -766,7 +766,8 @@ std::vector<std::pair<int, int>> encroached(const Work &w, double limit_deg)
 }
 
 // One round of local encroachment repair (Ruppert): every region-boundary
-// edge with an opposite angle above the limit is split at its midpoint in the
+// edge with an opposite angle above the limit is split at the foot of the
+// perpendicular from that apex (inner 60 % of the edge, else midpoint) in the
 // working mesh (both adjacent triangles split) and in its chain.  Returns the
 // number of splits.
 // Ruppert does not terminate near small input angles (the same edges are
@@ -796,7 +797,17 @@ int split_encroached(Work &w, Geo &g, double limit_deg, double min_len, const Sp
             if (allow && !allow(pa, pb, w.pid[c], w.R[t])) continue;
             auto other = dir.find(dkey(b, a));
             if (other != dir.end() && touched[other->second.first]) continue;
-            Point mid = snap({0.5 * (w.P[a].x + w.P[b].x), 0.5 * (w.P[a].y + w.P[b].y)});
+            // split at the foot of the perpendicular from the encroaching
+            // apex (clamped to the inner 60 %), not at the midpoint: the
+            // apex then sees two near-right angles and is resolved by one
+            // split.  A midpoint split leaves an apex close below a long
+            // edge encroaching one half again, and the edge is halved down
+            // to the apex's distance (a fan of needles on the other side:
+            // LOCOS, silicon grid columns under the moving interface).
+            const double ex = w.P[b].x - w.P[a].x, ey = w.P[b].y - w.P[a].y, L2 = ex * ex + ey * ey;
+            double s = std::clamp(((w.P[c].x - w.P[a].x) * ex + (w.P[c].y - w.P[a].y) * ey) / L2, 0.2, 0.8);
+            if (std::min(s, 1 - s) * std::sqrt(L2) < min_len) s = 0.5;
+            Point mid = snap({w.P[a].x + s * ex, w.P[a].y + s * ey});
             g.P.push_back(mid);
             int m = (int)w.P.size();
             w.P.push_back(mid);
@@ -1079,7 +1090,7 @@ class Interface {
             return std::hypot((dx * n.x + dy * n.y) / hn, (dx * t.x + dy * t.y) / ht);
         }
     };
-    struct Vertex { int p; Point n; int region; double ht; };
+    struct Vertex { int p; Point n; int region; double ht; double adv = 0; };   // adv: look-ahead clearance (update_mesh)
 
     Interface(const Geo &g, const Mesh &m, const UpdateOptions &o, std::function<double(const Point &, int)> fine)
         : m_(m), o_(o), fine_(std::move(fine)), loc_(m)
@@ -1225,8 +1236,9 @@ class Interface {
     {
         std::vector<double> r;
         const double h0 = o_.interface_h, sv = at.x * v.n.x + at.y * v.n.y;
-        double d = std::isnan(phase) ? std::ceil((sv + o_.near * h0) / h0) * h0 - sv   // first level clear of the interface
-                                     : phase + std::ceil((o_.near * h0 - phase) / h0) * h0;
+        const double clear = o_.near * h0 + v.adv;   // first level clear of the interface (and of its advance within the step)
+        double d = std::isnan(phase) ? std::ceil((sv + clear) / h0) * h0 - sv
+                                     : phase + std::ceil((clear - phase) / h0) * h0;
         for (; d <= o_.interface_depth * (1 + 1e-9); d += h0) r.push_back(d);
         double s = h0 * o_.interface_growth;
         d = (r.empty() ? d - h0 : r.back());
@@ -1314,6 +1326,77 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
     for (const Canon &c : g.C)
         for (int p : c.pt) on_chain[p] = 1;
 
+    // M1.2 look-ahead (UpdateOptions::step_dt): node velocities from SUPREM's
+    // XVEL/YVEL solutions (cm/s, the last flow solve), per point and material.
+    int sx = -1, sy = -1;
+    for (size_t k = 0; k < m.species.size(); ++k) {
+        if (m.species[k] == 8) sx = (int)k;
+        if (m.species[k] == 9) sy = (int)k;
+    }
+    const bool ahead = o.step_dt > 0 && sx >= 0 && sy >= 0;
+    std::unordered_map<uint64_t, Point> node_vel;   // (point, material) -> um/s
+    double vmax = 0;
+    if (ahead)
+        for (const Node &nd : m.node) {
+            const Point v{1e4 * nd.value[sx], 1e4 * nd.value[sy]};
+            node_vel[(uint64_t)nd.point * 64 + (uint64_t)nd.material] = v;
+            vmax = std::max(vmax, std::hypot(v.x, v.y));
+        }
+    auto vel = [&](int p, int mat) -> Point {
+        if (p < 0 || p >= n0) return {0, 0};
+        auto it = node_vel.find((uint64_t)p * 64 + (uint64_t)mat);
+        return it == node_vel.end() ? Point{0, 0} : it->second;
+    };
+    // a point's own velocity (SUPREM moves an interface point with the
+    // consumed material's node: the interface advances into it)
+    auto pvel = [&](int p) -> Point {
+        if (!ahead || p < 0 || p >= n0) return {0, 0};
+        for (int mat : {SI, POLY, SIO2}) {
+            auto it = node_vel.find((uint64_t)p * 64 + (uint64_t)mat);
+            if (it != node_vel.end()) return it->second;
+        }
+        for (const auto &[k, v] : node_vel) if (k / 64 == (uint64_t)p) return v;   // (rare: other materials)
+        return {0, 0};
+    };
+    // smallest distance of p from the chord (a, b) within the coming window
+    // [0, 2 step_dt] under the point velocities (0 if p crosses the chord)
+    auto chord_ahead = [&](int p, int a, int b) {
+        const Point P = g.P[p], A = g.P[a], B = g.P[b];
+        if (!ahead) return seg_dist(P, A, B);
+        const Point vp = pvel(p), va = pvel(a), vb = pvel(b);
+        double best = 1e300, s0 = 0;
+        for (int k = 0; k <= 8; ++k) {
+            const double t = 2 * o.step_dt * k / 8;
+            const Point p1{P.x + t * vp.x, P.y + t * vp.y}, a1{A.x + t * va.x, A.y + t * va.y}, b1{B.x + t * vb.x, B.y + t * vb.y};
+            const double ex = b1.x - a1.x, ey = b1.y - a1.y, l = std::hypot(ex, ey);
+            const double h = l > 0 ? ((p1.x - a1.x) * ey - (p1.y - a1.y) * ex) / l : dist(p1, a1);
+            if (k > 0 && h * s0 < 0) return 0.0;
+            s0 = h;
+            best = std::min(best, std::min(std::fabs(h), seg_dist(p1, a1, b1)));
+        }
+        return best;
+    };
+    // shortest length of segment (a, b) within the coming window
+    auto len_ahead = [&](int a, int b) {
+        const Point A = g.P[a], B = g.P[b];
+        double best = dist(A, B);
+        if (!ahead) return best;
+        const Point va = pvel(a), vb = pvel(b);
+        for (int k = 1; k <= 8; ++k) {
+            const double t = 2 * o.step_dt * k / 8;
+            best = std::min(best, dist({A.x + t * va.x, A.y + t * va.y}, {B.x + t * vb.x, B.y + t * vb.y}));
+        }
+        return best;
+    };
+    // clearance a column needs below an interface vertex so that SUPREM's
+    // step limit (no element loses half its area within the step) does not
+    // cut the step: twice the interface's advance into the material
+    auto advance = [&](const Interface::Vertex &v) {
+        if (!ahead || v.p < 0) return 0.0;
+        const Point w = vel(v.p, m.region_material[v.region]);
+        return 2 * std::max(0.0, w.x * v.n.x + w.y * v.n.y) * o.step_dt;
+    };
+
     lap("setup");
     // 1. chain vertices on short segments (geometry kept within tol); not
     // on the side chains of the interface boundary layer (3-), whose
@@ -1340,13 +1423,25 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
             std::vector<int> out{v[0]}, skipped;
             for (size_t i = 1; i + 1 < v.size(); ++i) {
                 const int p = v[i], prev = out.back(), next = v[i + 1];
-                bool drop = uses[p] == 1 && !in_zone0(g.P[p], c);
-                if (drop) {
-                    drop = std::min(dist(g.P[prev], g.P[p]), dist(g.P[p], g.P[next])) < o.short_edge * cfine(g.P[p], c) &&
-                           dist(g.P[prev], g.P[next]) < clongest(g.P[p], c);
+                bool drop = uses[p] == 1 && !in_zone0(g.P[p], c) && dist(g.P[prev], g.P[next]) < clongest(g.P[p], c);
+                // short now, or (look-ahead) within the coming step: a
+                // junction sliding along a straight side towards p
+                const bool short_seg =
+                    std::min(len_ahead(prev, p), len_ahead(p, next)) < o.short_edge * cfine(g.P[p], c);
+                // on a short segment (now or within the coming step), and
+                // within tol of the chord now or (look-ahead) within the step:
+                // a consumed corner flattening, whose cap triangle SUPREM
+                // would otherwise halve step after step; the vertex is then
+                // not more than a quarter of the size off the chord now.
+                // Long segments are never merged by the look-ahead (a flat
+                // chain is collinear at every vertex: that is resolution,
+                // not redundancy).
+                drop = drop && short_seg;
+                for (size_t k = 0; drop && k <= skipped.size(); ++k) {
+                    const int q = k < skipped.size() ? skipped[k] : p;
+                    const double now = seg_dist(g.P[q], g.P[prev], g.P[next]);
+                    drop = now <= o.tol || (ahead && now <= 0.25 * cfine(g.P[q], c) && chord_ahead(q, prev, next) <= o.tol);
                 }
-                for (size_t k = 0; drop && k <= skipped.size(); ++k)
-                    drop = seg_dist(g.P[k < skipped.size() ? skipped[k] : p], g.P[prev], g.P[next]) <= o.tol;
                 if (drop) { skipped.push_back(p); ++removed; }
                 else { out.push_back(p); skipped.clear(); }
             }
@@ -1413,6 +1508,7 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
                 const Point u{(g.P[v[1]].x - E.x) / L1, (g.P[v[1]].y - E.y) / L1};
                 if (u.x * e.n.x + u.y * e.n.y < std::cos(M_PI / 6)) continue;   // not along the column direction
                 Interface::Vertex col{e.p, u, e.region, e.ht};
+                col.adv = advance(e);
                 const std::vector<double> lv = iface.rows(col, E);
                 if (lv.empty()) continue;
                 const double reach = lv.back() + 0.5 * iface.hn(lv.back(), fine(E, e.region));
@@ -1456,14 +1552,44 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
         }
     }
     std::vector<std::pair<Point, Point>> seg;
+    std::vector<std::pair<int, int>> seg_id;
     for (const Canon &c : g.C)
-        for (size_t i = 0; i + 1 < c.pt.size(); ++i) seg.push_back({g.P[c.pt[i]], g.P[c.pt[i + 1]]});
+        for (size_t i = 0; i + 1 < c.pt.size(); ++i) {
+            seg.push_back({g.P[c.pt[i]], g.P[c.pt[i + 1]]});
+            seg_id.push_back({c.pt[i], c.pt[i + 1]});
+        }
     SegGrid sg;
     sg.build(seg);
     auto near_chain = [&](const Point &x, double r) {
         bool hit = false;
         sg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
             if (!hit && seg_dist(x, seg[k].first, seg[k].second) < r) hit = true;
+        });
+        return hit;
+    };
+    // An interior point p that a boundary of its material approaches: closer
+    // than r plus twice the approach within the step (the same rule as the
+    // columns: SUPREM's half-area step limit would otherwise cut the step to
+    // a fraction, again at every step while the gap halves, SUPREM's own
+    // ChooseKillNodes in the core's terms).
+    auto overrun = [&](int p, const Point &x, int region, double r) {
+        if (!ahead || vmax <= 0) return false;
+        const int mat = m.region_material[region];
+        const Point vp = vel(p, mat);
+        const double R = r + 2 * (vmax + std::hypot(vp.x, vp.y)) * o.step_dt;
+        bool hit = false;
+        sg.query(x.x - R, x.y - R, x.x + R, x.y + R, [&](int k) {
+            if (hit) return;
+            const Point &a = seg[k].first, &b = seg[k].second;
+            const double d = seg_dist(x, a, b);
+            if (d >= R || d <= 0) return;
+            const double ex = b.x - a.x, ey = b.y - a.y, l2 = ex * ex + ey * ey;
+            const double u = l2 > 0 ? std::clamp(((x.x - a.x) * ex + (x.y - a.y) * ey) / l2, 0.0, 1.0) : 0;
+            const Point c{a.x + u * ex, a.y + u * ey}, nrm{(x.x - c.x) / d, (x.y - c.y) / d};
+            const Point va = vel(seg_id[k].first, mat), vb = vel(seg_id[k].second, mat);
+            const double wx = (1 - u) * va.x + u * vb.x - vp.x, wy = (1 - u) * va.y + u * vb.y - vp.y;
+            const double approach = wx * nrm.x + wy * nrm.y;   // > 0: the boundary closes in on p
+            if (d < r + 2 * std::max(0.0, approach) * o.step_dt) hit = true;
         });
         return hit;
     };
@@ -1572,7 +1698,10 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
                 });
                 return best;
             };
-            for (const Interface::Vertex &v : iface.vertices()) column(v, g.P[v.p], match, phase_of(v, g.P[v.p]));
+            for (Interface::Vertex v : iface.vertices()) {
+                v.adv = advance(v);
+                column(v, g.P[v.p], match, phase_of(v, g.P[v.p]));
+            }
             for (size_t i = 0; i < cand.size(); ++i)
                 if (in_zone[i] && !matched[i]) rep.removed_interior++;
         }
@@ -1583,7 +1712,7 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
             const Point &x = g.P[cand[i]];
             const int region = point_region[cand[i]];
             const double r = o.near * fine(x, region);
-            bool ok = !near_chain(x, r);
+            bool ok = !near_chain(x, r) && !overrun(cand[i], x, region, r);
             if (ok)
                 zh.query(x, r, [&](int q) {
                     if (ok && dist(x, zh.at[q]) < r) ok = false;
@@ -1689,11 +1818,36 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
                 const Point &A = w.P[w.T[t][0]], &B = w.P[w.T[t][1]], &C = w.P[w.T[t][2]];
                 Point cen{(A.x + B.x + C.x) / 3, (A.y + B.y + C.y) / 3};
                 double area = 0.5 * std::fabs(cross(A, B, C)), hc = area_h(cen, w.R[t]);
-                if (area <= o.grow * std::sqrt(3.0) / 4 * hc * hc) continue;
                 int k = 0;   // longest edge v[k] -> v[k+1]
                 for (int j = 1; j < 3; ++j)
                     if (dist(w.P[w.T[t][j]], w.P[w.T[t][(j + 1) % 3]]) > dist(w.P[w.T[t][k]], w.P[w.T[t][(k + 1) % 3]])) k = j;
                 int a = w.T[t][k], bb = w.T[t][(k + 1) % 3];
+                // Flow quality (M1, LOCOS): the viscous/compress flow is a
+                // finite-element problem on the oxide and nitride, and needle
+                // elements there stall its Newton solve (stress-dependent
+                // viscosity).  A coarse oxide on a finely divided boundary
+                // (the silicon side sets the interface spacing) can only
+                // connect by fans of needles, so a flow-material triangle
+                // below flow_min_angle gets the midpoint of its longest
+                // interior edge, with a clearance relative to its own size
+                // instead of the material's floor: longest-edge bisection
+                // with re-triangulation, i.e. Delaunay refinement graded from
+                // the boundary to the material's own size.
+                const int mat_t = m.region_material[w.R[t]];
+                const bool flow_mat = mat_t == SIO2 || mat_t == SINI || mat_t == OXNI;
+                bool quality = false;
+                double qclear = 0;
+                if (flow_mat && o.flow_min_angle > 0 && !con.count(ukey(a, bb))) {
+                    const double lim = o.flow_min_angle * PI / 180;
+                    double emin = 1e300;
+                    for (int j = 0; j < 3; ++j) {
+                        if (angle_at(w.P[w.T[t][j]], w.P[w.T[t][(j + 1) % 3]], w.P[w.T[t][(j + 2) % 3]]) < lim) quality = true;
+                        emin = std::min(emin, dist(w.P[w.T[t][(j + 1) % 3]], w.P[w.T[t][(j + 2) % 3]]));
+                    }
+                    qclear = 0.5 * emin;
+                    if (quality && 0.5 * dist(w.P[a], w.P[bb]) < std::max(o.min_split_length, o.hmin)) quality = false;
+                }
+                if (!quality && area <= o.grow * std::sqrt(3.0) / 4 * hc * hc) continue;
                 Point x;
                 if (!con.count(ukey(a, bb))) {
                     if (!split_edge.insert(ukey(a, bb)).second) continue;   // neighbour already splits it
@@ -1703,10 +1857,12 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
                 }
                 x = snap(x);
                 if (Interface::Near z; iface.active() && iface.zone(x, w.R[t], z)) continue;   // the zone is structured
+                const double rclear = quality ? std::min(qclear, o.near * fine(x, w.R[t])) : o.near * fine(x, w.R[t]);
                 bool clear = true;
-                for (int j = 0; j < 3; ++j) clear = clear && dist(x, w.P[w.T[t][j]]) >= o.near * fine(x, w.R[t]);
+                for (int j = 0; j < 3; ++j) clear = clear && dist(x, w.P[w.T[t][j]]) >= rclear;
+                clear = clear && !overrun(-1, x, w.R[t], rclear);   // not where a boundary arrives within the step
                 if (clear && iface.active()) {   // as the removal rule (3b): not closer than near x fine to a zone point
-                    const double r = o.near * fine(x, w.R[t]);
+                    const double r = rclear;
                     zh.query(x, r, [&](int q) {
                         if (clear && dist(x, zh.at[q]) < r) clear = false;
                     });

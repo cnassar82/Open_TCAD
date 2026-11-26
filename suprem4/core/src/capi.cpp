@@ -261,6 +261,10 @@ extern "C" int suprem_core_oxidation_check(const char *in_path, const char *out_
             uo.interface_h = env("SUPREM4_CORE_INTERFACE_H", uo.interface_h);
             uo.interface_depth = env("SUPREM4_CORE_INTERFACE_DEPTH", uo.interface_depth);
             uo.interface_growth = env("SUPREM4_CORE_INTERFACE_GROWTH", uo.interface_growth);
+            uo.flow_min_angle = env("SUPREM4_CORE_FLOW_MIN_ANGLE", uo.flow_min_angle);
+            // M1.2 look-ahead: SUPREM's wanted step (SUPREM4_CORE_LOOKAHEAD=0: off)
+            if (auto it = st.param.find("step_dt_s"); it != st.param.end() && env("SUPREM4_CORE_LOOKAHEAD", 1) != 0)
+                uo.step_dt = std::max(0.0, it->second);
             if (auto it = st.param.find("oxide_grid_um"); it != st.param.end() && it->second > 0)
                 uo.min_size[SIO2] = env("SUPREM4_CORE_OXIDE_H", it->second);
             if (force) uo.keep_triangles = false;   // SUPREM predicts squeezed elements: full Delaunay triangulation

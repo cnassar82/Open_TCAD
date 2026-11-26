@@ -24,6 +24,7 @@ static struct timespec oxt_t0;
 	fprintf(stderr, "[oxgrow-time] %s %.2f\n", what, oxt_t0.tv_sec ? (_t.tv_sec - oxt_t0.tv_sec) + 1e-9 * (_t.tv_nsec - oxt_t0.tv_nsec) : 0.0); oxt_t0 = _t; } } while (0)
 #include <math.h>
 #include <stdio.h>
+int flow_recovered;   /* consecutive viscous flow failures (oxide_vel) */
 #include <sys/times.h>
 
 #include <global.h>
@@ -53,6 +54,7 @@ oxgrow (temp, ornt, oxhow, dt )
     /* Geometry core (M0 WP6): events, repair, regeneration and field
      * transfer for the whole structure; no-op unless SUPREM4_GEOMETRY_CORE
      * is set in a build linked with the core (oxide/geometry_core.c). */
+    { extern void geometry_core_set_step(double); geometry_core_set_step(*dt); }
     { extern int geometry_core_step(void); if (geometry_core_step()) UpdateSymbolic++; }
     OXT("after core");
 
@@ -64,6 +66,19 @@ oxgrow (temp, ornt, oxhow, dt )
     /* Compute the velocity vector using whatever oxide growth model */
     oxide_vel (temp, ornt, oxhow, *dt);
     OXT("oxide_vel");
+    /* Flow recovery: the viscous flow did not converge and the last
+     * converged velocity field was kept (visco_growth).  Take a shorter step
+     * with it, have the geometry core rebuild the mesh at its next call, and
+     * re-solve the flow next step; give up after repeated failures. */
+    { extern int flow_recovered;
+      if (flow_recovered > 0) {
+	  extern void geometry_core_request(void);
+	  fprintf(stderr, "[flow-recovery] viscous flow did not converge at time %g: previous velocity field kept, "
+		  "step %g -> %g, mesh rebuild requested (%d in a row)\n", total, *dt, 0.5 * *dt, flow_recovered);
+	  if (flow_recovered > 8) panic("finite element continuation failed repeatedly");
+	  *dt *= 0.5;
+	  geometry_core_request();
+      } }
     mesh_embedding_trace("oxide velocities");
 
     /* With the geometry core active it owns the topology: SUPREM's own loop
@@ -93,7 +108,7 @@ oxgrow (temp, ornt, oxhow, dt )
      * elements at the next step instead of the step collapsing. */
     { extern int geometry_core_enabled(void); extern void geometry_core_request(void);
       if (geometry_core_enabled()) {
-	  double want = *dt, lim = *dt, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, a, b, c, A0, s, t, disc;
+	  int lim_ie = -1; double want = *dt, lim = *dt, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, a, b, c, A0, s, t, disc;
 	  int ie;
 	  for (ie = 0; ie < ne; ie++) {
 	      if (dead_tri(ie)) continue;
@@ -122,11 +137,28 @@ oxgrow (temp, ornt, oxhow, dt )
 		  }
 	      }
 	      (void)s;
-	      if (t < lim) lim = t;
+	      if (t < lim) { lim = t; lim_ie = ie; }
 	  }
 	  if (lim < *dt) *dt = lim;
 	  if (lim < 0.2 * want) geometry_core_request();
+	  { extern double prof_dt_area; extern char prof_area_where[400]; prof_dt_area = lim; prof_area_where[0] = 0;
+	    if (lim_ie >= 0) {
+		int k; double cx = 0, cy = 0, hmin = 1e30, A = 0;
+		for (k = 0; k < 3; k++) { cx += xcord(pt_nd(vert_tri(lim_ie,k))) / 3; cy += ycord(pt_nd(vert_tri(lim_ie,k))) / 3; }
+		x0 = xcord(pt_nd(vert_tri(lim_ie,0))); y0 = ycord(pt_nd(vert_tri(lim_ie,0)));
+		x1 = xcord(pt_nd(vert_tri(lim_ie,1))); y1 = ycord(pt_nd(vert_tri(lim_ie,1)));
+		x2 = xcord(pt_nd(vert_tri(lim_ie,2))); y2 = ycord(pt_nd(vert_tri(lim_ie,2)));
+		A = fabs((x1-x0)*(y2-y0) - (y1-y0)*(x2-x0));
+		hmin = fmax(fmax(hypot(x1-x0,y1-y0), hypot(x2-x1,y2-y1)), hypot(x0-x2,y0-y2));
+		{ int pa = pt_nd(vert_tri(lim_ie,0)), pb = pt_nd(vert_tri(lim_ie,1)), pc = pt_nd(vert_tri(lim_ie,2));
+		snprintf(prof_area_where, sizeof prof_area_where, "mat %d height %.3g nm: (%.4f,%.4f)n%d v%.2g,%.2g (%.4f,%.4f)n%d v%.2g,%.2g (%.4f,%.4f)n%d v%.2g,%.2g",
+			 mat_reg(reg_tri(lim_ie)), 1e7*A/hmin,
+			 1e4*xcord(pa), 1e4*ycord(pa), num_nd(pa), 1e7*pt[pa]->vel[0], 1e7*pt[pa]->vel[1],
+			 1e4*xcord(pb), 1e4*ycord(pb), num_nd(pb), 1e7*pt[pb]->vel[0], 1e7*pt[pb]->vel[1],
+			 1e4*xcord(pc), 1e4*ycord(pc), num_nd(pc), 1e7*pt[pc]->vel[0], 1e7*pt[pc]->vel[1]); }
+	    } }
 	  { extern double geometry_core_collision_dt(double); *dt = geometry_core_collision_dt(*dt); }
+	  { extern double prof_dt_coll; prof_dt_coll = *dt; }
 	  if (getenv("SUPREM4_CORE_SPEED_DIAG"))
 	      fprintf(stderr, "[core-area-limit] dt %.3e -> %.3e%s\n", want, *dt, lim < 0.2 * want ? " (regeneration requested)" : "");
       } }
@@ -175,6 +207,7 @@ oxgrow (temp, ornt, oxhow, dt )
     /*cut the time step back */
     back_pedal( dt );
     OXT("back_pedal");
+    { extern double prof_dt_bp; prof_dt_bp = *dt; }
 
     /* Mark nodes for later removal */
     { extern int geometry_core_enabled(void); if (!geometry_core_enabled()) ChooseKillNodes( *dt); }

@@ -119,6 +119,17 @@ struct UpdateOptions {
     double interface_h = 0;        // um
     double interface_depth = 0.05; // um
     double interface_growth = 1.5;
+    // M1.2 look-ahead: the step SUPREM wants next (s), with node velocities
+    // from the mesh's XVEL/YVEL solutions.  Interior points and interface
+    // layer rows that a boundary of their material would approach within
+    // twice that step's motion are removed now, so SUPREM's half-area step
+    // limit does not cut the step (and again at every step while the gap
+    // halves).  0: off.
+    double step_dt = 0;
+    // Flow quality: oxide/nitride triangles with an angle below this (deg)
+    // are refined by longest-edge bisection (graded to the boundary), since
+    // the flow's Newton solve stalls on needles.  0: off.
+    double flow_min_angle = 15;
 };
 
 struct UpdateReport {

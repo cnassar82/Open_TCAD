@@ -99,7 +99,9 @@ oxide_vel (temp, ornt, oxhow, dt)
                 /* FE2s4 replaces the complete velocity field after a
                  * successful solve. Preserve the committed field until
                  * then so the pivoted solver can use it as an initial guess. */
-                visco_growth(temp,dt);SetFuse();
+                { extern int visco_growth(), flow_recovered;
+                  if (visco_growth(temp,dt) == 0) { SetFuse(); flow_recovered = 0; }
+                  else flow_recovered++; }
             }
 		break;
 	default:

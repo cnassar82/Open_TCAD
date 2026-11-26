@@ -57,6 +57,25 @@ static int requested = 0;
 /* Ask for a regeneration at the next step (elements about to be squeezed). */
 void geometry_core_request(void) { requested = 1; }
 
+/* M1.2: the step SUPREM wants next (s), for the core's look-ahead removal */
+void geometry_core_set_step(double dt)
+{
+    if (suprem_core_set_param) suprem_core_set_param("step_dt_s", dt);
+}
+
+/* M1.2 profile (SUPREM4_PROFILE=1): wall time of the phases of a step and
+ * the step limits, printed by solve_time.  Measurement only. */
+#include <time.h>
+char prof_area_where[400];
+int prof_fe_warm, prof_fe_cold, prof_fe_full;
+double prof_core_write, prof_core_run, prof_core_read, prof_dt_area, prof_dt_coll, prof_dt_bp;
+double prof_now(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec + 1e-9 * ts.tv_nsec;
+}
+
 int geometry_core_enabled(void)
 {
     const char *e = getenv("SUPREM4_GEOMETRY_CORE");
@@ -94,6 +113,7 @@ int geometry_core_step(void)
     }
     if (requested) { force = 1; requested = 0; }
     calls++;
+    double t0 = prof_now();
     if (ig2_write(in, 0, 1.0) < 0) {
 	fprintf(stderr, "[geometry-core] cannot write %s\n", in);
 	return 0;
@@ -114,10 +134,14 @@ int geometry_core_step(void)
 	return 1;
     }
     msg[0] = 0;
+    double t1 = prof_now();
+    prof_core_write += t1 - t0;
     if (suprem_core_set_param) suprem_core_set_param("oxide_grid_um", 1e4 * oxide_grid);
     rc = suprem_core_oxidation_check(in, out, env_double("SUPREM4_CORE_EVENT_DELTA", env_double("SUPREM4_CORE_DELTA", 1e-3)),
 				     env_double("SUPREM4_CORE_MIN_COUPLING", -0.5), force, msg, (int)sizeof msg);
     unlink(in);
+    double t2 = prof_now();
+    prof_core_run += t2 - t1;
     if (rc < 0) {
 	fprintf(stderr, "[geometry-core] call %d: %s; continuing with the current mesh\n", calls, msg);
 	return 0;
@@ -126,6 +150,7 @@ int geometry_core_step(void)
     if (ig2_read(out, 0, 1.0) < 0) panic("geometry core: cannot reload the regenerated mesh");
     create_db(nn == 0);
     unlink(out);
+    prof_core_read += prof_now() - t2;
     xv = imptosol[XVEL];
     yv = imptosol[YVEL];
     if (xv >= 0 && yv >= 0)

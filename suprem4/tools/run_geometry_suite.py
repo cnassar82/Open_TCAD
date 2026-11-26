@@ -55,9 +55,14 @@ DECKS = SUPREM / "doc" / "poly_oxidation" / "test_decks"
 MATRIX = ["base", "coarse", "dry1000_120", "narrow025", "wet900_20", "wide080"]
 LOCOS_MASK = SUPREM.parent / "decks/subcmos2014/results/m0_reference_20261122/nmos/locos_mask.str"
 
+# Oxide spacing per model.  Compress with the core is not converged at 0.04 um (field oxide 7167,
+# 7179, 7118 A at 0.04, 0.02, 0.01; core off 7092, 7093, 7099 A): the 1 % core-on vs core-off
+# check compares resolved answers only at 0.01 (doc/m1_2_speed_robustness.md).
+LOCOS_GRID_OXIDE = dict(compress=0.01, viscous=0.04)
+
 LOCOS_RECIPE = """\
 oxide Vc=300 Vr=30 Vd=25 stress.dep=true
-method {model} oxide.rel=1e-2 grid.oxide=0.04
+method {model} oxide.rel=1e-2 grid.oxide={grid_oxide}
 diffuse time=12 temp=800 nitrogen
 diffuse time=15 temp=800 nitrogen continue
 diffuse time=5 temp=825 nitrogen continue
@@ -290,7 +295,7 @@ def poly_checks(res):
 def locos_case(args, model):
     d = args.out / f"locos_{model}"
     d.mkdir(parents=True, exist_ok=True)
-    deck = f"option quiet\ninitialize infile={LOCOS_MASK}\n" + LOCOS_RECIPE.format(model=model) + \
+    deck = f"option quiet\ninitialize infile={LOCOS_MASK}\n" + LOCOS_RECIPE.format(model=model, grid_oxide=LOCOS_GRID_OXIDE[model]) + \
         "structure outfile=after.str\n"
     res = dict(name=f"locos_{model}")
     with cf.ThreadPoolExecutor(2) as ex:
