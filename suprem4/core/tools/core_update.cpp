@@ -63,6 +63,7 @@ int main(int argc, char **argv)
         else if (a == "--retriangulate") o.keep_triangles = false;
         else if (a == "--oxide-h") o.min_size[SIO2] = std::atof(next());
         else if (a == "--keep-coupling") o.keep_coupling = std::atof(next());
+        else if (a == "--flow-angle") o.flow_min_angle = std::atof(next());
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
     }
     try {

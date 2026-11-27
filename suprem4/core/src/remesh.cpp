@@ -57,6 +57,59 @@ double angle_at(const Point &a, const Point &b, const Point &c)
     return std::atan2(std::fabs(ux * vy - uy * vx), ux * vx + uy * vy);
 }
 
+double min_angle(const Point &a, const Point &b, const Point &c)
+{
+    return std::min({angle_at(a, b, c), angle_at(b, c, a), angle_at(c, a, b)});
+}
+
+// Largest minimum angle (radians) over all triangulations of the simple
+// polygon P (counter-clockwise), by dynamic programming over its diagonals;
+// -1 if P has more than max_n vertices or no valid triangulation.  Used for
+// the cavity a removed point leaves (star polygon, typically 4-12 vertices).
+double best_cavity_angle(const std::vector<Point> &P, size_t max_n = 24)
+{
+    const int n = (int)P.size();
+    if (n < 3 || (size_t)n > max_n) return -1;
+    auto proper = [](const Point &a, const Point &b, const Point &c, const Point &d) {
+        double d1 = cross(a, b, c), d2 = cross(a, b, d), d3 = cross(c, d, a), d4 = cross(c, d, b);
+        return ((d1 > 0) != (d2 > 0)) && ((d3 > 0) != (d4 > 0)) && d1 != 0 && d2 != 0 && d3 != 0 && d4 != 0;
+    };
+    auto inside = [&](const Point &q) {   // even-odd rule
+        bool in = false;
+        for (int i = 0, j = n - 1; i < n; j = i++)
+            if ((P[i].y > q.y) != (P[j].y > q.y) && q.x < (P[j].x - P[i].x) * (q.y - P[i].y) / (P[j].y - P[i].y) + P[i].x)
+                in = !in;
+        return in;
+    };
+    std::vector<char> diag(n * n, 0);
+    for (int i = 0; i < n; ++i)
+        for (int j = i + 1; j < n; ++j) {
+            if (j == i + 1 || (i == 0 && j == n - 1)) { diag[i * n + j] = 1; continue; }
+            bool ok = inside({0.5 * (P[i].x + P[j].x), 0.5 * (P[i].y + P[j].y)});
+            for (int k = 0; ok && k < n; ++k) {
+                int l = (k + 1) % n;
+                if (k == i || k == j || l == i || l == j) continue;
+                if (proper(P[i], P[j], P[k], P[l])) ok = false;
+            }
+            diag[i * n + j] = ok;
+        }
+    std::vector<double> best(n * n, -1);
+    for (int i = 0; i + 1 < n; ++i) best[i * n + i + 1] = 1e9;
+    for (int len = 2; len < n; ++len)
+        for (int i = 0; i + len < n; ++i) {
+            const int j = i + len;
+            if (!diag[i * n + j]) continue;
+            double b = -1;
+            for (int k = i + 1; k < j; ++k) {
+                if (!diag[i * n + k] || !diag[k * n + j] || best[i * n + k] < 0 || best[k * n + j] < 0) continue;
+                if (cross(P[i], P[k], P[j]) <= 0) continue;
+                b = std::max(b, std::min({best[i * n + k], best[k * n + j], min_angle(P[i], P[k], P[j])}));
+            }
+            best[i * n + j] = b;
+        }
+    return best[n - 1];
+}
+
 // ---------------------------------------------------------------- segment grid
 struct SegGrid {
     double x0 = 0, y0 = 0, cell = 1;
@@ -1475,6 +1528,49 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
     std::vector<int> point_region(n0, -1);
     for (const Triangle &t : m.triangle)
         for (int v : t.v) point_region[v] = t.region;
+    // Flow quality on removal (3b): an interior point of a flow material that
+    // the proximity rule would remove is kept when the cavity it leaves has
+    // no triangulation with all angles >= flow_min_angle and none as good as
+    // its star now.  Step 4 inserts by the same angle criterion, so the two
+    // cannot undo each other (with the proximity rule alone ~250 points per
+    // call were removed and re-inserted at the same place).  A sliver star
+    // (point against a boundary) still goes: its cavity is better than it.
+    std::vector<std::vector<int>> star_of;
+    if (o.flow_min_angle > 0) {
+        star_of.resize(n0);
+        for (int t = 0; t < (int)m.triangle.size(); ++t) {
+            const int mt = m.region_material[m.triangle[t].region];
+            if (mt == SIO2 || mt == SINI || mt == OXNI)
+                for (int v : m.triangle[t].v) star_of[v].push_back(t);
+        }
+    }
+    auto needed_for_flow = [&](int p) {
+        if (star_of.empty() || p < 0 || p >= n0 || star_of[p].size() < 3) return false;
+        std::unordered_map<int, int> next;
+        double star = 1e9;
+        const int region = m.triangle[star_of[p][0]].region;
+        for (int t : star_of[p]) {
+            const Triangle &tr = m.triangle[t];
+            if (tr.region != region) return false;
+            int j = tr.v[0] == p ? 0 : tr.v[1] == p ? 1 : 2;
+            int a = tr.v[(j + 1) % 3], b = tr.v[(j + 2) % 3];
+            if (cross(m.point[p], m.point[a], m.point[b]) < 0) std::swap(a, b);
+            if (!next.emplace(a, b).second) return false;
+            star = std::min(star, min_angle(m.point[p], m.point[a], m.point[b]));
+        }
+        std::vector<Point> poly;
+        int v = next.begin()->first;
+        for (size_t k = 0; k < next.size(); ++k) {
+            poly.push_back(m.point[v]);
+            auto it = next.find(v);
+            if (it == next.end()) return false;
+            v = it->second;
+        }
+        if (v != next.begin()->first) return false;   // not a closed link (boundary point)
+        const double cav = best_cavity_angle(poly);
+        if (cav < 0) return false;
+        return cav < o.flow_min_angle * PI / 180 && cav < star;
+    };
     std::vector<int> layer;
     std::vector<char> il_flag;   // per g.P index: interface-layer point (kept or inserted)
     Interface iface(g, m, o, [&](const Point &x, int region) { return fine(x, region); });
@@ -1712,15 +1808,18 @@ Mesh update_mesh(const Mesh &m, const Mesh &reference, const UpdateOptions &o, U
             const Point &x = g.P[cand[i]];
             const int region = point_region[cand[i]];
             const double r = o.near * fine(x, region);
-            bool ok = !near_chain(x, r) && !overrun(cand[i], x, region, r);
-            if (ok)
+            const bool over = overrun(cand[i], x, region, r);
+            bool close = !over && near_chain(x, r);
+            if (!over && !close)
                 zh.query(x, r, [&](int q) {
-                    if (ok && dist(x, zh.at[q]) < r) ok = false;
+                    if (!close && dist(x, zh.at[q]) < r) close = true;
                 });
-            if (ok)
+            if (!over && !close)
                 pg.query(x.x - r, x.y - r, x.x + r, x.y + r, [&](int k) {
-                    if (ok && (size_t)k < i && kept[k] && !in_zone[k] && dist(x, dots[k].first) < r) ok = false;
+                    if (!close && (size_t)k < i && kept[k] && !in_zone[k] && dist(x, dots[k].first) < r) close = true;
                 });
+            if (close && needed_for_flow(cand[i])) close = false;
+            const bool ok = !over && !close;
             kept[i] = ok;
             if (ok) layer.push_back(cand[i]);
             else rep.removed_interior++;

@@ -111,6 +111,17 @@ tolerance is unchanged.
   (worst oxide angle 15 deg) but in the run the oxide coarsened during growth, 316 cut-backs and
   36 recoveries (`experiments/m10b_mesh_20261124/locos_cell/graded_floor_try1.patch`).  Not
   merged.
+  Merged (2026-11-27): an exact cavity test in 3b.  A flow-material point that 3b would remove
+  for proximity is kept when the best re-triangulation of its star (max-min-angle DP over the
+  star polygon, up to 24 vertices) would fall below `flow_min_angle` and below the star's own
+  minimum angle: the removal must not create what step 4 then repairs.  Regression cell: wall
+  1337 -> 730 s, removed points 100k -> 50k, calls changing > 100 points 401 -> 141, 0 cut-backs,
+  field oxide 7103 A (core off 7134 A), worst oxide angle 13.1 deg.  Suite 58/58
+  (`experiments/m1_cavity_suite_20261126`; LOCOS viscous 7171 A / 772 s, compress 7130 A /
+  2974 s).  Tried on top: removing only an independent set per call (no two neighbours): 12 %
+  less churn but 6 cut-backs and worst angle 9.1 deg; not merged
+  (`locos_cell/cavity_plus_indep.patch`).  The remaining removals (~200 oxide points per late
+  call, ~10 nm from the interface) track the growing oxide.
 - A final core call after the last oxidation step was tried: no effect on the cell (worst
   coupling -0.536 with or without; the -1.2 was an earlier build).  Not merged.
 - Layer runtime: LOCOS with the 2 nm layer still needs to be re-measured with the look-ahead.
