@@ -73,15 +73,44 @@ and continues with the previous field.  Core off: the paths only change runs tha
 panicked (bit-identical otherwise).
 
 ## Full-size NMOS LOCOS
-FULLSIZE_RESULT
+The converged NMOS deck's LOCOS (`experiments/m10b_mesh_20261124/locos_fail/locos.in`: dry 0-300 s,
+wet 300-4200 s, 1100 C, viscous, stress-dependent) completes with the core: 1568 steps, 1401 core
+calls (1 full regeneration), 18.2k points; 5 continuation cut-backs, 38 Newton stalls accepted on
+residual, no flow recovery and no solve given up.  Field oxide 7111 A (regression cell core off:
+7134 A, core on 7110 A).  Oxide: 8333 triangles, worst angle 5.7 deg (5 below 10 deg).  Worst
+coupling of the last call -0.93.  Wall 21.4 ks on a loaded machine (with the suite running).
 
 ## Suite
-SUITE_RESULT
+58/58 on the final build (`tools/run_geometry_suite.py --matrix --random 50 --seed 7 --locos`,
+`experiments/m1_final_suite_20261126`).  LOCOS: viscous 7167 A vs core off 7157 A (+0.14 %), 801 s
+vs 1116 s; compress (now at grid.oxide 0.01, see below) 7118 A vs 7099 A (+0.27 %), 3146 s vs 3086 s.
+
+`locos_compress` at grid.oxide 0.04 had failed the 1 % check (7167 vs 7092 A).  Oxide spacing study,
+field oxide in A:
+
+| grid.oxide (um) | core off | core on |
+|---|---|---|
+| 0.04 | 7092 | 7167 |
+| 0.02 | 7093 | 7179 |
+| 0.01 | 7099 | 7118 |
+
+The core's compress answer is not converged at 0.04 (it moved 7147-7185 A between builds this
+week); at 0.01 on and off agree to 0.27 %.  The case now runs at 0.01 (`LOCOS_GRID_OXIDE`); the
+tolerance is unchanged.
 
 ## Open
 - The last oxidation step's interface motion is not cleaned up (the core runs at the start of a
   step): one silicon interface edge of the cell ends at coupling -1.2 (core off: -0.73).  A final
   core call after the last oxidizing step (M1.4).
-- Newton stalls on the full structure close to convergence (residual 0.0026, update norm 0.02 vs
-  tolerance 1e-2): a few poorly constrained flow dofs; located with FE_DIAG next.
+- Point churn from the flow quality refinement: the interior removal (3b) measures clearance
+  against the flat oxide floor and removes most of the graded points that step 4 inserts, which
+  step 4 then inserts again (regression cell: 401 of 635 calls change > 100 points, ~250 each;
+  offline, repeated updates of a fixed structure: 149 removed / 118 inserted per call, 2 with
+  `flow_min_angle` = 0).  Likely most of the cell's 3.4x runtime vs core off.  Tried: one graded
+  floor (boundary spacing + 0.5 x distance) for both, removal at 0.75 x: churn gone offline
+  (worst oxide angle 15 deg) but in the run the oxide coarsened during growth, 316 cut-backs and
+  36 recoveries (`experiments/m10b_mesh_20261124/locos_cell/graded_floor_try1.patch`).  Not
+  merged.
+- A final core call after the last oxidation step was tried: no effect on the cell (worst
+  coupling -0.536 with or without; the -1.2 was an earlier build).  Not merged.
 - Layer runtime: LOCOS with the 2 nm layer still needs to be re-measured with the look-ahead.
