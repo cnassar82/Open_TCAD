@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>$title</title>
+<style>
+:root{color-scheme:light;--paper:#fff;--bg:#eef2f7;--ink:#172841;--muted:#51637a;--border:#d6e0eb;--blue:#2356a8;--nav:#142338}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.62 system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px max(20px,calc((100vw - 1060px)/2));background:var(--nav);color:white}
+header strong{font-size:1rem;letter-spacing:.02em}
+nav{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{padding:.5rem .78rem;border:1px solid #7890ab;border-radius:5px;background:transparent;color:white;font:inherit;font-size:.86rem;cursor:pointer}
+button[aria-pressed="true"]{background:#fff;color:var(--nav);border-color:#fff}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,a:focus-visible{outline:3px solid #77aafe;outline-offset:2px}
+#slides-nav{display:none;gap:8px;align-items:center}
+body.slides #slides-nav{display:flex}
+.counter{font-variant-numeric:tabular-nums;font-size:.85rem;min-width:3.2rem;text-align:center}
+main{max-width:1060px;margin:22px auto;padding:0 20px}
+.metadata{margin:0 0 12px;color:var(--muted);font-size:.9rem}
+.metadata span{display:inline-block;margin-right:1rem}
+.page{margin:0 0 14px;padding:clamp(18px,4vw,45px);border:1px solid var(--border);border-radius:9px;background:var(--paper)}
+.page>:first-child{margin-top:0}.page>:last-child{margin-bottom:0}
+h1,h2,h3{line-height:1.2;margin:1.25em 0 .45em}
+h1{font-size:clamp(1.9rem,5vw,3rem);letter-spacing:-.036em}
+h2{font-size:clamp(1.3rem,3vw,1.9rem);letter-spacing:-.018em}
+a{color:var(--blue)}
+figure{margin:1.15rem 0;border-top:1px solid var(--border);padding-top:.85rem;text-align:center;break-inside:avoid}
+figure img,.inline-image{display:block;max-width:100%;max-height:520px;object-fit:contain;margin:auto}
+figcaption{margin:.5rem 0;color:var(--muted);font-size:.9rem}
+table{border-collapse:collapse;margin:1rem 0;width:100%;font-size:.92rem;break-inside:avoid}
+td,th{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--border)}
+th{background:#eef4fa}
+caption{text-align:left;color:var(--muted);padding:0 0 .45rem}
+.metadata,td,th,pre{overflow-wrap:anywhere}
+code,pre{font-family:ui-monospace,monospace}pre{padding:1rem;background:#edf3f9;white-space:pre-wrap;border-radius:4px}
+blockquote{margin-left:0;padding-left:1rem;border-left:3px solid var(--border);color:var(--muted)}
+.note,.metric{padding:.7rem 1rem;margin:.85rem 0;border-left:3px solid #9eb2c9;background:#eef4fa;break-inside:avoid}
+.note,.inline-error{font-size:.9rem;color:var(--muted)}.metric strong{display:block;font-size:1.25rem;color:var(--blue)}
+body.slides .page[hidden]{display:none}body.slides .page{min-height:65vh}
+body.slides figure img{max-height:54vh}
+@media screen and (min-width:760px){
+ body.slides .page:has(>figure+figure):not([hidden]){
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;align-content:start
+ }
+ body.slides .page:has(>figure+figure)>:not(figure){grid-column:1/-1}
+ body.slides .page:has(>figure+figure)>figure{margin:0}
+}
+@media print{
+ :root{--bg:#fff} header{display:none}main{margin:0;max-width:none;padding:0}.page{padding:0;border:0}
+ body.slides .page,body.slides .page[hidden]{display:block;break-after:page;min-height:auto}
+ body.slides .page:last-child{break-after:auto}
+}
+</style>
+</head>
+<body>
+<header><strong>Open TCAD Workbench</strong><nav aria-label="View">
+<button id="report" aria-pressed="true">Report</button>
+<button id="slides" aria-pressed="false">Slides</button>
+<span id="slides-nav"><button id="prev" aria-label="Previous slide">Previous</button>
+<span id="counter" class="counter" aria-live="polite"></span><button id="next" aria-label="Next slide">Next</button></span>
+<button id="print">Print</button>
+</nav></header>
+<main>$metadata
+$pages
+</main>
+<script>
+const pages = [...document.querySelectorAll(".page")];
+let slide = 0;
+function sync() {
+ const slides = document.body.classList.contains("slides");
+ pages.forEach((page, i) => page.hidden = slides && i !== slide);
+ document.getElementById("counter").textContent = `$${slide + 1} / $${pages.length}`;
+ document.getElementById("prev").disabled = slide === 0;
+ document.getElementById("next").disabled = slide === pages.length - 1;
+}
+function mode(showSlides) {
+ document.body.classList.toggle("slides", showSlides);
+ document.getElementById("slides").setAttribute("aria-pressed", showSlides);
+ document.getElementById("report").setAttribute("aria-pressed", !showSlides);
+ sync(); window.scrollTo(0, 0);
+}
+function move(offset) {
+ slide = Math.min(pages.length - 1, Math.max(0, slide + offset));
+ sync(); window.scrollTo(0, 0);
+}
+document.getElementById("report").onclick = () => mode(false);
+document.getElementById("slides").onclick = () => mode(true);
+document.getElementById("prev").onclick = () => move(-1);
+document.getElementById("next").onclick = () => move(1);
+document.getElementById("print").onclick = () => window.print();
+document.addEventListener("keydown", event => {
+ if (!document.body.classList.contains("slides") || event.altKey || event.ctrlKey || event.metaKey) return;
+ if (event.key === "ArrowRight") { event.preventDefault(); move(1); }
+ if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); }
+});
+mode(location.hash === "#slides");
+</script>
+</body>
+</html>

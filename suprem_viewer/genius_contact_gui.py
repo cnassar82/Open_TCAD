@@ -97,13 +97,15 @@ class ContactDialog(simpledialog.Dialog):
 
 
 class ContactGui:
-    def __init__(self, root: tk.Tk, path: Path):
+    def __init__(self, root: tk.Tk, path: Path, *, suggest=True):
         self.root = root
         self.path = path
         self.nodes, self.tris, self.regions, self.sol_codes, self.sol_rows = parse_suprem(
             path, auto_name_electrodes=False
         )
-        self.contacts: list[ContactSpec] = suggested_contacts(self.nodes, self.tris, self.regions)
+        self.contacts: list[ContactSpec] = (
+            suggested_contacts(self.nodes, self.tris, self.regions) if suggest else []
+        )
         self.selected_region: int | None = None
         self.selected_edges: set[int] = set()
         self.edge_lookup = self._edge_lookup()
@@ -178,9 +180,8 @@ class ContactGui:
         ttk.Button(left, text="Delete contact", command=self.delete_contact).pack(
             fill=tk.X, pady=(4, 0)
         )
-        ttk.Button(left, text="Save TIF + deck", command=self.save_outputs).pack(
-            fill=tk.X, pady=(14, 0)
-        )
+        self.save_button = ttk.Button(left, text="Save TIF + deck", command=self.save_outputs)
+        self.save_button.pack(fill=tk.X, pady=(14, 0))
         ttk.Label(left, textvariable=self.status, wraplength=310, anchor="w").pack(
             fill=tk.X, pady=(10, 0)
         )
@@ -261,7 +262,6 @@ class ContactGui:
                 spancoords="data",
                 interactive=False,
             )
-        self.status.set("Mode: select a region, edge, or drag a box around edges.")
 
     def draw_contact_overlays(self):
         for contact in self.contacts:
@@ -392,7 +392,7 @@ class ContactGui:
             default_name = region.name
             if region.mat_id in {4, 6}:
                 default_name = ""
-        dialog = ContactDialog(self.root, "Add Contact", default_name, default_kind)
+        dialog = self.ask_contact(default_name, default_kind)
         if dialog.result is None:
             return
         name, kind, work = dialog.result
@@ -439,6 +439,9 @@ class ContactGui:
             )
         self.clear_selection()
         self.refresh_contacts()
+
+    def ask_contact(self, default_name, default_kind):
+        return ContactDialog(self.root, "Add Contact", default_name, default_kind)
 
     def delete_contact(self):
         selected = self.tree.selection()
